@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from './JobDetailsModal';
 import RatingModal from './RatingModal';
@@ -7,6 +8,7 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const EmployerCurrentJobs = () => {
+  const navigate = useNavigate();
   const [freelancers, setFreelancers] = useState([]);
   const [filteredFreelancers, setFilteredFreelancers] = useState([]);
   const [stats, setStats] = useState({
@@ -70,6 +72,11 @@ const EmployerCurrentJobs = () => {
 
   const handleRatingSuccess = () => {
     fetchCurrentFreelancers();
+  };
+
+  const handleRaiseComplaint = (freelancer) => {
+    // Navigate to complaint form with freelancer data
+    navigate('/employer/complaint', { state: { freelancer } });
   };
 
   const formatDays = (days) => {
@@ -176,6 +183,7 @@ const EmployerCurrentJobs = () => {
                           </div>
                         </div>
                         <button
+                          onClick={() => handleRaiseComplaint(freelancer)}
                           className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
                         >
                           Raise Complaint

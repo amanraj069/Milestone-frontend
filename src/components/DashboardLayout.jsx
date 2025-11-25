@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -6,6 +6,12 @@ const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    // Update premium status whenever user changes
+    setIsPremium(user?.subscription === 'Premium');
+  }, [user]);
 
   const handleLogout = async () => {
     await logout();
@@ -64,7 +70,17 @@ const DashboardLayout = ({ children }) => {
       <aside className="w-72 bg-gradient-to-b from-blue-900 via-blue-800 to-blue-700 text-white flex flex-col shadow-2xl">
         {/* Header */}
         <div className="p-6 border-b border-blue-600/30">
-          <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
+          <div className="flex items-center gap-2 mb-4">
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            {isPremium && (
+              <div className="relative">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center shadow-lg">
+                  <i className="fas fa-star text-white text-sm"></i>
+                </div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-blue-900 animate-pulse"></div>
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center overflow-hidden border-3 border-blue-500">
               <img 
@@ -79,6 +95,9 @@ const DashboardLayout = ({ children }) => {
             </div>
             <div>
               <h2 className="text-base font-semibold leading-tight">Welcome, {getRoleDisplay()} {user?.name ? user.name.split(' ')[0] : 'User'}!</h2>
+              {isPremium && (
+                <p className="text-xs text-yellow-300 font-medium mt-0.5">Premium Member ⭐</p>
+              )}
             </div>
           </div>
         </div>

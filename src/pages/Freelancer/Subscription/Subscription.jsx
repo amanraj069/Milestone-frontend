@@ -7,7 +7,7 @@ import './Subscription.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
-const EmployerSubscription = () => {
+const FreelancerSubscription = () => {
   const { user, checkAuthStatus } = useAuth();
   const [currentPlan, setCurrentPlan] = useState('Basic');
   const [loading, setLoading] = useState(false);
@@ -24,7 +24,7 @@ const EmployerSubscription = () => {
     if (loading) return;
 
     const confirmed = window.confirm(
-      'Upgrade to Premium Plan for ₹868/month?\n\nYou will get:\n• Unlimited job postings\n• Advanced applicant filtering\n• Priority job listing\n• Detailed analytics & insights\n• Premium support (24/7)\n• Custom branding options'
+      'Upgrade to Premium Plan for ₹868.61/month?\n\nYou will get:\n• Unlimited projects\n• Advanced analytics\n• Priority support\n• Ad-free experience\n• Advanced tools'
     );
 
     if (!confirmed) return;
@@ -32,7 +32,7 @@ const EmployerSubscription = () => {
     try {
       setLoading(true);
       const response = await axios.post(
-        `${API_BASE_URL}/api/employer/upgrade_subscription`,
+        `${API_BASE_URL}/api/freelancer/upgrade_subscription`,
         {},
         { withCredentials: true }
       );
@@ -55,7 +55,7 @@ const EmployerSubscription = () => {
     if (loading) return;
 
     const confirmed = window.confirm(
-      'Downgrade to Basic Plan (Free)?\n\nYou will lose:\n• Unlimited job postings\n• Advanced applicant filtering\n• Priority job listing\n• Detailed analytics & insights\n• Premium support\n• Custom branding options'
+      'Downgrade to Basic Plan (Free)?\n\nYou will lose:\n• Unlimited projects\n• Advanced analytics\n• Priority support\n• Ad-free experience\n• Advanced tools'
     );
 
     if (!confirmed) return;
@@ -63,7 +63,7 @@ const EmployerSubscription = () => {
     try {
       setLoading(true);
       const response = await axios.post(
-        `${API_BASE_URL}/api/employer/downgrade_subscription`,
+        `${API_BASE_URL}/api/freelancer/downgrade_subscription`,
         {},
         { withCredentials: true }
       );
@@ -84,6 +84,7 @@ const EmployerSubscription = () => {
 
   const content = (
     <div className="subscription-container">
+      
       {/* Current Plan Banner */}
       <div className={`current-plan-banner ${currentPlan.toLowerCase()}`}>
         <div className="current-plan-content">
@@ -112,34 +113,26 @@ const EmployerSubscription = () => {
                 <span className="period">/month</span>
               </div>
               <p className="plan-description">
-                Perfect for getting started with basic job posting features.
+                Perfect for getting started with basic functionality and essential features.
               </p>
             </div>
 
             <ul className="plan-features">
               <li className="feature-item included">
                 <i className="fas fa-check"></i>
-                <span>Post up to 3 jobs per month</span>
+                <span>Core functionality</span>
               </li>
               <li className="feature-item included">
                 <i className="fas fa-check"></i>
-                <span>Basic applicant management</span>
+                <span>Limited project access</span>
               </li>
               <li className="feature-item included">
                 <i className="fas fa-check"></i>
-                <span>Standard support</span>
+                <span>Basic support</span>
               </li>
               <li className="feature-item not-included">
                 <i className="fas fa-times"></i>
-                <span>Priority listing</span>
-              </li>
-              <li className="feature-item not-included">
-                <i className="fas fa-times"></i>
-                <span>Advanced analytics</span>
-              </li>
-              <li className="feature-item not-included">
-                <i className="fas fa-times"></i>
-                <span>Premium support</span>
+                <span>Ads included</span>
               </li>
             </ul>
 
@@ -154,43 +147,43 @@ const EmployerSubscription = () => {
 
           {/* Premium Plan */}
           <div className={`plan-card premium ${currentPlan === 'Premium' ? 'current' : ''}`}>
-            <div className="recommended-badge">POPULAR</div>
+            <div className="recommended-badge">RECOMMENDED</div>
             <div className="plan-header">
               <h3 className="plan-title">Premium</h3>
               <div className="plan-price">
                 <span className="currency">₹</span>
-                <span className="amount">868</span>
+                <span className="amount">868.61</span>
                 <span className="period">/month</span>
               </div>
               <p className="plan-description">
-                Ideal for growing businesses with advanced hiring needs.
+                Unlock your full potential with advanced tools and premium support.
               </p>
             </div>
 
             <ul className="plan-features">
               <li className="feature-item included">
                 <i className="fas fa-check"></i>
-                <span>Unlimited job postings</span>
+                <span>All basic features</span>
               </li>
               <li className="feature-item included">
                 <i className="fas fa-check"></i>
-                <span>Advanced applicant filtering</span>
+                <span>Unlimited projects</span>
               </li>
               <li className="feature-item included">
                 <i className="fas fa-check"></i>
-                <span>Priority job listing</span>
+                <span>Advanced analytics</span>
               </li>
               <li className="feature-item included">
                 <i className="fas fa-check"></i>
-                <span>Detailed analytics & insights</span>
+                <span>Priority support</span>
               </li>
               <li className="feature-item included">
                 <i className="fas fa-check"></i>
-                <span>Premium support (24/7)</span>
+                <span>Ad-free experience</span>
               </li>
               <li className="feature-item included">
                 <i className="fas fa-check"></i>
-                <span>Custom branding options</span>
+                <span>Advanced tools</span>
               </li>
             </ul>
 
@@ -239,7 +232,7 @@ const EmployerSubscription = () => {
     </div>
   );
 
-  return <DashboardPage title="Subscription">{content}</DashboardPage>
+  return <DashboardPage title="Subscription">{content}</DashboardPage>;
 };
 
-export default EmployerSubscription;
+export default FreelancerSubscription;
