@@ -32,6 +32,7 @@ import EmployerApplications from './pages/Employer/Applications/Applications';
 import EmployerWorkHistory from './pages/Employer/WorkHistory/WorkHistory';
 import EmployerSubscription from './pages/Employer/Subscription/Subscription';
 import EmployerTransactions from './pages/Employer/Transactions/Transactions';
+import EmployerComplaintForm from './pages/Employer/ComplaintForm/ComplaintForm';
 
 // Freelancer Pages
 import FreelancerProfile from './pages/Freelancer/Profile';
@@ -41,6 +42,7 @@ import FreelancerJobHistory from './pages/Freelancer/JobHistory';
 import FreelancerPayments from './pages/Freelancer/Payments';
 import FreelancerSkillsBadges from './pages/Freelancer/SkillsBadges';
 import FreelancerSubscription from './pages/Freelancer/Subscription/Subscription';
+import FreelancerComplaintForm from './pages/Freelancer/ComplaintForm';
 
 function App() {
   return (
@@ -80,6 +82,7 @@ function App() {
             <Route path="/employer/work-history" element={<ProtectedRoute requiredRole="Employer"><EmployerWorkHistory /></ProtectedRoute>} />
             <Route path="/employer/subscription" element={<ProtectedRoute requiredRole="Employer"><EmployerSubscription /></ProtectedRoute>} />
             <Route path="/employer/transactions" element={<ProtectedRoute requiredRole="Employer"><EmployerTransactions /></ProtectedRoute>} />
+            <Route path="/employer/complaint" element={<ProtectedRoute requiredRole="Employer"><EmployerComplaintForm /></ProtectedRoute>} />
 
             {/* Freelancer Routes */}
             <Route path="/freelancer/dashboard" element={<Navigate to="/freelancer/active-jobs" replace />} />
@@ -91,6 +94,7 @@ function App() {
             <Route path="/freelancer/payments" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerPayments /></ProtectedRoute>} />
             <Route path="/freelancer/skills-badges" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerSkillsBadges /></ProtectedRoute>} />
             <Route path="/freelancer/subscription" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerSubscription /></ProtectedRoute>} />
+            <Route path="/freelancer/complaint" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerComplaintForm /></ProtectedRoute>} />
             
             {/* Catch all other routes */}
             <Route path="*" element={<Home />} />
