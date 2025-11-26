@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const DashboardLayout = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, checkAuthStatus } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isPremium, setIsPremium] = useState(false);
@@ -12,6 +12,35 @@ const DashboardLayout = ({ children }) => {
     // Update premium status whenever user changes
     setIsPremium(user?.subscription === 'Premium');
   }, [user]);
+
+  // Listen for profile updates from other pages (EditProfile)
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === 'profileUpdated') {
+        // Refresh auth/user data so sidebar reflects latest profile picture/name
+        if (typeof checkAuthStatus === 'function') {
+          checkAuthStatus();
+        }
+        try {
+          // remove the flag
+          localStorage.removeItem('profileUpdated');
+        } catch (err) {
+          // ignore
+        }
+      }
+    };
+
+    const onCustom = () => {
+      if (typeof checkAuthStatus === 'function') checkAuthStatus();
+    };
+
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('profileUpdated', onCustom);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('profileUpdated', onCustom);
+    };
+  }, [checkAuthStatus]);
 
   const handleLogout = async () => {
     await logout();
@@ -84,7 +113,7 @@ const DashboardLayout = ({ children }) => {
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center overflow-hidden border-3 border-blue-500">
               <img 
-                src="/assets/profile.png" 
+                src={user?.picture || '/assets/profile.png'} 
                 alt="Profile" 
                 className="w-full h-full object-cover"
                 onError={(e) => {

@@ -36,6 +36,7 @@ import EmployerComplaintForm from './pages/Employer/ComplaintForm/ComplaintForm'
 
 // Freelancer Pages
 import FreelancerProfile from './pages/Freelancer/Profile';
+import FreelancerEditProfile from './pages/Freelancer/EditProfile';
 import FreelancerActiveJobs from './pages/Freelancer/ActiveJobs/ActiveJobs';
 import FreelancerJobHistory from './pages/Freelancer/JobHistory';
 import FreelancerPayments from './pages/Freelancer/Payments';
@@ -87,6 +88,7 @@ function App() {
             <Route path="/freelancer/dashboard" element={<Navigate to="/freelancer/active-jobs" replace />} />
             <Route path="/freelancer/home" element={<Navigate to="/freelancer/active-jobs" replace />} />
             <Route path="/freelancer/profile" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerProfile /></ProtectedRoute>} />
+            <Route path="/freelancer/profile/edit" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerEditProfile /></ProtectedRoute>} />
             <Route path="/freelancer/active-jobs" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerActiveJobs /></ProtectedRoute>} />
             <Route path="/freelancer/job-history" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerJobHistory /></ProtectedRoute>} />
             <Route path="/freelancer/payments" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerPayments /></ProtectedRoute>} />
