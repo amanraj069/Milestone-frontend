@@ -18,6 +18,7 @@ import AdminJobListings from './pages/Admin/JobListings';
 import AdminFreelancers from './pages/Admin/Freelancers';
 import AdminEmployers from './pages/Admin/Employers';
 import AdminComplaints from './pages/Admin/Complaints';
+import ComplaintDetail from './pages/Admin/ComplaintDetail';
 import AdminQuizzes from './pages/Admin/Quizzes';
 import AdminBlogs from './pages/Admin/Blogs';
 import AdminProfile from './pages/Admin/Profile';
@@ -66,6 +67,7 @@ function App() {
             <Route path="/admin/freelancers" element={<ProtectedRoute requiredRole="Admin"><AdminFreelancers /></ProtectedRoute>} />
             <Route path="/admin/employers" element={<ProtectedRoute requiredRole="Admin"><AdminEmployers /></ProtectedRoute>} />
             <Route path="/admin/complaints" element={<ProtectedRoute requiredRole="Admin"><AdminComplaints /></ProtectedRoute>} />
+            <Route path="/admin/complaints/:complaintId" element={<ProtectedRoute requiredRole="Admin"><ComplaintDetail /></ProtectedRoute>} />
             <Route path="/admin/quizzes" element={<ProtectedRoute requiredRole="Admin"><AdminQuizzes /></ProtectedRoute>} />
             <Route path="/admin/blogs" element={<ProtectedRoute requiredRole="Admin"><AdminBlogs /></ProtectedRoute>} />
             <Route path="/admin/profile" element={<ProtectedRoute requiredRole="Admin"><AdminProfile /></ProtectedRoute>} />
