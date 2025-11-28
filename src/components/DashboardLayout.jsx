@@ -29,6 +29,7 @@ const DashboardLayout = ({ children }) => {
           { name: 'Complaints', path: '/admin/complaints', icon: 'fas fa-exclamation-triangle' },
           { name: 'Quizzes', path: '/admin/quizzes', icon: 'fas fa-question-circle' },
           { name: 'Blogs', path: '/admin/blogs', icon: 'fas fa-blog' },
+          { name: 'Chat', path: '/admin/chat', icon: 'fas fa-comments' },
           { name: 'Profile', path: '/admin/profile', icon: 'fas fa-user' },
         ];
       case 'Employer':
@@ -39,6 +40,7 @@ const DashboardLayout = ({ children }) => {
           { name: 'Current Jobs', path: '/employer/current-jobs', icon: 'fas fa-tasks' },
           { name: 'Applications', path: '/employer/applications', icon: 'fas fa-file-alt' },
           { name: 'Work History', path: '/employer/work-history', icon: 'fas fa-history' },
+          { name: 'Chat', path: '/employer/chat', icon: 'fas fa-comments' },
           { name: 'Subscription', path: '/employer/subscription', icon: 'fas fa-crown' },
           { name: 'Transactions', path: '/employer/transactions', icon: 'fas fa-credit-card' },
         ];
@@ -50,6 +52,7 @@ const DashboardLayout = ({ children }) => {
           { name: 'Job History', path: '/freelancer/job-history', icon: 'fas fa-history' },
           { name: 'Payments', path: '/freelancer/payments', icon: 'fas fa-credit-card' },
           { name: 'Skills & Badges', path: '/freelancer/skills-badges', icon: 'fas fa-award' },
+          { name: 'Chat', path: '/freelancer/chat', icon: 'fas fa-comments' },
           { name: 'Subscription', path: '/freelancer/subscription', icon: 'fas fa-crown' },
         ];
       default:
