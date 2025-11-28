@@ -363,10 +363,9 @@ const EditProfile = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-navy-900">Edit Freelancer Profile</h1>
+        <div className="mb-8">
           <button 
             onClick={() => navigate('/freelancer/profile')}
             className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center gap-2"
@@ -399,11 +398,11 @@ const EditProfile = () => {
               <div className="flex-shrink-0">
                 <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-500 bg-gray-100">
                   <img 
-                    src={profileImagePreview || formData.profileImageUrl || '/assets/user_image.jpg'} 
+                    src={profileImagePreview || formData.profileImageUrl || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'} 
                     alt="Profile Preview" 
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.target.src = '/assets/user_image.jpg';
+                      e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png';
                     }}
                   />
                 </div>
@@ -447,17 +446,6 @@ const EditProfile = () => {
                   value={formData.name}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title || 'Freelancer'}
-                  readOnly
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed text-gray-700 outline-none"
                 />
               </div>
 

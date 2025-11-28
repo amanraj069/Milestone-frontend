@@ -37,7 +37,7 @@ const FreelancerProfile = () => {
                 phone: user.phone || 'N/A',
                 location: user.location || 'N/A',
                 role: user.role || 'Freelancer',
-                picture: user.picture || '/assets/user_image.jpg',
+                picture: user.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png',
                 aboutMe: user.aboutMe || '',
                 skills: user.skills || [],
                 experience: user.experience || [],
@@ -55,7 +55,7 @@ const FreelancerProfile = () => {
               phone: user.phone || 'N/A',
               location: user.location || 'N/A',
               role: user.role || 'Freelancer',
-              picture: user.picture || '/assets/user_image.jpg',
+              picture: user.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png',
               aboutMe: user.aboutMe || '',
               skills: user.skills || [],
               experience: user.experience || [],
@@ -77,7 +77,7 @@ const FreelancerProfile = () => {
             phone: user.phone || 'N/A',
             location: user.location || 'N/A',
             role: user.role || 'Freelancer',
-            picture: user.picture || '/assets/user_image.jpg',
+            picture: user.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png',
             aboutMe: user.aboutMe || '',
             skills: user.skills || [],
             experience: user.experience || [],
@@ -178,7 +178,7 @@ const FreelancerProfile = () => {
                   alt="Profile" 
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    e.target.src = '/assets/user_image.jpg';
+                    e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png';
                   }}
                 />
               </div>

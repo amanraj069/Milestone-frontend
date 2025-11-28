@@ -21,9 +21,11 @@ import AdminComplaints from './pages/Admin/Complaints';
 import AdminQuizzes from './pages/Admin/Quizzes';
 import AdminBlogs from './pages/Admin/Blogs';
 import AdminProfile from './pages/Admin/Profile';
+import AdminEditProfile from './pages/Admin/EditProfile';
 
 // Employer Pages
 import EmployerProfile from './pages/Employer/Profile/Profile';
+import EditEmployerProfile from './pages/Employer/Profile/EditProfile';
 import EmployerJobListings from './pages/Employer/JobListings/JobListings';
 import AddJob from './pages/Employer/JobListings/AddJob';
 import EditJob from './pages/Employer/JobListings/EditJob';
@@ -69,11 +71,13 @@ function App() {
             <Route path="/admin/quizzes" element={<ProtectedRoute requiredRole="Admin"><AdminQuizzes /></ProtectedRoute>} />
             <Route path="/admin/blogs" element={<ProtectedRoute requiredRole="Admin"><AdminBlogs /></ProtectedRoute>} />
             <Route path="/admin/profile" element={<ProtectedRoute requiredRole="Admin"><AdminProfile /></ProtectedRoute>} />
+            <Route path="/admin/profile/edit" element={<ProtectedRoute requiredRole="Admin"><AdminEditProfile /></ProtectedRoute>} />
 
             {/* Employer Routes */}
             <Route path="/employer/dashboard" element={<Navigate to="/employer/job-listings" replace />} />
             <Route path="/employer/home" element={<Navigate to="/employer/job-listings" replace />} />
             <Route path="/employer/profile" element={<ProtectedRoute requiredRole="Employer"><EmployerProfile /></ProtectedRoute>} />
+            <Route path="/employer/profile/edit" element={<ProtectedRoute requiredRole="Employer"><EditEmployerProfile /></ProtectedRoute>} />
             <Route path="/employer/job-listings" element={<ProtectedRoute requiredRole="Employer"><EmployerJobListings /></ProtectedRoute>} />
             <Route path="/employer/job-listings/new" element={<ProtectedRoute requiredRole="Employer"><AddJob /></ProtectedRoute>} />
             <Route path="/employer/job-listings/edit/:jobId" element={<ProtectedRoute requiredRole="Employer"><EditJob /></ProtectedRoute>} />
