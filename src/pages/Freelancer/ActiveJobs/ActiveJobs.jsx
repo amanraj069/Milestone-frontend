@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from './JobDetailsModal';
@@ -9,6 +10,7 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'
 
 const FreelancerActiveJobs = () => {
   const { openChatWith } = useChatContext();
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState(null);
@@ -57,8 +59,8 @@ const FreelancerActiveJobs = () => {
   };
 
   const handleRaiseComplaint = (job) => {
-    // Navigate to complaint form
-    alert(`Complaint form will be implemented soon for job: ${job.title}`);
+    // Navigate to complaint form with job data
+    navigate('/freelancer/complaint', { state: { job } });
   };
 
   const handleJobLeft = () => {

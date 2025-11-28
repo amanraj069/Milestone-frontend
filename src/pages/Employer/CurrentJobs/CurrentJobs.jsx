@@ -89,6 +89,9 @@ const EmployerCurrentJobs = () => {
     }
     
     openChatWith(freelancer.userId);
+  const handleRaiseComplaint = (freelancer) => {
+    // Navigate to complaint form with freelancer data
+    navigate('/employer/complaint', { state: { freelancer } });
   };
 
   const formatDays = (days) => {
@@ -195,6 +198,7 @@ const EmployerCurrentJobs = () => {
                           </div>
                         </div>
                         <button
+                          onClick={() => handleRaiseComplaint(freelancer)}
                           className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
                         >
                           Raise Complaint
@@ -281,6 +285,7 @@ const EmployerCurrentJobs = () => {
       )}
     </DashboardPage>
   );
+};
 };
 
 export default EmployerCurrentJobs;
