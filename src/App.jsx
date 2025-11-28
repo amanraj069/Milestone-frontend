@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
+import { ChatProvider } from './context/ChatContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './components/Home';
 import Login from './components/Login';
@@ -46,9 +47,10 @@ import FreelancerSubscription from './pages/Freelancer/Subscription/Subscription
 function App() {
   return (
     <AuthProvider>
-      <SocketProvider>
-        <Router>
-          <div className="App">
+      <Router>
+        <SocketProvider>
+          <ChatProvider>
+            <div className="App">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
@@ -100,8 +102,9 @@ function App() {
               <Route path="*" element={<Home />} />
             </Routes>
           </div>
-        </Router>
+        </ChatProvider>
       </SocketProvider>
+    </Router>
     </AuthProvider>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
+import { useChatContext } from "../../context/ChatContext";
 import DashboardLayout from "../DashboardLayout";
 import "./Chat.css";
 
@@ -10,6 +11,7 @@ const EMOJIS = ["😀", "😂", "😊", "😍", "🥰", "😎", "🤔", "😢", 
 const Chat = () => {
   const { user } = useAuth();
   const { socket, isConnected } = useSocket();
+  const { selectedUserId, clearSelectedUser } = useChatContext();
   
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -33,6 +35,42 @@ const Chat = () => {
   useEffect(() => {
     fetchConversations();
   }, []);
+
+  // Auto-select conversation when coming from context
+  useEffect(() => {
+    if (selectedUserId && conversations.length > 0) {
+      const existingConv = conversations.find(
+        conv => conv.participant.userId === selectedUserId
+      );
+      
+      if (existingConv) {
+        handleConversationSelect(existingConv);
+      } else {
+        // If conversation doesn't exist, search for the user
+        searchAndSelectUser(selectedUserId);
+      }
+      
+      // Clear the context after using it
+      clearSelectedUser();
+    }
+  }, [selectedUserId, conversations]);
+
+  const searchAndSelectUser = async (userId) => {
+    try {
+      const response = await axios.get(`http://localhost:9000/api/chat/search-users?query=${userId}`, {
+        withCredentials: true,
+      });
+      
+      if (response.data.success) {
+        const targetUser = response.data.users.find(user => user.userId === userId);
+        if (targetUser) {
+          handleSearchResultClick(targetUser);
+        }
+      }
+    } catch (error) {
+      console.error('Error searching for user:', error);
+    }
+  };
 
   // Socket event listeners
   useEffect(() => {

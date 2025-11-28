@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from './JobDetailsModal';
+import { useChatContext } from '../../../context/ChatContext';
 import './ActiveJobs.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const FreelancerActiveJobs = () => {
+  const { openChatWith } = useChatContext();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState(null);
@@ -43,8 +45,15 @@ const FreelancerActiveJobs = () => {
   };
 
   const handleChat = (job) => {
-    // Navigate to chat page with employer
-    alert(`Chat functionality will be implemented soon for ${job.company}`);
+    // Open chat with specific employer
+    console.log('Chat clicked for employer:', job);
+    console.log('Employer userId:', job.employerUserId);
+    
+    if (job.employerUserId) {
+      openChatWith(job.employerUserId);
+    } else {
+      alert('Unable to start chat: Employer information not available');
+    }
   };
 
   const handleRaiseComplaint = (job) => {
