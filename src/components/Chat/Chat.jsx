@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
+import DashboardLayout from "../DashboardLayout";
 import "./Chat.css";
 
 const EMOJIS = ["😀", "😂", "😊", "😍", "🥰", "😎", "🤔", "😢", "😡", "👍", "👎", "❤️", "🎉", "🔥", "✨", "💯"];
@@ -21,6 +22,8 @@ const Chat = () => {
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [replyTo, setReplyTo] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isConversationsSidebarCollapsed, setIsConversationsSidebarCollapsed] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null);
   
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -37,6 +40,7 @@ const Chat = () => {
 
     socket.on("message:new", handleNewMessage);
     socket.on("message:sent", handleMessageSent);
+    socket.on("message:deleted", handleMessageDeleted);
     socket.on("typing:update", handleTypingUpdate);
     socket.on("user:status", handleUserStatus);
     socket.on("message:read", handleMessageRead);
@@ -44,6 +48,7 @@ const Chat = () => {
     return () => {
       socket.off("message:new", handleNewMessage);
       socket.off("message:sent", handleMessageSent);
+      socket.off("message:deleted", handleMessageDeleted);
       socket.off("typing:update", handleTypingUpdate);
       socket.off("user:status", handleUserStatus);
       socket.off("message:read", handleMessageRead);
@@ -54,6 +59,13 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Close context menu on click outside
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -141,6 +153,51 @@ const Chat = () => {
     }
   };
 
+  const deleteMessage = async (messageId) => {
+    try {
+      const response = await axios.delete(
+        `http://localhost:9000/api/chat/messages/${messageId}`,
+        { withCredentials: true }
+      );
+
+      if (response.data.success) {
+        // Remove from local messages
+        setMessages(prev => prev.filter(msg => msg.messageId !== messageId));
+        
+        // Emit socket event to notify other party
+        if (selectedConversation) {
+          socket?.emit("message:delete", {
+            messageId,
+            recipientId: selectedConversation.participant.userId,
+          });
+        }
+        
+        // Refresh conversations to update last message
+        fetchConversations();
+      }
+    } catch (error) {
+      console.error("Error deleting message:", error);
+    }
+  };
+
+  const handleRightClick = (e, message) => {
+    e.preventDefault();
+    if (message.from === user.id) {
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        messageId: message.messageId,
+      });
+    }
+  };
+
+  const handleDeleteClick = () => {
+    if (contextMenu?.messageId) {
+      deleteMessage(contextMenu.messageId);
+    }
+    setContextMenu(null);
+  };
+
   const handleNewMessage = (message) => {
     // If this message is for the current conversation, add it
     if (selectedConversation?.participant.userId === message.from) {
@@ -173,8 +230,12 @@ const Chat = () => {
   };
 
   const handleMessageSent = (message) => {
-    // Message already added optimistically
     console.log("Message sent confirmation:", message);
+  };
+
+  const handleMessageDeleted = ({ messageId }) => {
+    // Remove message from local state
+    setMessages(prev => prev.filter(msg => msg.messageId !== messageId));
   };
 
   const handleTypingUpdate = ({ userId, isTyping }) => {
@@ -204,7 +265,6 @@ const Chat = () => {
   };
 
   const handleMessageRead = ({ conversationId }) => {
-    // Update messages to show as read
     setMessages(prev =>
       prev.map(msg =>
         msg.conversationId === conversationId ? { ...msg, isRead: true } : msg
@@ -228,7 +288,6 @@ const Chat = () => {
             }
           : conv
       );
-      // Sort by most recent
       return updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
     });
   };
@@ -265,13 +324,11 @@ const Chat = () => {
   };
 
   const handleSearchResultClick = async (user) => {
-    // Check if conversation already exists
     let existingConv = conversations.find(
       conv => conv.participant.userId === user.userId
     );
 
     if (!existingConv) {
-      // Create a temporary conversation object
       existingConv = {
         conversationId: null,
         participant: user,
@@ -292,7 +349,6 @@ const Chat = () => {
   const handleInputChange = (e) => {
     setMessageInput(e.target.value);
 
-    // Emit typing event
     if (socket && selectedConversation) {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
@@ -331,17 +387,14 @@ const Chat = () => {
     const now = new Date();
     const diff = now - date;
     
-    // If today, show time
     if (diff < 24 * 60 * 60 * 1000 && date.getDate() === now.getDate()) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
     
-    // If this week, show day
     if (diff < 7 * 24 * 60 * 60 * 1000) {
       return date.toLocaleDateString([], { weekday: 'short' });
     }
     
-    // Otherwise show date
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
@@ -351,225 +404,272 @@ const Chat = () => {
   };
 
   return (
-    <div className="chat-container">
-      {/* Conversations Sidebar */}
-      <div className="conversations-sidebar">
-        <div className="conversations-header">
-          <h2>Messages</h2>
-          <div className="search-box">
-            <span className="search-icon">🔍</span>
-            <input
-              type="text"
-              placeholder="Search people..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
-            {isSearching && searchResults.length > 0 && (
-              <div className="search-results">
-                {searchResults.map(user => (
-                  <div
-                    key={user.userId}
-                    className="search-result-item"
-                    onClick={() => handleSearchResultClick(user)}
-                  >
-                    <div className="search-result-avatar">
-                      <img src={user.picture} alt={user.name} />
-                    </div>
-                    <div className="search-result-info">
-                      <div className="search-result-name">{user.name}</div>
-                      <div className="search-result-role">{user.role}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="conversations-list">
-          {conversations.length === 0 ? (
-            <div className="empty-conversations">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <p>No conversations yet.<br />Search for people to start chatting!</p>
-            </div>
-          ) : (
-            conversations.map(conversation => (
-              <div
-                key={conversation.participant.userId}
-                className={`conversation-item ${selectedConversation?.participant.userId === conversation.participant.userId ? 'active' : ''}`}
-                onClick={() => handleConversationSelect(conversation)}
-              >
-                <div className="conversation-avatar">
-                  <img src={conversation.participant.picture} alt={conversation.participant.name} />
-                  <span className={`online-indicator ${onlineUsers.has(conversation.participant.userId) ? '' : 'offline'}`}></span>
-                </div>
-                <div className="conversation-info">
-                  <div className="conversation-header">
-                    <span className="conversation-name">
-                      {conversation.participant.name}
-                      <span className="role-badge">{conversation.participant.role}</span>
-                    </span>
-                    {conversation.lastMessage && (
-                      <span className="conversation-time">
-                        {formatTime(conversation.lastMessage.timestamp)}
-                      </span>
-                    )}
-                  </div>
-                  {conversation.lastMessage && (
-                    <p className="conversation-preview">
-                      {conversation.lastMessage.sender === user.id ? 'You: ' : ''}
-                      {conversation.lastMessage.text}
-                    </p>
-                  )}
-                </div>
-                {conversation.unreadCount > 0 && (
-                  <span className="unread-badge">{conversation.unreadCount}</span>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Chat Area */}
-      <div className="chat-area">
-        {selectedConversation ? (
-          <>
-            <div className="chat-header">
-              <div className="chat-header-info">
-                <div className="chat-header-avatar">
-                  <img src={selectedConversation.participant.picture} alt={selectedConversation.participant.name} />
-                </div>
-                <div className="chat-header-details">
-                  <h3>{selectedConversation.participant.name}</h3>
-                  <div className="chat-header-status">
-                    {typingUsers.has(selectedConversation.participant.userId)
-                      ? "Typing..."
-                      : onlineUsers.has(selectedConversation.participant.userId)
-                      ? "Online"
-                      : "Offline"}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="messages-container">
-              {messages.map(message => (
-                <div
-                  key={message.messageId}
-                  className={`message ${message.from === user.id ? 'sent' : 'received'}`}
+    <DashboardLayout>
+      <div className="chat-main-container">
+        <div className="chat-layout">
+          {/* Conversations Sidebar */}
+          <div className={`conversations-sidebar ${isConversationsSidebarCollapsed ? 'collapsed' : ''}`}>
+            <div className="conversations-header">
+              <div className="conversations-header-top">
+                <h2>Messages</h2>
+                <button 
+                  className="collapse-btn"
+                  onClick={() => setIsConversationsSidebarCollapsed(!isConversationsSidebarCollapsed)}
                 >
-                  <div className="message-content">
-                    {message.replyTo && (
-                      <div className="reply-reference">
-                        <div className="reply-reference-sender">
-                          {message.replyTo.sender === user.id ? 'You' : selectedConversation.participant.name}
-                        </div>
-                        <div className="reply-reference-text">{message.replyTo.text}</div>
-                      </div>
-                    )}
-                    <div className="message-bubble">
-                      <p className="message-text">{message.messageData}</p>
-                      <div className="message-actions">
-                        <button
-                          className="message-action-btn"
-                          onClick={() => handleReply(message)}
-                          title="Reply"
-                        >
-                          ↩️
-                        </button>
-                      </div>
-                    </div>
-                    <div className="message-footer">
-                      <span className="message-time">{formatTime(message.createdAt)}</span>
-                      {message.from === user.id && message.isRead && (
-                        <span style={{ color: '#667eea' }}>✓✓</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {typingUsers.has(selectedConversation.participant.userId) && (
-              <div className="typing-indicator">
-                {selectedConversation.participant.name} is typing
-                <span className="typing-dots">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </span>
+                  {isConversationsSidebarCollapsed ? '←' : '→'}
+                </button>
               </div>
-            )}
-
-            <div className="message-input-container">
-              {replyTo && (
-                <div className="reply-preview">
-                  <div className="reply-preview-content">
-                    <div className="reply-preview-label">Replying to</div>
-                    <div className="reply-preview-text">{replyTo.messageData}</div>
-                  </div>
-                  <button className="reply-preview-close" onClick={() => setReplyTo(null)}>
-                    ×
-                  </button>
-                </div>
-              )}
-              <div className="message-input-wrapper">
-                <div className="emoji-picker-wrapper">
-                  <button
-                    className="emoji-btn"
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    type="button"
-                  >
-                    😊
-                  </button>
-                  {showEmojiPicker && (
-                    <div className="emoji-picker-dropdown">
-                      {EMOJIS.map(emoji => (
-                        <button
-                          key={emoji}
-                          onClick={() => addEmoji(emoji)}
-                          type="button"
+              {!isConversationsSidebarCollapsed && (
+                <div className="search-box">
+                  <svg className="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search people..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                  />
+                  {isSearching && searchResults.length > 0 && (
+                    <div className="search-results">
+                      {searchResults.map(user => (
+                        <div
+                          key={user.userId}
+                          className="search-result-item"
+                          onClick={() => handleSearchResultClick(user)}
                         >
-                          {emoji}
-                        </button>
+                          <div className="search-result-avatar">
+                            <img src={user.picture} alt={user.name} />
+                          </div>
+                          <div className="search-result-info">
+                            <div className="search-result-name">{user.name}</div>
+                            <div className="search-result-role">{user.role}</div>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )}
                 </div>
-                <textarea
-                  ref={messageInputRef}
-                  className="message-input"
-                  placeholder="Type a message..."
-                  value={messageInput}
-                  onChange={handleInputChange}
-                  onKeyPress={handleKeyPress}
-                  rows={1}
-                />
-                <button
-                  className="send-btn"
-                  onClick={sendMessage}
-                  disabled={!messageInput.trim()}
-                >
-                  ➤
-                </button>
-              </div>
+              )}
             </div>
-          </>
-        ) : (
-          <div className="empty-chat">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <h3>Welcome to Messages</h3>
-            <p>Select a conversation or search for people to start chatting</p>
+
+            <div className="conversations-list">
+              {conversations.length === 0 ? (
+                <div className="empty-conversations">
+                  {!isConversationsSidebarCollapsed && (
+                    <>
+                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <p>No conversations yet.<br />Search for people to start chatting!</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                conversations.map(conversation => (
+                  <div
+                    key={conversation.participant.userId}
+                    className={`conversation-item ${selectedConversation?.participant.userId === conversation.participant.userId ? 'active' : ''}`}
+                    onClick={() => handleConversationSelect(conversation)}
+                  >
+                    <div className="conversation-avatar">
+                      <img src={conversation.participant.picture} alt={conversation.participant.name} />
+                      <span className={`online-indicator ${onlineUsers.has(conversation.participant.userId) ? '' : 'offline'}`}></span>
+                    </div>
+                    {!isConversationsSidebarCollapsed && (
+                      <div className="conversation-info">
+                        <div className="conversation-header">
+                          <span className="conversation-name">
+                            {conversation.participant.name}
+                            <span className="role-badge">{conversation.participant.role}</span>
+                          </span>
+                          {conversation.lastMessage && (
+                            <span className="conversation-time">
+                              {formatTime(conversation.lastMessage.timestamp)}
+                            </span>
+                          )}
+                        </div>
+                        {conversation.lastMessage && (
+                          <p className="conversation-preview">
+                            {conversation.lastMessage.sender === user.id ? 'You: ' : ''}
+                            {conversation.lastMessage.text}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {conversation.unreadCount > 0 && (
+                      <span className="unread-badge">{conversation.unreadCount}</span>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Chat Area */}
+          <div className={`chat-area ${!isConversationsSidebarCollapsed ? 'expanded-sidebar' : ''}`}>
+            {selectedConversation ? (
+              <>
+                <div className="chat-header">
+                  <div className="chat-header-info">
+                    <div className="chat-header-avatar">
+                      <img src={selectedConversation.participant.picture} alt={selectedConversation.participant.name} />
+                    </div>
+                    <div className="chat-header-details">
+                      <h3>{selectedConversation.participant.name}</h3>
+                      <div className="chat-header-status">
+                        {typingUsers.has(selectedConversation.participant.userId)
+                          ? "Typing..."
+                          : onlineUsers.has(selectedConversation.participant.userId)
+                          ? "Online"
+                          : "Offline"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="messages-container">
+                  {messages.map(message => (
+                    <div
+                      key={message.messageId}
+                      className={`message ${message.from === user.id ? 'sent' : 'received'}`}
+                      onContextMenu={(e) => handleRightClick(e, message)}
+                    >
+                      <div className="message-content">
+                        {message.replyTo && (
+                          <div className="reply-reference">
+                            <div className="reply-reference-sender">
+                              {message.replyTo.sender === user.id ? 'You' : selectedConversation.participant.name}
+                            </div>
+                            <div className="reply-reference-text">{message.replyTo.text}</div>
+                          </div>
+                        )}
+                        <div className="message-bubble">
+                          <p className="message-text">{message.messageData}</p>
+                          <div className="message-actions">
+                            <button
+                              className="message-action-btn"
+                              onClick={() => handleReply(message)}
+                              title="Reply"
+                            >
+                              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                              </svg>
+                            </button>
+                          </div>
+                          <div className="message-footer">
+                            <span className="message-time">{formatTime(message.createdAt)}</span>
+                            {message.from === user.id && (
+                              <div className={`read-ticks ${message.isRead ? 'read' : 'unread'}`}>
+                                <svg viewBox="0 0 24 24">
+                                  <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+                                  <path d="M16.2 6.8L15 8l4.2 4.2L20.6 11l-4.4-4.2z"/>
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {typingUsers.has(selectedConversation.participant.userId) && (
+                  <div className="typing-indicator">
+                    {selectedConversation.participant.name} is typing
+                    <span className="typing-dots">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </span>
+                  </div>
+                )}
+
+                <div className="message-input-container">
+                  {replyTo && (
+                    <div className="reply-preview">
+                      <div className="reply-preview-content">
+                        <div className="reply-preview-label">Replying to</div>
+                        <div className="reply-preview-text">{replyTo.messageData}</div>
+                      </div>
+                      <button className="reply-preview-close" onClick={() => setReplyTo(null)}>
+                        ×
+                      </button>
+                    </div>
+                  )}
+                  <div className="message-input-wrapper">
+                    <div className="emoji-picker-wrapper">
+                      <button
+                        className="emoji-btn"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        type="button"
+                      >
+                        😊
+                      </button>
+                      {showEmojiPicker && (
+                        <div className="emoji-picker-dropdown">
+                          {EMOJIS.map(emoji => (
+                            <button
+                              key={emoji}
+                              onClick={() => addEmoji(emoji)}
+                              type="button"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <textarea
+                      ref={messageInputRef}
+                      className="message-input"
+                      placeholder="Type a message..."
+                      value={messageInput}
+                      onChange={handleInputChange}
+                      onKeyPress={handleKeyPress}
+                      rows={1}
+                    />
+                    <button
+                      className="send-btn"
+                      onClick={sendMessage}
+                      disabled={!messageInput.trim()}
+                    >
+                      <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="empty-chat">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <h3>Welcome to Messages</h3>
+                <p>Select a conversation or search for people to start chatting</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Context Menu */}
+        {contextMenu && (
+          <div 
+            className="message-context-menu"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            <div className="message-context-menu-item delete" onClick={handleDeleteClick}>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Delete Message
+            </div>
           </div>
         )}
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

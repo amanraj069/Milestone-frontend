@@ -83,7 +83,7 @@ const EmployerCurrentJobs = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Current Jobs</h1>
+          {/* <h1 className="text-2xl font-bold text-gray-800 mb-2">Current Jobs</h1> */}
           <p className="text-gray-600">Track freelancers currently working on your projects</p>
         </div>
 

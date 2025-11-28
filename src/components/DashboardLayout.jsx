@@ -127,7 +127,7 @@ const DashboardLayout = ({ children }) => {
         </nav>
 
         {/* Logout Button */}
-        <div className="p-6 border-t border-blue-600/30">
+        <div className="p-2 border-t border-blue-600/30">
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-base transition-all border border-white/20 hover:border-white/40"
