@@ -73,7 +73,7 @@ function App() {
               <Route path="/admin/employers" element={<ProtectedRoute requiredRole="Admin"><AdminEmployers /></ProtectedRoute>} />
               <Route path="/admin/complaints" element={<ProtectedRoute requiredRole="Admin"><AdminComplaints /></ProtectedRoute>} />
               <Route path="/admin/complaints/:complaintId" element={<ProtectedRoute requiredRole="Admin"><ComplaintDetail /></ProtectedRoute>} />
-            <Route path="/admin/quizzes" element={<ProtectedRoute requiredRole="Admin"><AdminQuizzes /></ProtectedRoute>} />
+              <Route path="/admin/quizzes" element={<ProtectedRoute requiredRole="Admin"><AdminQuizzes /></ProtectedRoute>} />
               <Route path="/admin/blogs" element={<ProtectedRoute requiredRole="Admin"><AdminBlogs /></ProtectedRoute>} />
               <Route path="/admin/profile" element={<ProtectedRoute requiredRole="Admin"><AdminProfile /></ProtectedRoute>} />
               <Route path="/admin/chat" element={<ProtectedRoute requiredRole="Admin"><Chat /></ProtectedRoute>} />
@@ -91,14 +91,14 @@ function App() {
               <Route path="/employer/subscription" element={<ProtectedRoute requiredRole="Employer"><EmployerSubscription /></ProtectedRoute>} />
               <Route path="/employer/transactions" element={<ProtectedRoute requiredRole="Employer"><EmployerTransactions /></ProtectedRoute>} />
               <Route path="/employer/chat" element={<ProtectedRoute requiredRole="Employer"><Chat /></ProtectedRoute>} />
-            <Route path="/employer/complaint" element={<ProtectedRoute requiredRole="Employer"><EmployerComplaintForm /></ProtectedRoute>} />
+              <Route path="/employer/complaint" element={<ProtectedRoute requiredRole="Employer"><EmployerComplaintForm /></ProtectedRoute>} />
 
               {/* Freelancer Routes */}
               <Route path="/freelancer/dashboard" element={<Navigate to="/freelancer/active-jobs" replace />} />
               <Route path="/freelancer/home" element={<Navigate to="/freelancer/active-jobs" replace />} />
               <Route path="/freelancer/profile" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerProfile /></ProtectedRoute>} />
               <Route path="/freelancer/profile/edit" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerEditProfile /></ProtectedRoute>} />
-            <Route path="/freelancer/active-jobs" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerActiveJobs /></ProtectedRoute>} />
+              <Route path="/freelancer/active-jobs" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerActiveJobs /></ProtectedRoute>} />
               <Route path="/freelancer/job-history" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerJobHistory /></ProtectedRoute>} />
               <Route path="/freelancer/payments" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerPayments /></ProtectedRoute>} />
               <Route path="/freelancer/skills-badges" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerSkillsBadges /></ProtectedRoute>} />
