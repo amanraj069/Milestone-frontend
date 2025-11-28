@@ -384,7 +384,7 @@ const EditProfile = () => {
               <line x1="19" y1="12" x2="5" y2="12"></line>
               <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
-            Back to Profile
+            Cancel
           </button>
         </div>
 
@@ -789,13 +789,7 @@ const EditProfile = () => {
 
           {/* Form Actions */}
           <div className="flex gap-4 justify-end">
-            <button
-              type="button"
-              onClick={() => navigate('/freelancer/profile')}
-              className="px-8 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
-            >
-              Cancel
-            </button>
+            
             <button
               type="submit"
               disabled={loading || !!phoneError}

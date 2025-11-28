@@ -237,7 +237,7 @@ const EmployerProfile = () => {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
                 <h2 className="text-3xl font-bold text-gray-900">
-                  {employerData?.companyName || profileData.name}
+                  {profileData.name}
                 </h2>
                 <span className="px-4 py-1.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-sm font-semibold rounded-full flex items-center gap-1.5">
                   <svg
@@ -258,7 +258,7 @@ const EmployerProfile = () => {
                 </span>
               </div>
 
-              <div className="text-lg text-gray-600 mb-4">{profileData.role}</div>
+              <div className="text-lg text-gray-600 mb-4">{employerData?.companyName}</div>
 
               <div className="space-y-3 mb-5">
                 <div className="flex items-center gap-3 text-gray-600">
@@ -343,7 +343,7 @@ const EmployerProfile = () => {
                 )}
               </div>
 
-              {/* Social Links */}
+              {/* Social Links
               {profileData.socialMedia && Object.values(profileData.socialMedia).some(link => link) && (
                 <div className="flex gap-3 mb-5">
                   {profileData.socialMedia.linkedin && (
@@ -395,7 +395,7 @@ const EmployerProfile = () => {
                     </a>
                   )}
                 </div>
-              )}
+              )} */}
 
               {/* Rating */}
               <div className="flex items-center gap-2 text-amber-500 text-xl">
@@ -417,7 +417,7 @@ const EmployerProfile = () => {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
               <h3 className="text-2xl font-bold text-blue-600 mb-4">
-                About {employerData?.companyName || profileData.name}
+                About {employerData?.companyName}
               </h3>
               <div className="text-gray-600 leading-relaxed whitespace-pre-line">
                 {profileData.aboutMe || 'No description provided.'}
