@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
+import { loadQuiz, selectCurrentQuiz, selectQuizzesLoading, selectQuizzesError } from '../../store/slices/quizzesSlice';
+import { submitAttempt, countUserAttemptsForQuiz, selectAttemptCount, selectLastSubmission, selectAttemptsLoading } from '../../store/slices/attemptsSlice';
+import { selectUserId } from '../../store/slices/authSlice';
 
 // Fisher-Yates shuffle algorithm
 function shuffleArray(array) {
@@ -15,28 +19,42 @@ function shuffleArray(array) {
 
 export default function TakeQuiz() {
   const { id } = useParams();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const [quiz, setQuiz] = useState(null);
+  
+  // Redux selectors
+  const quiz = useSelector(selectCurrentQuiz);
+  const quizLoading = useSelector(selectQuizzesLoading);
+  const quizError = useSelector(selectQuizzesError);
+  const userId = useSelector(selectUserId) || user?.id;
+  const attemptCount = useSelector((state) => selectAttemptCount(state, id, userId));
+  const lastSubmission = useSelector(selectLastSubmission);
+  const submitting = useSelector(selectAttemptsLoading);
+  
+  // Local state
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [attemptCount, setAttemptCount] = useState(0);
   const [quizStarted, setQuizStarted] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const navigate = useNavigate();
+  const [shuffledQuiz, setShuffledQuiz] = useState(null);
 
-  useEffect(()=>{ fetchQuiz(); fetchAttemptCount(); }, [id]);
-  
-  async function fetchQuiz(){
-    const res = await fetch('/api/quizzes/' + id, { credentials: 'include' });
-    const j = await res.json();
-    if (j.success){ 
-      // Shuffle options for each question
-      const shuffledQuiz = {
-        ...j.data,
-        questions: j.data.questions.map(q => {
+  // Load quiz and attempt count on mount
+  useEffect(() => {
+    dispatch(loadQuiz(id));
+    if (userId) {
+      dispatch(countUserAttemptsForQuiz({ quizId: id, userId }));
+    }
+  }, [id, userId, dispatch]);
+
+  // Shuffle quiz options when quiz loads
+  useEffect(() => {
+    if (quiz && !shuffledQuiz) {
+      const shuffled = {
+        ...quiz,
+        questions: quiz.questions.map(q => {
           const shuffledOptions = shuffleArray(q.options.map((opt, idx) => ({ ...opt, originalIndex: idx })));
           return {
             ...q,
@@ -44,36 +62,23 @@ export default function TakeQuiz() {
           };
         })
       };
-      setQuiz(shuffledQuiz);
-      // Don't auto-start timer, wait for user to accept instructions
+      setShuffledQuiz(shuffled);
     }
-  }
+  }, [quiz, shuffledQuiz]);
 
-  async function fetchAttemptCount() {
-    if (!user?.id) return;
-    try {
-      const res = await fetch(`/api/quizzes/users/${user.id}/attempts`, { credentials: 'include' });
-      const data = await res.json();
-      if (data.success) {
-        const quizAttempts = data.data.filter(a => String(a.quizId) === String(id));
-        setAttemptCount(quizAttempts.length);
-        
-        // Check if user has exceeded attempt limit
-        if (quizAttempts.length >= 3) {
-          alert('You have already completed 3 attempts for this quiz. Maximum attempts reached.');
-          navigate('/freelancer/skills-badges');
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching attempts:', err);
+  // Check attempt limit
+  useEffect(() => {
+    if (attemptCount >= 3) {
+      alert('You have already completed 3 attempts for this quiz. Maximum attempts reached.');
+      navigate('/freelancer/skills-badges');
     }
-  }
+  }, [attemptCount, navigate]);
 
   function startQuiz() {
     setShowInstructions(false);
     setQuizStarted(true);
-    if (quiz?.timeLimitMinutes) {
-      setTimeLeft(quiz.timeLimitMinutes * 60);
+    if (shuffledQuiz?.timeLimitMinutes) {
+      setTimeLeft(shuffledQuiz.timeLimitMinutes * 60);
     }
   }
 
@@ -124,62 +129,76 @@ export default function TakeQuiz() {
 
   async function leaveQuiz() {
     setShowLeaveConfirm(false);
-    setSubmitting(true);
     // Submit current answers (even if incomplete) as the attempt
-    const payload = { answers: quiz.questions.map((q)=> ({ questionId: q._id, selectedOptionIndex: answers[q._id] ?? null })) };
-    const res = await fetch('/api/quizzes/' + id + '/attempt', { 
-      method: 'POST', 
-      headers: {'Content-Type':'application/json'}, 
-      credentials: 'include', 
-      body: JSON.stringify({ answers: payload.answers }) 
-    });
-    const j = await res.json();
-    setSubmitting(false);
-    if (j.success) {
-      navigate('/quizzes/' + id + '/result', { state: { result: j.data } });
+    const payload = shuffledQuiz.questions.map((q) => ({ 
+      questionId: q._id, 
+      selectedOptionIndex: answers[q._id] ?? null 
+    }));
+    
+    const resultAction = await dispatch(submitAttempt({ quizId: id, answers: payload }));
+    
+    if (submitAttempt.fulfilled.match(resultAction)) {
+      navigate('/quizzes/' + id + '/result', { state: { result: resultAction.payload.attempt } });
     } else {
       // Even if submission fails, navigate away
       navigate('/freelancer/skills-badges');
     }
   }
 
-  async function onSubmit(){
-    setSubmitting(true);
+  async function onSubmit() {
     setShowConfirm(false);
-    const payload = { answers: quiz.questions.map((q)=> ({ questionId: q._id, selectedOptionIndex: answers[q._id] ?? null })) };
+    const payload = shuffledQuiz.questions.map((q) => ({ 
+      questionId: q._id, 
+      selectedOptionIndex: answers[q._id] ?? null 
+    }));
     
     console.log('Submitting quiz attempt:', { quizId: id, payload });
     
-    try {
-      const res = await fetch('/api/quizzes/' + id + '/attempt', { 
-        method: 'POST', 
-        headers: {'Content-Type':'application/json'}, 
-        credentials: 'include', 
-        body: JSON.stringify({ answers: payload.answers }) 
-      });
-      
-      console.log('Response status:', res.status);
-      
-      const j = await res.json();
-      console.log('Response data:', j);
-      
-      setSubmitting(false);
-      if (j.success) {
-        navigate('/quizzes/' + id + '/result', { state: { result: j.data } });
-      } else {
-        alert('Submit failed: ' + (j.error?.message || JSON.stringify(j.error)));
-      }
-    } catch (error) {
-      console.error('Submit error:', error);
-      setSubmitting(false);
-      alert('Network error: ' + error.message);
+    const resultAction = await dispatch(submitAttempt({ quizId: id, answers: payload }));
+    
+    if (submitAttempt.fulfilled.match(resultAction)) {
+      console.log('Submission successful:', resultAction.payload);
+      navigate('/quizzes/' + id + '/result', { state: { result: resultAction.payload.attempt } });
+    } else {
+      console.error('Submission failed:', resultAction.error);
+      alert('Submit failed: ' + (resultAction.error?.message || resultAction.payload));
     }
   }
 
-  if (!quiz) return <DashboardLayout><div className="p-6">Loading quiz...</div></DashboardLayout>;
+  // Navigate to result when lastSubmission updates
+  useEffect(() => {
+    if (lastSubmission) {
+      navigate('/quizzes/' + id + '/result', { state: { result: lastSubmission } });
+    }
+  }, [lastSubmission, id, navigate]);
+
+  if (quizLoading || !shuffledQuiz) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading quiz...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (quizError) {
+    return (
+      <DashboardLayout>
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+            Error loading quiz: {quizError}
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const answered = Object.keys(answers).length;
-  const total = quiz.questions.length;
+  const total = shuffledQuiz.questions.length;
 
   // Show instructions dialog before starting quiz
   if (showInstructions) {
@@ -198,22 +217,22 @@ export default function TakeQuiz() {
             
             <div className="space-y-4 mb-6">
               <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                <h3 className="font-semibold text-blue-900 mb-2">{quiz.title}</h3>
-                <p className="text-sm text-blue-800">Skill: {quiz.skillName}</p>
+                <h3 className="font-semibold text-blue-900 mb-2">{shuffledQuiz.title}</h3>
+                <p className="text-sm text-blue-800">Skill: {shuffledQuiz.skillName}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="text-sm text-gray-600">Questions</div>
-                  <div className="text-2xl font-bold text-gray-800">{quiz.questions.length}</div>
+                  <div className="text-2xl font-bold text-gray-800">{shuffledQuiz.questions.length}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="text-sm text-gray-600">Time Limit</div>
-                  <div className="text-2xl font-bold text-gray-800">{quiz.timeLimitMinutes ? `${quiz.timeLimitMinutes} min` : 'No limit'}</div>
+                  <div className="text-2xl font-bold text-gray-800">{shuffledQuiz.timeLimitMinutes ? `${shuffledQuiz.timeLimitMinutes} min` : 'No limit'}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="text-sm text-gray-600">Passing Score</div>
-                  <div className="text-2xl font-bold text-gray-800">{quiz.passingScore}%</div>
+                  <div className="text-2xl font-bold text-gray-800">{shuffledQuiz.passingScore}%</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="text-sm text-gray-600">Your Attempt</div>
@@ -283,8 +302,8 @@ export default function TakeQuiz() {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-2xl font-bold">{quiz.title}</h2>
-              <div className="text-sm text-gray-600">{quiz.skillName}</div>
+              <h2 className="text-2xl font-bold">{shuffledQuiz.title}</h2>
+              <div className="text-sm text-gray-600">{shuffledQuiz.skillName}</div>
               <div className="mt-2 flex items-center gap-2">
                 <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded font-semibold">
                   Attempt {attemptCount + 1} of 3
@@ -306,15 +325,15 @@ export default function TakeQuiz() {
             </div>
           </div>
 
-          {quiz.description && (
+          {shuffledQuiz.description && (
             <div className="mb-6 p-4 bg-blue-50 rounded border-l-4 border-blue-500">
-              <p className="text-sm">{quiz.description}</p>
-              <p className="text-xs text-gray-600 mt-2">Passing Score: {quiz.passingScore}%</p>
+              <p className="text-sm">{shuffledQuiz.description}</p>
+              <p className="text-xs text-gray-600 mt-2">Passing Score: {shuffledQuiz.passingScore}%</p>
             </div>
           )}
 
           <div className="space-y-6">
-  {quiz.questions.map((q, qi) => (
+  {shuffledQuiz.questions.map((q, qi) => (
     <div key={q._id} className="border rounded-lg p-4">
       <div className="font-medium mb-3">
         Question {qi+1} <span className="text-gray-600 text-sm">({q.marks} marks)</span>

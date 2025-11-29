@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchCurrentUser, loginUser, logoutUser, selectUser, selectIsLoggedIn, selectAuthLoading } from '../store/slices/authSlice';
 
 const AuthContext = createContext();
 
@@ -11,56 +13,26 @@ function useAuth() {
 }
 
 function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+  const dispatch = useDispatch();
+  
+  // Use Redux state as source of truth
+  const user = useSelector(selectUser);
+  const loading = useSelector(selectAuthLoading);
+  const isLoggedIn = useSelector(selectIsLoggedIn);
 
   useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
-        credentials: 'include',
-      });
-      const data = await response.json();
-      setUser(data.user);
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setUser(null);
-      // Test backend connectivity
-      try {
-        const healthCheck = await fetch(`${apiBaseUrl}/api/health`);
-        if (healthCheck.ok) {
-          console.log('Backend is reachable');
-        }
-      } catch (e) {
-        console.error('Backend health check failed:', e);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Check auth status on mount
+    dispatch(fetchCurrentUser());
+  }, [dispatch]);
 
   const login = async (credentials) => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(credentials),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        await checkAuthStatus();
+      const resultAction = await dispatch(loginUser(credentials));
+      
+      if (loginUser.fulfilled.match(resultAction)) {
         return { success: true };
       } else {
-        return { success: false, error: data.error || 'Login failed' };
+        return { success: false, error: resultAction.payload || 'Login failed' };
       }
     } catch (error) {
       return { success: false, error: 'Network error' };
@@ -68,6 +40,8 @@ function AuthProvider({ children }) {
   };
 
   const signup = async (userData) => {
+    const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+    
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/signup`, {
         method: 'POST',
@@ -79,7 +53,6 @@ function AuthProvider({ children }) {
       });
 
       if (!response.ok) {
-        // Try to parse error response
         let errorMessage = 'Signup failed';
         try {
           const errorData = await response.json();
@@ -93,15 +66,14 @@ function AuthProvider({ children }) {
       const data = await response.json();
 
       if (data.success) {
-        // Automatically log in the user after successful signup
-        await checkAuthStatus();
+        // Fetch user info after signup
+        await dispatch(fetchCurrentUser());
         return { success: true };
       } else {
         return { success: false, error: data.error || 'Signup failed' };
       }
     } catch (error) {
       console.error('Signup network error:', error);
-      // Check if it's a network error (server not reachable)
       if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
         return { success: false, error: 'Cannot connect to server. Please make sure the backend server is running on port 9000.' };
       }
@@ -111,14 +83,14 @@ function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      await fetch(`${apiBaseUrl}/api/auth/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      setUser(null);
+      await dispatch(logoutUser());
     } catch (error) {
       console.error('Logout failed:', error);
     }
+  };
+
+  const checkAuthStatus = async () => {
+    await dispatch(fetchCurrentUser());
   };
 
   const getDashboardRoute = () => {

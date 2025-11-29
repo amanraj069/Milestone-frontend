@@ -106,7 +106,7 @@ export default function QuizList() {
                 <td class="${attempt.passed ? 'passed' : 'failed'}">
                   ${attempt.passed ? 'PASSED' : 'FAILED'}
                 </td>
-                <td class="badge">${attempt.badgeAwarded ? '🏆 Yes' : 'No'}</td>
+                <td class="badge">${attempt.badgeAwarded ? 'Yes' : 'No'}</td>
                 <td>${new Date(attempt.attemptedAt).toLocaleString()}</td>
               </tr>
             `).join('')}
@@ -267,7 +267,7 @@ export default function QuizList() {
                                       </td>
                                       <td className="border border-gray-300 px-4 py-2 text-sm">
                                         {attempt.badgeAwarded ? (
-                                          <span className="text-yellow-600 font-semibold">🏆 Yes</span>
+                                          <span className="text-yellow-600 font-semibold">Yes</span>
                                         ) : (
                                           <span className="text-gray-400">No</span>
                                         )}
