@@ -22,9 +22,14 @@ import ComplaintDetail from './pages/Admin/ComplaintDetail';
 import AdminQuizzes from './pages/Admin/Quizzes';
 import AdminBlogs from './pages/Admin/Blogs';
 import AdminProfile from './pages/Admin/Profile';
+import AdminEditProfile from './pages/Admin/EditProfile';
+import NewQuiz from './pages/Admin/Quizzes/NewQuiz';
+import QuizList from './pages/Admin/Quizzes/QuizList';
+import EditQuiz from './pages/Admin/Quizzes/EditQuiz';
 
 // Employer Pages
 import EmployerProfile from './pages/Employer/Profile/Profile';
+import EditEmployerProfile from './pages/Employer/Profile/EditProfile';
 import EmployerJobListings from './pages/Employer/JobListings/JobListings';
 import AddJob from './pages/Employer/JobListings/AddJob';
 import EditJob from './pages/Employer/JobListings/EditJob';
@@ -44,6 +49,8 @@ import FreelancerPayments from './pages/Freelancer/Payments';
 import FreelancerSkillsBadges from './pages/Freelancer/SkillsBadges';
 import FreelancerSubscription from './pages/Freelancer/Subscription/Subscription';
 import FreelancerComplaintForm from './pages/Freelancer/ComplaintForm';
+import TakeQuiz from './pages/Quizzes/TakeQuiz';
+import QuizResult from './pages/Quizzes/QuizResult';
 
 function App() {
   return (
@@ -69,13 +76,18 @@ function App() {
             <Route path="/admin/complaints" element={<ProtectedRoute requiredRole="Admin"><AdminComplaints /></ProtectedRoute>} />
             <Route path="/admin/complaints/:complaintId" element={<ProtectedRoute requiredRole="Admin"><ComplaintDetail /></ProtectedRoute>} />
             <Route path="/admin/quizzes" element={<ProtectedRoute requiredRole="Admin"><AdminQuizzes /></ProtectedRoute>} />
+            <Route path="/admin/quizzes/new" element={<ProtectedRoute requiredRole="Admin"><NewQuiz /></ProtectedRoute>} />
+            <Route path="/admin/quizzes/list" element={<ProtectedRoute requiredRole="Admin"><QuizList /></ProtectedRoute>} />
+            <Route path="/admin/quizzes/:id/edit" element={<ProtectedRoute requiredRole="Admin"><EditQuiz /></ProtectedRoute>} />
             <Route path="/admin/blogs" element={<ProtectedRoute requiredRole="Admin"><AdminBlogs /></ProtectedRoute>} />
             <Route path="/admin/profile" element={<ProtectedRoute requiredRole="Admin"><AdminProfile /></ProtectedRoute>} />
+            <Route path="/admin/profile/edit" element={<ProtectedRoute requiredRole="Admin"><AdminEditProfile /></ProtectedRoute>} />
 
             {/* Employer Routes */}
             <Route path="/employer/dashboard" element={<Navigate to="/employer/job-listings" replace />} />
             <Route path="/employer/home" element={<Navigate to="/employer/job-listings" replace />} />
             <Route path="/employer/profile" element={<ProtectedRoute requiredRole="Employer"><EmployerProfile /></ProtectedRoute>} />
+            <Route path="/employer/profile/edit" element={<ProtectedRoute requiredRole="Employer"><EditEmployerProfile /></ProtectedRoute>} />
             <Route path="/employer/job-listings" element={<ProtectedRoute requiredRole="Employer"><EmployerJobListings /></ProtectedRoute>} />
             <Route path="/employer/job-listings/new" element={<ProtectedRoute requiredRole="Employer"><AddJob /></ProtectedRoute>} />
             <Route path="/employer/job-listings/edit/:jobId" element={<ProtectedRoute requiredRole="Employer"><EditJob /></ProtectedRoute>} />
@@ -97,6 +109,8 @@ function App() {
             <Route path="/freelancer/skills-badges" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerSkillsBadges /></ProtectedRoute>} />
             <Route path="/freelancer/subscription" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerSubscription /></ProtectedRoute>} />
             <Route path="/freelancer/complaint" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerComplaintForm /></ProtectedRoute>} />
+            <Route path="/quizzes/:id" element={<ProtectedRoute><TakeQuiz /></ProtectedRoute>} />
+            <Route path="/quizzes/:id/result" element={<ProtectedRoute><QuizResult /></ProtectedRoute>} />
             
             {/* Catch all other routes */}
             <Route path="*" element={<Home />} />

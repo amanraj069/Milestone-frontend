@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
+import BadgesList from '../Profile/BadgesList';
 
 const FreelancerProfile = () => {
   const { user } = useAuth();
@@ -37,7 +38,7 @@ const FreelancerProfile = () => {
                 phone: user.phone || 'N/A',
                 location: user.location || 'N/A',
                 role: user.role || 'Freelancer',
-                picture: user.picture || '/assets/user_image.jpg',
+                picture: user.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png',
                 aboutMe: user.aboutMe || '',
                 skills: user.skills || [],
                 experience: user.experience || [],
@@ -55,7 +56,7 @@ const FreelancerProfile = () => {
               phone: user.phone || 'N/A',
               location: user.location || 'N/A',
               role: user.role || 'Freelancer',
-              picture: user.picture || '/assets/user_image.jpg',
+              picture: user.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png',
               aboutMe: user.aboutMe || '',
               skills: user.skills || [],
               experience: user.experience || [],
@@ -77,7 +78,7 @@ const FreelancerProfile = () => {
             phone: user.phone || 'N/A',
             location: user.location || 'N/A',
             role: user.role || 'Freelancer',
-            picture: user.picture || '/assets/user_image.jpg',
+            picture: user.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png',
             aboutMe: user.aboutMe || '',
             skills: user.skills || [],
             experience: user.experience || [],
@@ -178,7 +179,7 @@ const FreelancerProfile = () => {
                   alt="Profile" 
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    e.target.src = '/assets/user_image.jpg';
+                    e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png';
                   }}
                 />
               </div>
@@ -407,6 +408,12 @@ const FreelancerProfile = () => {
             ) : (
               <p className="text-gray-500">No resume uploaded yet.</p>
             )}
+          </div>
+
+          {/* Badges Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            <h3 className="text-2xl font-bold text-blue-600 mb-4">Skill Badges</h3>
+            <BadgesList userId={user?._id} />
           </div>
         </div>
       </div>
