@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
+import BadgesList from '../Profile/BadgesList';
 
 const FreelancerProfile = () => {
   const { user } = useAuth();
@@ -407,6 +408,12 @@ const FreelancerProfile = () => {
             ) : (
               <p className="text-gray-500">No resume uploaded yet.</p>
             )}
+          </div>
+
+          {/* Badges Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            <h3 className="text-2xl font-bold text-blue-600 mb-4">Skill Badges</h3>
+            <BadgesList userId={user?._id} />
           </div>
         </div>
       </div>
