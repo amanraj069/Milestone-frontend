@@ -182,7 +182,7 @@ const FreelancerSkillsBadges = () => {
                             <div className={`inline-block px-2 py-1 text-xs font-semibold rounded ${
                               isPassed ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
                             }`}>
-                              {isPassed ? '✓ Passed' : 'Attempted'}
+                              {isPassed ? 'Passed' : 'Attempted'}
                             </div>
                           )}
                         </div>

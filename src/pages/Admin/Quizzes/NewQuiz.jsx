@@ -446,7 +446,7 @@ export default function NewQuiz() {
                 onClick={submit} 
                 disabled={saving}
               >
-                {saving ? 'Saving...' : '✓ Create Skill Quiz'}
+                {saving ? 'Saving...' : 'Create Skill Quiz'}
               </button>
             </div>
           </div>

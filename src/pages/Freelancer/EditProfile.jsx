@@ -613,7 +613,7 @@ const EditProfile = () => {
                   </p>
                   {/* {formData.profileImageUrl && (
                     <p className="text-xs text-green-600">
-                      ✓ Current image URL: {formData.profileImageUrl.substring(0, 50)}...
+                      Current image URL: {formData.profileImageUrl.substring(0, 50)}...
                     </p>
                   )} */}
                 </div>
