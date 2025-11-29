@@ -38,7 +38,7 @@ const ComplaintForm = () => {
     'Other',
   ];
 
-  const priorities = ['Low', 'Medium', 'High', 'Critical'];
+  const priorities = ['Low', 'Medium', 'High'];
 
   const validateForm = () => {
     const newErrors = {};
@@ -282,7 +282,7 @@ const ComplaintForm = () => {
         <i className="fas fa-info-circle"></i>
         <p>
           Your complaint will be reviewed by our admin team. We aim to respond within 2-3
-          business days. For urgent matters, please mark the priority as "Critical".
+          business days. For urgent matters, please mark the priority as "High".
         </p>
       </div>
     </div>

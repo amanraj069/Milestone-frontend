@@ -1,21 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import './Complaints.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const AdminComplaints = () => {
+  const navigate = useNavigate();
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedComplaint, setSelectedComplaint] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterPriority, setFilterPriority] = useState('All');
   const [filterComplainantType, setFilterComplainantType] = useState('All');
-  const [adminNotes, setAdminNotes] = useState('');
-  const [updating, setUpdating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchComplaints();
@@ -41,39 +40,8 @@ const AdminComplaints = () => {
     }
   };
 
-  const handleViewComplaint = (complaint) => {
-    setSelectedComplaint(complaint);
-    setAdminNotes(complaint.adminNotes || '');
-    setIsModalOpen(true);
-  };
-
-  const handleUpdateStatus = async (status) => {
-    if (!selectedComplaint) return;
-
-    setUpdating(true);
-    try {
-      const response = await axios.put(
-        `${API_BASE_URL}/api/admin/complaints/${selectedComplaint.complaintId}`,
-        { status, adminNotes },
-        { withCredentials: true }
-      );
-
-      if (response.data.success) {
-        // Update local state
-        setComplaints(complaints.map(c => 
-          c.complaintId === selectedComplaint.complaintId 
-            ? { ...c, status, adminNotes, updatedAt: new Date() }
-            : c
-        ));
-        setIsModalOpen(false);
-        setSelectedComplaint(null);
-      }
-    } catch (error) {
-      console.error('Error updating complaint:', error);
-      alert('Failed to update complaint status');
-    } finally {
-      setUpdating(false);
-    }
+  const handleViewComplaint = (complaintId) => {
+    navigate(`/admin/complaints/${complaintId}`);
   };
 
   const getStatusBadgeClass = (status) => {
@@ -100,7 +68,12 @@ const AdminComplaints = () => {
     const statusMatch = filterStatus === 'All' || complaint.status === filterStatus;
     const priorityMatch = filterPriority === 'All' || complaint.priority === filterPriority;
     const complainantMatch = filterComplainantType === 'All' || complaint.complainantType === filterComplainantType;
-    return statusMatch && priorityMatch && complainantMatch;
+    const searchMatch = searchTerm === '' || 
+      complaint.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      complaint.complainantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      complaint.complaintType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      complaint.jobTitle.toLowerCase().includes(searchTerm.toLowerCase());
+    return statusMatch && priorityMatch && complainantMatch && searchMatch;
   });
 
   const content = (
@@ -111,9 +84,22 @@ const AdminComplaints = () => {
           <h1 className="page-title">Complaints Management</h1>
           <p className="page-subtitle">Review and manage freelancer complaints</p>
         </div>
-        <button className="refresh-btn" onClick={fetchComplaints}>
-          <i className="fas fa-sync-alt"></i> Refresh
-        </button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="search-section">
+        <div className="search-bar">
+          <i className="fas fa-search"></i>
+          <input
+            type="text"
+            placeholder="Search by subject, name, type, or job..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="search-stats">
+          <span>Total: {filteredComplaints.length}</span>
+        </div>
       </div>
 
       {/* Filters */}
@@ -143,11 +129,7 @@ const AdminComplaints = () => {
             <option value="Low">Low</option>
             <option value="Medium">Medium</option>
             <option value="High">High</option>
-            <option value="Critical">Critical</option>
           </select>
-        </div>
-        <div className="filter-stats">
-          <span>Total: {filteredComplaints.length}</span>
         </div>
       </div>
 
@@ -186,7 +168,6 @@ const AdminComplaints = () => {
           <table className="complaints-table">
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Filed By</th>
                 <th>Against</th>
                 <th>Job</th>
@@ -201,7 +182,6 @@ const AdminComplaints = () => {
             <tbody>
               {filteredComplaints.map((complaint) => (
                 <tr key={complaint.complaintId}>
-                  <td className="complaint-id">{complaint.complaintId.substring(0, 8)}...</td>
                   <td>
                     <div className="complainant-cell">
                       <span className={`type-badge ${complaint.complainantType === 'Freelancer' ? 'type-freelancer' : 'type-employer'}`}>
@@ -228,7 +208,7 @@ const AdminComplaints = () => {
                   <td>
                     <button
                       className="view-btn"
-                      onClick={() => handleViewComplaint(complaint)}
+                      onClick={() => handleViewComplaint(complaint.complaintId)}
                     >
                       <i className="fas fa-eye"></i> View
                     </button>
@@ -237,141 +217,6 @@ const AdminComplaints = () => {
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {/* Complaint Detail Modal */}
-      {isModalOpen && selectedComplaint && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Complaint Details</h2>
-              <button className="close-btn" onClick={() => setIsModalOpen(false)}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <div className="complaint-detail-section">
-                <h3>Complaint Information</h3>
-                <div className="detail-grid">
-                  <div className="detail-item">
-                    <strong>Complaint ID:</strong>
-                    <span>{selectedComplaint.complaintId}</span>
-                  </div>
-                  <div className="detail-item">
-                    <strong>Status:</strong>
-                    <span className={`status-badge ${getStatusBadgeClass(selectedComplaint.status)}`}>
-                      {selectedComplaint.status}
-                    </span>
-                  </div>
-                  <div className="detail-item">
-                    <strong>Priority:</strong>
-                    <span className={`priority-badge ${getPriorityBadgeClass(selectedComplaint.priority)}`}>
-                      {selectedComplaint.priority}
-                    </span>
-                  </div>
-                  <div className="detail-item">
-                    <strong>Type:</strong>
-                    <span>{selectedComplaint.complaintType}</span>
-                  </div>
-                  <div className="detail-item">
-                    <strong>Created:</strong>
-                    <span>{new Date(selectedComplaint.createdAt).toLocaleString()}</span>
-                  </div>
-                  <div className="detail-item">
-                    <strong>Last Updated:</strong>
-                    <span>{new Date(selectedComplaint.updatedAt).toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="complaint-detail-section">
-                <h3>Parties Involved</h3>
-                <div className="detail-grid">
-                  <div className="detail-item">
-                    <strong>Filed By:</strong>
-                    <span>
-                      <span className={`type-badge ${selectedComplaint.complainantType === 'Freelancer' ? 'type-freelancer' : 'type-employer'}`}>
-                        {selectedComplaint.complainantType}
-                      </span>
-                      {' '}{selectedComplaint.complainantName}
-                    </span>
-                  </div>
-                  <div className="detail-item">
-                    <strong>Freelancer:</strong>
-                    <span>{selectedComplaint.freelancerName}</span>
-                  </div>
-                  <div className="detail-item">
-                    <strong>Employer:</strong>
-                    <span>{selectedComplaint.employerName}</span>
-                  </div>
-                  <div className="detail-item">
-                    <strong>Job Title:</strong>
-                    <span>{selectedComplaint.jobTitle}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="complaint-detail-section">
-                <h3>Subject</h3>
-                <p className="complaint-subject">{selectedComplaint.subject}</p>
-              </div>
-
-              <div className="complaint-detail-section">
-                <h3>Description</h3>
-                <p className="complaint-description">{selectedComplaint.description}</p>
-              </div>
-
-              <div className="complaint-detail-section">
-                <h3>Admin Notes</h3>
-                <textarea
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Add notes about this complaint..."
-                  rows="4"
-                  className="admin-notes-textarea"
-                />
-              </div>
-
-              <div className="modal-actions">
-                <button
-                  className="status-btn chat-btn-action"
-                  onClick={() => alert('Chat functionality will be implemented soon')}
-                >
-                  <i className="fas fa-comment"></i> Chat
-                </button>
-                <button
-                  className="status-btn pending-btn"
-                  onClick={() => handleUpdateStatus('Pending')}
-                  disabled={updating || selectedComplaint.status === 'Pending'}
-                >
-                  Mark as Pending
-                </button>
-                <button
-                  className="status-btn review-btn"
-                  onClick={() => handleUpdateStatus('Under Review')}
-                  disabled={updating || selectedComplaint.status === 'Under Review'}
-                >
-                  Under Review
-                </button>
-                <button
-                  className="status-btn resolved-btn"
-                  onClick={() => handleUpdateStatus('Resolved')}
-                  disabled={updating || selectedComplaint.status === 'Resolved'}
-                >
-                  Mark as Resolved
-                </button>
-                <button
-                  className="status-btn rejected-btn"
-                  onClick={() => handleUpdateStatus('Rejected')}
-                  disabled={updating || selectedComplaint.status === 'Rejected'}
-                >
-                  Reject
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>
