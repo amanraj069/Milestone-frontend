@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import DashboardLayout from '../../components/DashboardLayout';
 import './ActiveJobs/ActiveJobs.css'; // if you still need see-more-btn styles
+import { loadJobHistory, selectJobHistory, selectJobsLoading, selectJobsError } from '../../store/slices/jobsSlice';
 
 function Stars({ rating = 0 }) {
   const full = Math.floor(rating);
@@ -22,63 +24,14 @@ function Stars({ rating = 0 }) {
 }
 
 export default function FreelancerJobHistory() {
-  const [jobs, setJobs] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const jobs = useSelector(selectJobHistory);
+  const loading = useSelector(selectJobsLoading);
+  const error = useSelector(selectJobsError);
 
   useEffect(() => {
-    let mounted = true;
-
-    async function load() {
-      setLoading(true);
-      setError(null);
-
-      const endpoints = [
-        '/api/freelancer/job_history/api',
-        '/api/freelancerD/job_history/api',
-        '/api/freelancer/jobs/history',
-        '/api/freelancer/job-history',
-      ];
-
-      let lastErr = null;
-      for (const ep of endpoints) {
-        try {
-          const res = await fetch(ep, { credentials: 'include' });
-          if (!res.ok) {
-            lastErr = new Error(`HTTP ${res.status}`);
-            continue;
-          }
-
-          const contentType = res.headers.get('content-type') || '';
-          if (contentType.includes('text/html')) continue; // skip SSR pages
-
-          const data = await res.json();
-
-          if (data?.success && Array.isArray(data.historyJobs)) {
-            if (!mounted) return;
-            setJobs(data.historyJobs);
-            setLoading(false);
-            return;
-          }
-          if (Array.isArray(data)) {
-            if (!mounted) return;
-            setJobs(data);
-            setLoading(false);
-            return;
-          }
-        } catch (err) {
-          lastErr = err;
-        }
-      }
-
-      if (!mounted) return;
-      setError(lastErr || new Error('Failed to load job history'));
-      setLoading(false);
-    }
-
-    load();
-    return () => { mounted = false; };
-  }, []);
+    dispatch(loadJobHistory());
+  }, [dispatch]);
 
   const renderJobCard = (job) => {
     const isCompleted = job.status === 'finished';

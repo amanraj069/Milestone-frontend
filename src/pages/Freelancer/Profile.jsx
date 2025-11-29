@@ -413,7 +413,7 @@ const FreelancerProfile = () => {
           {/* Badges Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <h3 className="text-2xl font-bold text-blue-600 mb-4">Skill Badges</h3>
-            <BadgesList userId={user?._id} />
+            <BadgesList userId={user?.id} />
           </div>
         </div>
       </div>

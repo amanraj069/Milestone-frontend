@@ -21,6 +21,7 @@ const AdminEditProfile = () => {
     }
   });
   const [phoneError, setPhoneError] = useState('');
+  const [aboutError, setAboutError] = useState('');
   const [loading, setLoading] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
   const [profileImagePreview, setProfileImagePreview] = useState('');
@@ -131,6 +132,21 @@ const AdminEditProfile = () => {
       setPhoneError('');
     }
   }, [formData.phone]);
+
+  // Real-time about me validation
+  useEffect(() => {
+    const about = formData.about ? String(formData.about).trim() : '';
+    if (!about) {
+      setAboutError('');
+      return;
+    }
+
+    if (about.length < 50) {
+      setAboutError(`About me must be at least 50 characters (${about.length}/50)`);
+    } else {
+      setAboutError('');
+    }
+  }, [formData.about]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -352,9 +368,17 @@ const AdminEditProfile = () => {
               value={formData.about}
               onChange={handleChange}
               rows="6"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              placeholder="Tell us about yourself..."
+              className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none ${aboutError ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'}`}
+              placeholder="Tell us about yourself... (minimum 50 characters)"
             />
+            <div className="flex justify-between items-center mt-2">
+              <p className={`text-sm ${aboutError ? 'text-red-600' : 'text-gray-500'}`}>
+                {formData.about.length} characters {formData.about.length < 50 ? `(${50 - formData.about.length} more needed)` : ''}
+              </p>
+              {aboutError && (
+                <p className="text-sm text-red-600">{aboutError}</p>
+              )}
+            </div>
           </div>
 
          {/* Social Media & Links */}
@@ -445,7 +469,7 @@ const AdminEditProfile = () => {
             
             <button
               type="submit"
-              disabled={loading || !!phoneError}
+              disabled={loading || !!phoneError || !!aboutError}
               className="px-8 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Saving...' : 'Save Changes'}

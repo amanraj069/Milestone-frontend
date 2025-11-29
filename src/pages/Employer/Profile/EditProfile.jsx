@@ -9,6 +9,8 @@ const EditEmployerProfile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [phoneError, setPhoneError] = useState('');
+  const [aboutError, setAboutError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -108,6 +110,37 @@ const EditEmployerProfile = () => {
 
     fetchProfileData();
   }, [user]);
+
+  // Real-time phone validation
+  useEffect(() => {
+    const phone = formData.phone ? String(formData.phone).trim() : '';
+    if (!phone) {
+      setPhoneError('');
+      return;
+    }
+
+    const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/;
+    if (!phoneRegex.test(phone)) {
+      setPhoneError('Enter a valid phone number (digits, +, spaces, -).');
+    } else {
+      setPhoneError('');
+    }
+  }, [formData.phone]);
+
+  // Real-time about me validation
+  useEffect(() => {
+    const about = formData.aboutMe ? String(formData.aboutMe).trim() : '';
+    if (!about) {
+      setAboutError('');
+      return;
+    }
+
+    if (about.length < 50) {
+      setAboutError(`Company description must be at least 50 characters (${about.length}/50)`);
+    } else {
+      setAboutError('');
+    }
+  }, [formData.aboutMe]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -341,9 +374,12 @@ const EditEmployerProfile = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 ${phoneError ? 'border border-red-500' : 'border border-gray-300 focus:border-transparent'}`}
                   placeholder="+1 (555) 123-4567"
                 />
+                {phoneError && (
+                  <p className="text-sm text-red-600 mt-1">{phoneError}</p>
+                )}
               </div>
 
               <div>
@@ -388,12 +424,17 @@ const EditEmployerProfile = () => {
                 value={formData.aboutMe}
                 onChange={handleInputChange}
                 rows={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                placeholder="Tell us about your company, mission, values, and what makes you unique..."
+                className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none ${aboutError ? 'border border-red-500' : 'border border-gray-300 focus:border-transparent'}`}
+                placeholder="Tell us about your company, mission, values, and what makes you unique... (minimum 50 characters)"
               />
-              <p className="mt-2 text-sm text-gray-500">
-                {formData.aboutMe.length} characters
-              </p>
+              <div className="flex justify-between items-center mt-2">
+                <p className={`text-sm ${aboutError ? 'text-red-600' : 'text-gray-500'}`}>
+                  {formData.aboutMe.length} characters {formData.aboutMe.length < 50 ? `(${50 - formData.aboutMe.length} more needed)` : ''}
+                </p>
+                {aboutError && (
+                  <p className="text-sm text-red-600">{aboutError}</p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -485,7 +526,7 @@ const EditEmployerProfile = () => {
             
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || !!phoneError || !!aboutError}
               className="px-8 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {saving ? (

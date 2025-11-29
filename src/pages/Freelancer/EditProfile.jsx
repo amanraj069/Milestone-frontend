@@ -17,6 +17,15 @@ const EditProfile = () => {
     resumeLink: ''
   });
   const [phoneError, setPhoneError] = useState('');
+  const [aboutError, setAboutError] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [skillError, setSkillError] = useState('');
+  const [experienceErrors, setExperienceErrors] = useState({});
+  const [educationErrors, setEducationErrors] = useState({});
+  const [portfolioErrors, setPortfolioErrors] = useState({});
+  const [resumeError, setResumeError] = useState('');
+  const [currentSkillError, setCurrentSkillError] = useState('');
   const [skills, setSkills] = useState([]);
   const [currentSkill, setCurrentSkill] = useState('');
   const [experience, setExperience] = useState([]);
@@ -124,6 +133,185 @@ const EditProfile = () => {
       setPhoneError('');
     }
   }, [formData.phone]);
+
+  // Real-time about me validation
+  useEffect(() => {
+    const about = formData.about ? String(formData.about).trim() : '';
+    if (!about) {
+      setAboutError('');
+      return;
+    }
+
+    if (about.length < 50) {
+      setAboutError(`About me must be at least 50 characters (${about.length}/50)`);
+    } else {
+      setAboutError('');
+    }
+  }, [formData.about]);
+
+  // Real-time name validation
+  useEffect(() => {
+    const name = formData.name ? String(formData.name).trim() : '';
+    if (!name) {
+      setNameError('Name is required');
+      return;
+    }
+
+    if (name.length < 2) {
+      setNameError('Name must be at least 2 characters');
+    } else if (name.length > 100) {
+      setNameError('Name must be less than 100 characters');
+    } else if (!/^[a-zA-Z\s'-]+$/.test(name)) {
+      setNameError('Name can only contain letters, spaces, hyphens, and apostrophes');
+    } else {
+      setNameError('');
+    }
+  }, [formData.name]);
+
+  // Real-time location validation
+  useEffect(() => {
+    const location = formData.location ? String(formData.location).trim() : '';
+    if (!location) {
+      setLocationError('');
+      return;
+    }
+
+    if (location.length < 2) {
+      setLocationError('Location must be at least 2 characters');
+    } else if (location.length > 100) {
+      setLocationError('Location must be less than 100 characters');
+    } else {
+      setLocationError('');
+    }
+  }, [formData.location]);
+
+  // Real-time skill validation
+  useEffect(() => {
+    if (skills.length === 0) {
+      setSkillError('Add at least one skill to showcase your expertise');
+    } else {
+      setSkillError('');
+    }
+  }, [skills]);
+
+  // Real-time experience validation
+  useEffect(() => {
+    const errors = {};
+    experience.forEach((exp, index) => {
+      const expErrors = {};
+      if (exp.title && exp.title.trim().length < 2) {
+        expErrors.title = 'Job title must be at least 2 characters';
+      }
+      if (exp.title && exp.title.trim().length > 100) {
+        expErrors.title = 'Job title must be less than 100 characters';
+      }
+      if (exp.date && exp.date.trim().length < 4) {
+        expErrors.date = 'Date must be at least 4 characters (e.g., 2020)';
+      }
+      if (exp.date && exp.date.trim().length > 50) {
+        expErrors.date = 'Date must be less than 50 characters';
+      }
+      if (exp.description && exp.description.trim().length < 20) {
+        expErrors.description = `Description must be at least 20 characters (${exp.description.trim().length}/20)`;
+      }
+      if (exp.description && exp.description.trim().length > 500) {
+        expErrors.description = 'Description must be less than 500 characters';
+      }
+      if (Object.keys(expErrors).length > 0) {
+        errors[index] = expErrors;
+      }
+    });
+    setExperienceErrors(errors);
+  }, [experience]);
+
+  // Real-time education validation
+  useEffect(() => {
+    const errors = {};
+    education.forEach((edu, index) => {
+      const eduErrors = {};
+      if (edu.degree && edu.degree.trim().length < 2) {
+        eduErrors.degree = 'Degree must be at least 2 characters';
+      }
+      if (edu.degree && edu.degree.trim().length > 100) {
+        eduErrors.degree = 'Degree must be less than 100 characters';
+      }
+      if (edu.institution && edu.institution.trim().length < 2) {
+        eduErrors.institution = 'Institution must be at least 2 characters';
+      }
+      if (edu.institution && edu.institution.trim().length > 100) {
+        eduErrors.institution = 'Institution must be less than 100 characters';
+      }
+      if (edu.date && edu.date.trim().length < 4) {
+        eduErrors.date = 'Date must be at least 4 characters (e.g., 2020)';
+      }
+      if (edu.date && edu.date.trim().length > 50) {
+        eduErrors.date = 'Date must be less than 50 characters';
+      }
+      if (Object.keys(eduErrors).length > 0) {
+        errors[index] = eduErrors;
+      }
+    });
+    setEducationErrors(errors);
+  }, [education]);
+
+  // Real-time portfolio validation
+  useEffect(() => {
+    const errors = {};
+    portfolio.forEach((item, index) => {
+      const itemErrors = {};
+      if (item.title && item.title.trim().length < 3) {
+        itemErrors.title = 'Title must be at least 3 characters';
+      }
+      if (item.description && item.description.trim().length < 20) {
+        itemErrors.description = `Description must be at least 20 characters (${item.description.trim().length}/20)`;
+      }
+      if (item.link && item.link.trim() && !item.link.match(/^https?:\/\/.+/)) {
+        itemErrors.link = 'Link must be a valid URL (start with http:// or https://)';
+      }
+      if (Object.keys(itemErrors).length > 0) {
+        errors[index] = itemErrors;
+      }
+    });
+    setPortfolioErrors(errors);
+  }, [portfolio]);
+
+  // Real-time resume link validation
+  useEffect(() => {
+    const resume = formData.resumeLink ? String(formData.resumeLink).trim() : '';
+    if (!resume) {
+      setResumeError('');
+      return;
+    }
+
+    if (!resume.match(/^https?:\/\/.+/)) {
+      setResumeError('Resume link must be a valid URL (start with http:// or https://)');
+    } else if (!resume.match(/\.(pdf|doc|docx)$/i)) {
+      setResumeError('Resume link should point to a PDF or DOC file');
+    } else {
+      setResumeError('');
+    }
+  }, [formData.resumeLink]);
+
+  // Real-time current skill validation
+  useEffect(() => {
+    const skill = currentSkill.trim();
+    if (!skill) {
+      setCurrentSkillError('');
+      return;
+    }
+
+    if (skill.length < 2) {
+      setCurrentSkillError('Skill must be at least 2 characters');
+    } else if (skill.length > 50) {
+      setCurrentSkillError('Skill must be less than 50 characters');
+    } else if (skills.includes(skill)) {
+      setCurrentSkillError('This skill is already added');
+    } else if (!/^[a-zA-Z0-9\s.+#-]+$/.test(skill)) {
+      setCurrentSkillError('Skill can only contain letters, numbers, spaces, and . + # -');
+    } else {
+      setCurrentSkillError('');
+    }
+  }, [currentSkill, skills]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -439,14 +627,18 @@ const EditProfile = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  required
+                  className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${nameError ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'}`}
                 />
+                {nameError && (
+                  <p className="text-sm text-red-600 mt-1">{nameError}</p>
+                )}
               </div>
 
               <div>
@@ -456,8 +648,12 @@ const EditProfile = () => {
                   name="location"
                   value={formData.location}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  placeholder="e.g., New York, USA"
+                  className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${locationError ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'}`}
                 />
+                {locationError && (
+                  <p className="text-sm text-red-600 mt-1">{locationError}</p>
+                )}
               </div>
             </div>
           </div>
@@ -502,36 +698,55 @@ const EditProfile = () => {
               value={formData.about}
               onChange={handleChange}
               rows="6"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              placeholder="Tell us about yourself..."
+              className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none ${aboutError ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'}`}
+              placeholder="Tell us about yourself... (minimum 50 characters)"
             />
+            <div className="flex justify-between items-center mt-2">
+              <p className={`text-sm ${aboutError ? 'text-red-600' : 'text-gray-500'}`}>
+                {formData.about.length} characters {formData.about.length < 50 ? `(${50 - formData.about.length} more needed)` : ''}
+              </p>
+              {aboutError && (
+                <p className="text-sm text-red-600">{aboutError}</p>
+              )}
+            </div>
           </div>
 
           {/* Skills */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-6">Skills</h3>
+            <h3 className="text-2xl font-bold text-blue-600 mb-6">Skills *</h3>
             
             {/* Skill Input */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Add Skills (Press Enter, comma, or semicolon to add)
               </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={currentSkill}
-                  onChange={(e) => setCurrentSkill(e.target.value)}
-                  onKeyDown={handleSkillKeyDown}
-                  placeholder="Type skill and press Enter (e.g., React.js)"
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddSkill}
-                  className="px-6 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors text-sm"
-                >
-                  Add
-                </button>
+              {skillError && skills.length === 0 && (
+                <p className="text-sm text-red-600 mb-2">{skillError}</p>
+              )}
+              <div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={currentSkill}
+                    onChange={(e) => setCurrentSkill(e.target.value)}
+                    onKeyDown={handleSkillKeyDown}
+                    placeholder="Type skill and press Enter (e.g., React.js)"
+                    className={`flex-1 px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${
+                      currentSkillError ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddSkill}
+                    disabled={!!currentSkillError || !currentSkill.trim()}
+                    className="px-6 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Add
+                  </button>
+                </div>
+                {currentSkillError && (
+                  <p className="text-sm text-red-600 mt-1">{currentSkillError}</p>
+                )}
               </div>
             </div>
 
@@ -601,27 +816,48 @@ const EditProfile = () => {
                     </button>
                   </div>
                   <div className="space-y-3">
-                    <input
-                      type="text"
-                      value={exp.title}
-                      onChange={(e) => handleExperienceChange(index, 'title', e.target.value)}
-                      placeholder="Job Title"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
-                    <input
-                      type="text"
-                      value={exp.date}
-                      onChange={(e) => handleExperienceChange(index, 'date', e.target.value)}
-                      placeholder="Date (e.g., Jan 2020 - Dec 2022)"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
-                    <textarea
-                      value={exp.description}
-                      onChange={(e) => handleExperienceChange(index, 'description', e.target.value)}
-                      placeholder="Description"
-                      rows="3"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
+                    <div>
+                      <input
+                        type="text"
+                        value={exp.title}
+                        onChange={(e) => handleExperienceChange(index, 'title', e.target.value)}
+                        placeholder="Job Title"
+                        className={`w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${
+                          experienceErrors[index]?.title ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'
+                        }`}
+                      />
+                      {experienceErrors[index]?.title && (
+                        <p className="text-sm text-red-600 mt-1">{experienceErrors[index].title}</p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={exp.date}
+                        onChange={(e) => handleExperienceChange(index, 'date', e.target.value)}
+                        placeholder="Date (e.g., Jan 2020 - Dec 2022)"
+                        className={`w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${
+                          experienceErrors[index]?.date ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'
+                        }`}
+                      />
+                      {experienceErrors[index]?.date && (
+                        <p className="text-sm text-red-600 mt-1">{experienceErrors[index].date}</p>
+                      )}
+                    </div>
+                    <div>
+                      <textarea
+                        value={exp.description}
+                        onChange={(e) => handleExperienceChange(index, 'description', e.target.value)}
+                        placeholder="Description (minimum 20 characters)"
+                        rows="3"
+                        className={`w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none ${
+                          experienceErrors[index]?.description ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'
+                        }`}
+                      />
+                      {experienceErrors[index]?.description && (
+                        <p className="text-sm text-red-600 mt-1">{experienceErrors[index].description}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -657,27 +893,48 @@ const EditProfile = () => {
                     </button>
                   </div>
                   <div className="space-y-3">
-                    <input
-                      type="text"
-                      value={edu.degree}
-                      onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
-                      placeholder="Degree"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
-                    <input
-                      type="text"
-                      value={edu.institution}
-                      onChange={(e) => handleEducationChange(index, 'institution', e.target.value)}
-                      placeholder="Institution"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
-                    <input
-                      type="text"
-                      value={edu.date}
-                      onChange={(e) => handleEducationChange(index, 'date', e.target.value)}
-                      placeholder="Date (e.g., 2018 - 2022)"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
+                    <div>
+                      <input
+                        type="text"
+                        value={edu.degree}
+                        onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
+                        placeholder="Degree"
+                        className={`w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${
+                          educationErrors[index]?.degree ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'
+                        }`}
+                      />
+                      {educationErrors[index]?.degree && (
+                        <p className="text-sm text-red-600 mt-1">{educationErrors[index].degree}</p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={edu.institution}
+                        onChange={(e) => handleEducationChange(index, 'institution', e.target.value)}
+                        placeholder="Institution"
+                        className={`w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${
+                          educationErrors[index]?.institution ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'
+                        }`}
+                      />
+                      {educationErrors[index]?.institution && (
+                        <p className="text-sm text-red-600 mt-1">{educationErrors[index].institution}</p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={edu.date}
+                        onChange={(e) => handleEducationChange(index, 'date', e.target.value)}
+                        placeholder="Date (e.g., 2018 - 2022)"
+                        className={`w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${
+                          educationErrors[index]?.date ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'
+                        }`}
+                      />
+                      {educationErrors[index]?.date && (
+                        <p className="text-sm text-red-600 mt-1">{educationErrors[index].date}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -740,27 +997,69 @@ const EditProfile = () => {
                         Max 5MB. Will be uploaded when you click Save Changes.
                       </p>
                     </div>
-                    <input
-                      type="text"
-                      value={item.title}
-                      onChange={(e) => handlePortfolioChange(index, 'title', e.target.value)}
-                      placeholder="Project Title"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
-                    <textarea
-                      value={item.description}
-                      onChange={(e) => handlePortfolioChange(index, 'description', e.target.value)}
-                      placeholder="Description"
-                      rows="3"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
-                    <input
-                      type="url"
-                      value={item.link}
-                      onChange={(e) => handlePortfolioChange(index, 'link', e.target.value)}
-                      placeholder="Project Link (Optional)"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
+                    <div>
+                      <input
+                        type="text"
+                        value={item.title}
+                        onChange={(e) => handlePortfolioChange(index, 'title', e.target.value)}
+                        placeholder="Project Title"
+                        className={`w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${
+                          portfolioErrors[index]?.title ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'
+                        }`}
+                      />
+                      {portfolioErrors[index]?.title && (
+                        <p className="text-sm text-red-600 mt-1">{portfolioErrors[index].title}</p>
+                      )}
+                    </div>
+                    <div>
+  <textarea
+    value={item.description || ''}
+    onChange={(e) => handlePortfolioChange(index, 'description', e.target.value)}
+    placeholder="Description (minimum 20 characters)"
+    rows="3"
+    className={`w-full px-4 py-2 rounded-lg outline-none resize-none transition-colors
+      ${item.description?.trim().length > 0 && item.description.trim().length < 20 
+        ? 'border-red-500 focus:ring-red-400' 
+        : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+      } focus:ring-2`}
+  />
+
+  {/* Live character counter + error message */}
+  <div className="flex justify-between items-center mt-2">
+    {/* Character counter */}
+    <p className={`text-sm font-medium ${
+      item.description?.trim().length > 0 && item.description.trim().length < 20
+        ? 'text-red-600'
+        : 'text-gray-500'
+    }`}>
+      {item.description?.length || 0} / 20 characters
+      {item.description && item.description.trim().length < 20 && (
+        <span> ({20 - item.description.trim().length} more needed)</span>
+      )}
+    </p>
+
+    {/* Optional: keep your centralized error message if you want */}
+    {portfolioErrors[index]?.description && (
+      <p className="text-sm text-red-600">
+        {portfolioErrors[index].description}
+      </p>
+    )}
+  </div>
+</div>
+                    <div>
+                      <input
+                        type="url"
+                        value={item.link}
+                        onChange={(e) => handlePortfolioChange(index, 'link', e.target.value)}
+                        placeholder="Project Link (Optional)"
+                        className={`w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${
+                          portfolioErrors[index]?.link ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'
+                        }`}
+                      />
+                      {portfolioErrors[index]?.link && (
+                        <p className="text-sm text-red-600 mt-1">{portfolioErrors[index].link}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -781,9 +1080,15 @@ const EditProfile = () => {
                 value={formData.resumeLink}
                 onChange={handleChange}
                 placeholder="https://example.com/resume.pdf"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${
+                  resumeError ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'
+                }`}
               />
-              <p className="text-sm text-gray-500 mt-2">Enter a direct link to your resume</p>
+              {resumeError ? (
+                <p className="text-sm text-red-600 mt-2">{resumeError}</p>
+              ) : (
+                <p className="text-sm text-gray-500 mt-2">Enter a direct link to your resume (PDF or DOC)</p>
+              )}
             </div>
           </div>
 
@@ -792,7 +1097,18 @@ const EditProfile = () => {
             
             <button
               type="submit"
-              disabled={loading || !!phoneError}
+              disabled={
+                loading || 
+                !!phoneError || 
+                !!aboutError || 
+                !!nameError || 
+                !!locationError || 
+                !!skillError ||
+                !!resumeError ||
+                Object.keys(experienceErrors).length > 0 ||
+                Object.keys(educationErrors).length > 0 ||
+                Object.keys(portfolioErrors).length > 0
+              }
               className="px-8 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Saving...' : 'Save Changes'}
