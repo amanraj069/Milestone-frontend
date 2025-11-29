@@ -89,6 +89,8 @@ const EmployerCurrentJobs = () => {
     }
     
     openChatWith(freelancer.userId);
+  };
+
   const handleRaiseComplaint = (freelancer) => {
     // Navigate to complaint form with freelancer data
     navigate('/employer/complaint', { state: { freelancer } });
@@ -285,7 +287,6 @@ const EmployerCurrentJobs = () => {
       )}
     </DashboardPage>
   );
-};
 };
 
 export default EmployerCurrentJobs;
