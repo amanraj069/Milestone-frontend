@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from './JobDetailsModal';
 import RatingModal from './RatingModal';
+import { useChatContext } from '../../../context/ChatContext';
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const EmployerCurrentJobs = () => {
   const navigate = useNavigate();
+  const { openChatWith } = useChatContext();
   const [freelancers, setFreelancers] = useState([]);
   const [filteredFreelancers, setFilteredFreelancers] = useState([]);
   const [stats, setStats] = useState({
@@ -74,6 +76,21 @@ const EmployerCurrentJobs = () => {
     fetchCurrentFreelancers();
   };
 
+  const handleChat = (freelancer) => {
+    // Open chat with specific freelancer
+    console.log('Chat clicked for freelancer:', freelancer);
+    console.log('Freelancer userId:', freelancer.userId);
+    console.log('Freelancer freelancerId:', freelancer.freelancerId);
+    
+    if (!freelancer.userId) {
+      console.error('No userId found for freelancer:', freelancer);
+      alert('Error: Unable to start chat. User ID not found.');
+      return;
+    }
+    
+    openChatWith(freelancer.userId);
+  };
+
   const handleRaiseComplaint = (freelancer) => {
     // Navigate to complaint form with freelancer data
     navigate('/employer/complaint', { state: { freelancer } });
@@ -90,7 +107,7 @@ const EmployerCurrentJobs = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Current Jobs</h1>
+          {/* <h1 className="text-2xl font-bold text-gray-800 mb-2">Current Jobs</h1> */}
           <p className="text-gray-600">Track freelancers currently working on your projects</p>
         </div>
 
@@ -213,7 +230,10 @@ const EmployerCurrentJobs = () => {
                           <i className="fas fa-eye mr-2"></i>
                           See More
                         </button>
-                        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                        <button
+                          onClick={() => handleChat(freelancer)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                        >
                           <i className="fas fa-comment mr-2"></i>
                           Chat
                         </button>
