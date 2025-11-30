@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DashboardPage from '../../components/DashboardPage';
+import { useChatContext } from '../../context/ChatContext';
 import './Freelancers.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const AdminFreelancers = () => {
+  const { openChatWith } = useChatContext();
   const [freelancers, setFreelancers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -63,7 +65,16 @@ const AdminFreelancers = () => {
   };
 
   const handleChat = (freelancer) => {
-    alert(`Chat functionality will be implemented soon for ${freelancer.name}`);
+    console.log('Chat clicked for freelancer:', freelancer);
+    console.log('Freelancer userId:', freelancer.userId);
+    
+    if (!freelancer.userId) {
+      console.error('No userId found for freelancer:', freelancer);
+      alert('Error: Unable to start chat. User ID not found.');
+      return;
+    }
+    
+    openChatWith(freelancer.userId);
   };
 
   const filteredFreelancers = freelancers.filter(freelancer =>
