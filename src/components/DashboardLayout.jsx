@@ -114,16 +114,18 @@ const DashboardLayout = ({ children }) => {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center overflow-hidden border-3 border-blue-500">
-              <img 
-                src={user?.picture || '/assets/profile.png'} 
-                alt="Profile" 
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.parentElement.innerHTML = '<i class="fas fa-user text-blue-600 text-xl"></i>';
-                }}
-              />
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-blue-500">
+                <img 
+                  src={user?.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover rounded-full"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML = '<i class="fas fa-user text-blue-600 text-xl"></i>';
+                  }}
+                />
+              </div>
             </div>
             <div>
               <h2 className="text-base font-semibold leading-tight">Welcome, {getRoleDisplay()} {user?.name ? user.name.split(' ')[0] : 'User'}!</h2>
