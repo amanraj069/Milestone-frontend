@@ -2,8 +2,18 @@ import React, { useState } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
 
 const emptyOption = () => ({ text: '', isCorrect: false });
-const emptyQuestion = () => ({ text: '', marks: 1, options: [emptyOption(), emptyOption()], correctOptionIndex: 0, hasCode: false, codeSnippet: '', codeLanguage: 'javascript' });
-
+const emptyQuestion = () => ({ 
+  text: '', 
+  marks: 1, 
+  options: [
+    { text: '', isCorrect: true },  // First option is correct by default
+    { text: '', isCorrect: false }
+  ], 
+  correctOptionIndex: 0, 
+  hasCode: false, 
+  codeSnippet: '', 
+  codeLanguage: 'javascript' 
+});
 export default function NewQuiz() {
   const [title, setTitle] = useState('');
   const [skillName, setSkillName] = useState('');

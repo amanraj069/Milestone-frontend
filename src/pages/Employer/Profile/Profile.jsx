@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import DashboardLayout from '../../../components/DashboardLayout';
+import PublicFeedbackSection from '../../../components/PublicFeedbackSection';
 
 const EmployerProfile = () => {
   const { user } = useAuth();
@@ -450,6 +451,9 @@ const EmployerProfile = () => {
             </div>
           </div>
         </div>
+
+        {/* Public Feedback Section */}
+        <PublicFeedbackSection userId={user?.id} />
 
         {/* Social Media & Links Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mt-6">

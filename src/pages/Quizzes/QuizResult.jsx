@@ -5,14 +5,30 @@ import DashboardLayout from '../../components/DashboardLayout';
 export default function QuizResult(){
   const { state } = useLocation();
   const navigate = useNavigate();
-  const result = state?.result?.attempt;
-  const awarded = state?.result?.awardedBadges || [];
   
-  if (!result) return (
-    <DashboardLayout>
-      <div className="p-6">No result data available</div>
-    </DashboardLayout>
-  );
+  console.log('QuizResult received state:', state);
+  
+  const result = state?.attempt;
+  const awarded = state?.awardedBadges || [];
+  
+  if (!result) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 text-center">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg inline-block">
+            <h3 className="font-bold text-lg mb-2">No Result Data Available</h3>
+            <p className="text-sm mb-4">Unable to load quiz results. Please try taking the quiz again.</p>
+            <button 
+              onClick={() => navigate('/freelancer/skills-badges')}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Back to Skills & Badges
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

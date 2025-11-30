@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import DashboardPage from '../../../components/DashboardPage';
+import FeedbackForm from '../../../components/FeedbackForm';
+import FreelancerCard from './FreelancerCard';
 import axios from 'axios';
+import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../../store/slices/feedbackSlice';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -16,7 +20,13 @@ const EmployerWorkHistory = () => {
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [feedbackModal, setFeedbackModal] = useState(null); // { jobId, toUserId, toRole, counterpartyName }
+  
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  
+  // Get feedback eligibility data from Redux store
+  const feedbackEligibilityMap = useSelector((state) => state.feedback.eligibilityByJob || {});
 
   useEffect(() => {
     fetchWorkHistory();
@@ -33,6 +43,17 @@ const EmployerWorkHistory = () => {
       setFilteredFreelancers(filtered);
     }
   }, [searchTerm, freelancers]);
+
+  // Check feedback eligibility for all completed jobs
+  useEffect(() => {
+    if (freelancers && freelancers.length > 0) {
+      freelancers.forEach(freelancer => {
+        if (freelancer.jobId) {
+          dispatch(checkCanGiveFeedback(freelancer.jobId));
+        }
+      });
+    }
+  }, [freelancers, dispatch]);
 
   const fetchWorkHistory = async () => {
     try {
@@ -55,6 +76,19 @@ const EmployerWorkHistory = () => {
 
   const handleViewProfile = (freelancerId) => {
     navigate(`/freelancer/${freelancerId}`);
+  };
+
+  const handleLeaveFeedback = (freelancer) => {
+    const eligibility = feedbackEligibilityMap[freelancer.jobId];
+    
+    if (eligibility?.canGiveFeedback) {
+      setFeedbackModal({
+        jobId: freelancer.jobId,
+        toUserId: eligibility.counterparty.userId,
+        toRole: eligibility.counterparty.role,
+        counterpartyName: eligibility.counterparty.name
+      });
+    }
   };
 
   const formatDate = (dateString) => {
@@ -143,91 +177,36 @@ const EmployerWorkHistory = () => {
           ) : (
             <div className="space-y-4">
               {filteredFreelancers.map((freelancer) => (
-                <div
+                <FreelancerCard
                   key={`${freelancer.freelancerId}-${freelancer.jobId}`}
-                  className="border-2 border-blue-200 rounded-lg p-5 hover:border-blue-500 transition-all hover:shadow-lg"
-                >
-                  <div className="flex items-start gap-4">
-                    {/* Profile Picture */}
-                    <div className="flex-shrink-0">
-                      <img
-                        src={freelancer.picture || '/default-avatar.png'}
-                        alt={freelancer.name}
-                        className="w-16 h-16 rounded-full object-cover border-3 border-blue-500"
-                      />
-                    </div>
-
-                    {/* Freelancer Info */}
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-800 hover:text-blue-600 cursor-pointer">
-                            {freelancer.name}
-                          </h3>
-                          <div className="flex items-center gap-1 mt-1">
-                            {[...Array(5)].map((_, i) => (
-                              <i
-                                key={i}
-                                className={`fas fa-star text-sm ${
-                                  i < Math.floor(freelancer.rating) ? 'text-yellow-400' : 'text-gray-300'
-                                }`}
-                              ></i>
-                            ))}
-                            <span className="text-sm text-gray-600 ml-1">{freelancer.rating.toFixed(1)}</span>
-                          </div>
-                        </div>
-                        <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
-                          Completed
-                        </div>
-                      </div>
-
-                      {/* Job Info */}
-                      <div className="mb-3">
-                        <p className="text-xs text-gray-500 mb-1">Worked on:</p>
-                        <p className="font-medium text-gray-800">{freelancer.jobTitle}</p>
-                      </div>
-
-                      {/* Completion Date */}
-                      <div className="mb-4">
-                        <p className="text-sm text-gray-600 flex items-center gap-2">
-                          <i className="fas fa-calendar-check text-green-600"></i>
-                          {formatDate(freelancer.completedDate)}
-                        </p>
-                        {freelancer.completedDate && (
-                          <p className="text-xs text-gray-500 ml-5">
-                            Finished on: {formatCompletionDate(freelancer.completedDate)}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex flex-wrap gap-2">
-                        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-                          <i className="fas fa-comment mr-2"></i>
-                          Chat
-                        </button>
-                        <button
-                          onClick={() => handleViewProfile(freelancer.freelancerId)}
-                          className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
-                        >
-                          <i className="fas fa-user mr-2"></i>
-                          Profile
-                        </button>
-                        {freelancer.employerRating && (
-                          <div className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium flex items-center gap-2">
-                            <i className="fas fa-star text-yellow-500"></i>
-                            Rated: {freelancer.employerRating}/5
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  freelancer={freelancer}
+                  onLeaveFeedback={handleLeaveFeedback}
+                />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Feedback Modal */}
+      {feedbackModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <FeedbackForm
+              jobId={feedbackModal.jobId}
+              toUserId={feedbackModal.toUserId}
+              toRole={feedbackModal.toRole}
+              counterpartyName={feedbackModal.counterpartyName}
+              onSuccess={() => {
+                setFeedbackModal(null);
+                // Refresh eligibility
+                dispatch(checkCanGiveFeedback(feedbackModal.jobId));
+              }}
+              onCancel={() => setFeedbackModal(null)}
+            />
+          </div>
+        </div>
+      )}
     </DashboardPage>
   );
 };

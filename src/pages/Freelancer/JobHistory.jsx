@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import DashboardLayout from '../../components/DashboardLayout';
-import './ActiveJobs/ActiveJobs.css'; // if you still need see-more-btn styles
+import FeedbackForm from '../../components/FeedbackForm';
+import './ActiveJobs/ActiveJobs.css';
 import { loadJobHistory, selectJobHistory, selectJobsLoading, selectJobsError } from '../../store/slices/jobsSlice';
+import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../store/slices/feedbackSlice';
 
 function Stars({ rating = 0 }) {
   const full = Math.floor(rating);
@@ -25,21 +27,58 @@ function Stars({ rating = 0 }) {
 
 export default function FreelancerJobHistory() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const jobs = useSelector(selectJobHistory);
   const loading = useSelector(selectJobsLoading);
   const error = useSelector(selectJobsError);
+  const feedbackEligibilityMap = useSelector((state) => state.feedback.eligibilityByJob || {});
+
+  const [feedbackModal, setFeedbackModal] = useState(null);
 
   useEffect(() => {
+    console.log('JobHistory: Loading job history...');
     dispatch(loadJobHistory());
   }, [dispatch]);
 
+  useEffect(() => {
+    console.log('JobHistory state:', { jobs, loading, error });
+  }, [jobs, loading, error]);
+
+  // Check feedback eligibility for ALL jobs
+  useEffect(() => {
+    if (jobs && jobs.length > 0) {
+      jobs.forEach(job => {
+        const jobId = job._id || job.id;
+        dispatch(checkCanGiveFeedback(jobId));
+      });
+    }
+  }, [jobs, dispatch]);
+
   const renderJobCard = (job) => {
     const isCompleted = job.status === 'finished';
+    const isLeft = job.status === 'left';
     const isPaid = job.price && !String(job.price).toLowerCase().includes('not');
+    const jobId = job._id || job.id;
+    const eligibility = feedbackEligibilityMap[jobId];
+
+    const handleLeaveFeedback = () => {
+      if (eligibility?.canGiveFeedback) {
+        setFeedbackModal({
+          jobId,
+          toUserId: eligibility.counterparty.userId,
+          toRole: eligibility.counterparty.role,
+          counterpartyName: eligibility.counterparty.name
+        });
+      }
+    };
+
+    const handleSeeMore = () => {
+      navigate(`/freelancer/jobs/${jobId}`);
+    };
 
     return (
       <div
-        key={job.id || job._id}
+        key={jobId}
         className="bg-white rounded-xl shadow-sm p-6 mb-6 flex gap-6 hover:shadow-md transition-shadow"
       >
         {/* Logo */}
@@ -64,10 +103,12 @@ export default function FreelancerJobHistory() {
               className={`px-4 py-2 rounded-full text-sm font-bold ${
                 isCompleted
                   ? 'bg-emerald-100 text-emerald-800'
-                  : 'bg-red-100 text-red-800'
+                  : isLeft 
+                  ? 'bg-red-100 text-red-800'
+                  : 'bg-gray-100 text-gray-800'
               }`}
             >
-              {isCompleted ? 'Completed' : job.status === 'left' ? 'Left Job' : 'Cancelled'}
+              {isCompleted ? 'Completed' : isLeft ? 'Left Job' : job.status}
             </span>
           </div>
 
@@ -90,7 +131,7 @@ export default function FreelancerJobHistory() {
               <span>{job.date || 'N/A'}</span>
             </div>
 
-            {isCompleted && typeof job.rating === 'number' && (
+            {isCompleted && job.rating && typeof job.rating === 'number' && (
               <div className="ml-auto flex items-center gap-3">
                 <Stars rating={job.rating} />
                 <span className="font-semibold text-gray-700">
@@ -100,29 +141,42 @@ export default function FreelancerJobHistory() {
             )}
           </div>
 
-          {job.status === 'left' && job.cancelReason && (
+          {isLeft && job.cancelReason && (
             <p className="text-red-600 italic mt-3 text-sm">{job.cancelReason}</p>
           )}
         </div>
 
         {/* Right Column — Perfectly Aligned Buttons */}
-          <div className="flex flex-col items-end gap-3">
-            {/* See More Button */}
-            <button className="see-more-btn whitespace-nowrap">
-              See More
-            </button>
+        <div className="flex flex-col items-end gap-3 min-w-[140px]">
+          {/* See More Button */}
+          <button 
+            onClick={handleSeeMore}
+            className="w-full px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            See More
+          </button>
 
-            {/* Price or Not Paid */}
-            {isPaid ? (
-              <div className="price-badge whitespace-nowrap">
-                {job.price}
-              </div>
-            ) : (
-              <div className="not-paid-badge whitespace-nowrap">
-                {job.price || 'Not paid'}
-              </div>
-            )}
-          </div>
+          {/* Leave Feedback Button - Show for completed OR left jobs if eligible */}
+          {(isCompleted || isLeft) && eligibility?.canGiveFeedback && (
+            <button
+              onClick={handleLeaveFeedback}
+              className="w-full px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Leave Feedback
+            </button>
+          )}
+
+          {/* Price or Not Paid */}
+          {isPaid ? (
+            <div className="w-full px-4 py-2 bg-emerald-100 text-emerald-800 text-sm font-bold rounded-lg text-center border border-emerald-300">
+              {job.price}
+            </div>
+          ) : (
+            <div className="w-full px-4 py-2 bg-red-100 text-red-800 text-sm font-bold rounded-lg text-center border border-red-300">
+              {job.price || 'Not paid'}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -140,17 +194,17 @@ export default function FreelancerJobHistory() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           {loading && (
             <div className="text-center py-16">
-              {/* <div className="text-5xl text-blue-600 animate-spin">Loading...</div> */}
-              {/* <p className="mt-4 text-gray-600">Loading job history...</p> */}
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 text-lg">Loading job history...</p>
             </div>
           )}
 
           {error && (
             <div className="text-center py-12 text-red-600">
               <p className="text-xl font-semibold mb-2">Error loading job history</p>
-              <p className="mb-4">{error.message}</p>
+              <p className="mb-4">{typeof error === 'string' ? error : error?.message || 'Unknown error'}</p>
               <button
-                onClick={() => window.location.reload}
+                onClick={() => dispatch(loadJobHistory())}
                 className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
               >
                 Retry
@@ -160,7 +214,6 @@ export default function FreelancerJobHistory() {
 
           {!loading && !error && (!jobs || jobs.length === 0) && (
             <div className="text-center py-20 text-gray-500">
-              <div className="text-7xl mb-4">No jobs</div>
               <h3 className="text-2xl font-semibold text-gray-700">No job history found</h3>
               <p className="mt-2">You haven't completed any jobs yet.</p>
             </div>
@@ -173,6 +226,25 @@ export default function FreelancerJobHistory() {
           )}
         </div>
       </div>
+
+      {/* Feedback Modal */}
+      {feedbackModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <FeedbackForm
+              jobId={feedbackModal.jobId}
+              toUserId={feedbackModal.toUserId}
+              toRole={feedbackModal.toRole}
+              counterpartyName={feedbackModal.counterpartyName}
+              onSuccess={() => {
+                setFeedbackModal(null);
+                dispatch(checkCanGiveFeedback(feedbackModal.jobId));
+              }}
+              onCancel={() => setFeedbackModal(null)}
+            />
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

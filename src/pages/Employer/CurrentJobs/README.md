@@ -28,7 +28,7 @@ Each card shows:
 1. **See More** - Opens job details modal
 2. **Chat** - Opens chat with freelancer
 3. **Raise Complaint** - File a complaint button (red)
-4. **Rate Freelancer** - Opens rating modal (only if not rated)
+4. **Leave Feedback** - Opens comprehensive feedback modal (rating, comments, tags)
    - Once rated, shows "Rated: ⭐ {rating}"
 
 #### Search Functionality
@@ -92,7 +92,7 @@ Each card shows:
 ---
 
 ### **Rating Modal**
-**Trigger**: "Rate Freelancer" button on Current Jobs page
+**Trigger**: "Leave Feedback" button on Work History page
 
 **Features**:
 - Blurred background overlay
@@ -185,7 +185,7 @@ GET /api/employer/work-history
 }
 ```
 
-#### 3. Rate Freelancer
+#### 3. Leave Feedback
 ```
 POST /api/employer/rate-freelancer/:jobId
 Body: { "rating": 5, "review": "Excellent work!" }
@@ -248,8 +248,6 @@ m-frontend/src/pages/Employer/
 │   ├── CurrentJobs.jsx          # Main component
 │   ├── JobDetailsModal.jsx      # Job details modal
 │   ├── JobDetailsModal.css      # Modal styles (blur, animations)
-│   ├── RatingModal.jsx          # Rating modal
-│   ├── RatingModal.css          # Imports JobDetailsModal.css
 │   └── index.js                 # Exports
 ├── WorkHistory/
 │   ├── WorkHistory.jsx          # Main component
@@ -325,7 +323,7 @@ Frontend runs on `http://localhost:3000`
 - [ ] "See More" opens job modal
 - [ ] Modal shows job description with expand/collapse
 - [ ] "View Profile" navigates correctly
-- [ ] "Rate Freelancer" opens rating modal
+- [ ] "Leave Feedback" opens feedback modal
 - [ ] Star rating is interactive
 - [ ] Rating submission works
 - [ ] Card updates to show "Rated" after submission
@@ -392,7 +390,7 @@ All routes require:
 - Primary: Blue gradient
 - Secondary: Gray
 - Danger: Red (Raise Complaint)
-- Success: Yellow (Rate Freelancer)
+- Success: Green (Leave Feedback)
 - Disabled: Opacity 50%
 
 ---

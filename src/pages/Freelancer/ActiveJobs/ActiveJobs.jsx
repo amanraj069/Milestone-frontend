@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import DashboardPage from '../../../components/DashboardPage';
+import DashboardLayout from '../../../components/DashboardLayout';
 import JobDetailsModal from './JobDetailsModal';
 import './ActiveJobs.css';
 
@@ -67,9 +67,7 @@ const FreelancerActiveJobs = () => {
           <h1 className="page-title">Active Jobs</h1>
           <p className="page-subtitle">Manage your ongoing projects and track progress</p>
         </div>
-        {/* <button className="refresh-btn" onClick={fetchActiveJobs}>
-          <i className="fas fa-sync-alt"></i> Refresh
-        </button> */}
+        
       </div>
 
       {/* Loading State */}
@@ -148,6 +146,7 @@ const FreelancerActiveJobs = () => {
                   <span>{job.daysSinceStart} days</span>
                 </div>
                 <div className="job-meta-item job-price">
+                  <i className="fas fa-money-bill-wave"></i>
                   <span>{job.price}</span>
                 </div>
               </div>
@@ -202,7 +201,7 @@ const FreelancerActiveJobs = () => {
     </div>
   );
 
-  return <DashboardPage title="Active Jobs">{content}</DashboardPage>;
+  return <DashboardLayout>{content}</DashboardLayout>;
 };
 
 export default FreelancerActiveJobs;

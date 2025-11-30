@@ -1,48 +1,31 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+
 // Thunk to load job history for a freelancer
 export const loadJobHistory = createAsyncThunk(
   'jobs/loadJobHistory',
   async (_, { rejectWithValue }) => {
     try {
-      // Try multiple endpoints as fallback
-      const endpoints = [
-        'http://localhost:9000/api/freelancer/job_history/api',
-        'http://localhost:9000/api/freelancer/job-history',
-        'http://localhost:9000/api/freelancer/jobs/history',
-      ];
+      console.log('Fetching job history from:', `${API_BASE_URL}/api/freelancer/job_history/api`);
+      
+      const response = await fetch(`${API_BASE_URL}/api/freelancer/job_history/api`, {
+        method: 'GET',
+        credentials: 'include',
+      });
 
-      let lastError = null;
+      console.log('Job history response status:', response.status);
+      
+      const result = await response.json();
+      console.log('Job history result:', result);
 
-      for (const endpoint of endpoints) {
-        try {
-          const response = await fetch(endpoint, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-
-          // Skip HTML responses
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('text/html')) {
-            continue;
-          }
-
-          const result = await response.json();
-
-          if (response.ok && result.success) {
-            return result.historyJobs || result.jobs || result.data || [];
-          }
-        } catch (err) {
-          lastError = err;
-          continue;
-        }
+      if (!response.ok || !result.success) {
+        return rejectWithValue(result.error || 'Failed to load job history');
       }
 
-      return rejectWithValue(lastError?.message || 'Failed to load job history');
+      return result.historyJobs || result.jobs || result.data || [];
     } catch (error) {
+      console.error('Job history error:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -53,15 +36,17 @@ export const loadActiveJobs = createAsyncThunk(
   'jobs/loadActiveJobs',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch('http://localhost:9000/api/freelancer/active_job/api', {
+      console.log('Fetching active jobs from:', `${API_BASE_URL}/api/freelancer/active_job/api`);
+      
+      const response = await fetch(`${API_BASE_URL}/api/freelancer/active_job/api`, {
         method: 'GET',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
+      console.log('Active jobs response status:', response.status);
+      
       const result = await response.json();
+      console.log('Active jobs result:', result);
 
       if (!response.ok || !result.success) {
         return rejectWithValue(result.error || 'Failed to load active jobs');
@@ -69,6 +54,7 @@ export const loadActiveJobs = createAsyncThunk(
 
       return result.activeJobs || result.jobs || result.data || [];
     } catch (error) {
+      console.error('Active jobs error:', error);
       return rejectWithValue(error.message);
     }
   }
