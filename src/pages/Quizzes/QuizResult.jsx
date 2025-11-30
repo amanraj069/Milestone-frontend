@@ -32,7 +32,7 @@ export default function QuizResult(){
 
           {awarded.length > 0 && (
             <div className="mb-6 p-6 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
-              <h3 className="text-xl font-bold text-yellow-800 mb-3">🏆 Badges Earned!</h3>
+              <h3 className="text-xl font-bold text-yellow-800 mb-3">Badges Earned!</h3>
               <div className="space-y-2">
                 {awarded.map((b, idx) => (
                   <div key={idx} className="flex items-center gap-3 bg-white p-3 rounded">

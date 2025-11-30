@@ -10,7 +10,7 @@ export default function BadgesList({ userId }){
 
   async function fetchBadges(){
     try {
-      const res = await fetch(`/api/quizzes/users/${userId}/badges`, { credentials: 'include' });
+      const res = await fetch(`http://localhost:9000/api/quizzes/users/${userId}/badges`, { credentials: 'include' });
       const j = await res.json();
       if (j.success) setBadges(j.data);
     } catch (err) {

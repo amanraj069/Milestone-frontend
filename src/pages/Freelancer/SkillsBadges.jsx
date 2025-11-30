@@ -1,51 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import BadgesList from '../Profile/BadgesList';
+import { listQuizzes, selectAllQuizzes, selectQuizzesLoading } from '../../store/slices/quizzesSlice';
+import { loadUserBadges, selectUserBadges, selectBadgesLoading } from '../../store/slices/badgesSlice';
+import { loadUserAttempts, selectUserAttempts, selectUserAttemptsLoading } from '../../store/slices/attemptsSlice';
+import { selectUserId } from '../../store/slices/authSlice';
 
 const FreelancerSkillsBadges = () => {
+  const dispatch = useDispatch();
   const { user } = useAuth();
-  const [quizzes, setQuizzes] = useState([]);
-  const [badges, setBadges] = useState([]);
-  const [attempts, setAttempts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  
+  // Redux selectors
+  const userId = useSelector(selectUserId) || user?.id;
+  const quizzes = useSelector(selectAllQuizzes);
+  const badges = useSelector((state) => selectUserBadges(state, userId));
+  const attempts = useSelector((state) => selectUserAttempts(state, userId));
+  const quizzesLoading = useSelector(selectQuizzesLoading);
+  const badgesLoading = useSelector(selectBadgesLoading);
+  const attemptsLoading = useSelector((state) => selectUserAttemptsLoading(state, userId));
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All Categories');
 
   useEffect(() => {
-    fetchData();
-  }, [user]);
-
-  async function fetchData() {
-    if (!user?.id) {
-      setLoading(false);
-      return;
+    dispatch(listQuizzes());
+    if (userId) {
+      dispatch(loadUserBadges(userId));
+      dispatch(loadUserAttempts(userId));
     }
-    
-    try {
-      const [quizRes, badgeRes, attemptRes] = await Promise.all([
-        fetch('/api/quizzes', { credentials: 'include' }),
-        fetch(`/api/quizzes/users/${user.id}/badges`, { credentials: 'include' }),
-        fetch(`/api/quizzes/users/${user.id}/attempts`, { credentials: 'include' })
-      ]);
-      
-      const quizData = await quizRes.json();
-      const badgeData = await badgeRes.json();
-      const attemptData = await attemptRes.json();
-      
-      console.log('Quiz data:', quizData);
-      console.log('Badge data:', badgeData);
-      console.log('Attempt data:', attemptData);
-      
-      if (quizData.success) setQuizzes(quizData.data || []);
-      if (badgeData.success) setBadges(badgeData.data || []);
-      if (attemptData.success) setAttempts(attemptData.data || []);
-    } catch (err) {
-      console.error('Error fetching data:', err);
-    }
-    setLoading(false);
-  }
+  }, [dispatch, userId]);
 
   // Get unique quiz IDs from attempts
   const attemptedQuizIds = new Set(attempts.map(a => String(a.quizId)));
@@ -65,6 +51,8 @@ const FreelancerSkillsBadges = () => {
   const availableSkills = quizzes.length;
   const acquiredSkills = badges.length;
   const progress = availableSkills > 0 ? Math.round((acquiredSkills / availableSkills) * 100) : 0;
+
+  const loading = quizzesLoading || badgesLoading || attemptsLoading;
 
   return (
     <DashboardLayout>
@@ -175,7 +163,7 @@ const FreelancerSkillsBadges = () => {
                         <div className="flex items-center gap-2 mb-1">
                           <div className="font-bold text-lg text-gray-800">{q.title}</div>
                           {/* {hasBadge && (
-                            <span className="text-xl" title="Badge Earned!">🏆</span>
+                            <span className="text-xl" title="Badge Earned!"></span>
                           )} */}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
