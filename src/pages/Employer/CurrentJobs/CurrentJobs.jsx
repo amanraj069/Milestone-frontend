@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from './JobDetailsModal';
-import RatingModal from './RatingModal';
 import { useChatContext } from '../../../context/ChatContext';
 import axios from 'axios';
 
