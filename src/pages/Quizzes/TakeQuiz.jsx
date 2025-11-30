@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
-import { loadQuiz, selectCurrentQuiz, selectQuizzesLoading, selectQuizzesError } from '../../store/slices/quizzesSlice';
-import { submitAttempt, countUserAttemptsForQuiz, selectAttemptCount, selectLastSubmission, selectAttemptsLoading } from '../../store/slices/attemptsSlice';
-import { selectUserId } from '../../store/slices/authSlice';
+import axios from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 // Fisher-Yates shuffle algorithm
 function shuffleArray(array) {
@@ -19,20 +18,15 @@ function shuffleArray(array) {
 
 export default function TakeQuiz() {
   const { id } = useParams();
-  const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  // Redux selectors
-  const quiz = useSelector(selectCurrentQuiz);
-  const quizLoading = useSelector(selectQuizzesLoading);
-  const quizError = useSelector(selectQuizzesError);
-  const userId = useSelector(selectUserId) || user?.id;
-  const attemptCount = useSelector((state) => selectAttemptCount(state, id, userId));
-  const lastSubmission = useSelector(selectLastSubmission);
-  const submitting = useSelector(selectAttemptsLoading);
-  
   // Local state
+  const [quiz, setQuiz] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [eligibility, setEligibility] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -41,17 +35,80 @@ export default function TakeQuiz() {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [shuffledQuiz, setShuffledQuiz] = useState(null);
 
-  // Load quiz and attempt count on mount
+  // Load quiz and check eligibility on mount
   useEffect(() => {
-    dispatch(loadQuiz(id));
-    if (userId) {
-      dispatch(countUserAttemptsForQuiz({ quizId: id, userId }));
-    }
-  }, [id, userId, dispatch]);
+    const fetchQuizData = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching quiz data for ID:', id);
+        
+        // Check eligibility first
+        const eligibilityRes = await axios.get(`${API_BASE_URL}/api/quizzes/${id}/eligibility`, {
+          withCredentials: true
+        });
+        
+        console.log('Eligibility response:', eligibilityRes.data);
+        
+        if (eligibilityRes.data.success) {
+          setEligibility(eligibilityRes.data);
+          
+          // If can't attempt, show message and redirect
+          if (!eligibilityRes.data.canAttempt) {
+            const isPremium = eligibilityRes.data.isPremium;
+            const maxAttempts = eligibilityRes.data.maxAttempts || 2;
+            const cooldownDays = eligibilityRes.data.cooldownDays || 7;
+            const daysRemaining = eligibilityRes.data.daysRemaining || 0;
+            const hoursRemaining = eligibilityRes.data.hoursRemaining || 0;
+            
+            let message = `You have used all ${maxAttempts} attempts for this quiz.\n\n`;
+            message += `You can take your next attempt after ${cooldownDays} days.\n`;
+            message += `Time remaining: ${daysRemaining} day(s) (approximately ${hoursRemaining} hours).\n\n`;
+            
+            if (!isPremium) {
+              message += `💡 Upgrade to Premium to get:\n`;
+              message += `  • 3 attempts instead of 2\n`;
+              message += `  • 4-day cooldown instead of 7 days\n`;
+              message += `  • Priority support and more!`;
+            }
+            
+            alert(message);
+            navigate('/freelancer/skills-badges');
+            return;
+          }
+        }
+        
+        // Load quiz data
+        const quizRes = await axios.get(`${API_BASE_URL}/api/quizzes/${id}`, {
+          withCredentials: true
+        });
+        
+        console.log('Quiz response:', quizRes.data);
+        
+        if (quizRes.data.success) {
+          console.log('Setting quiz data:', quizRes.data.data);
+          setQuiz(quizRes.data.data);
+        } else {
+          console.error('Quiz load failed - not successful');
+          setError('Failed to load quiz');
+        }
+      } catch (err) {
+        console.error('Error loading quiz:', err);
+        console.error('Error details:', err.response?.data);
+        setError(err.response?.data?.error?.message || 'Failed to load quiz');
+      } finally {
+        console.log('Setting loading to false');
+        setLoading(false);
+      }
+    };
+    
+    fetchQuizData();
+  }, [id, navigate]);
 
   // Shuffle quiz options when quiz loads
   useEffect(() => {
+    console.log('Shuffle effect running - quiz:', quiz, 'shuffledQuiz:', shuffledQuiz);
     if (quiz && !shuffledQuiz) {
+      console.log('Shuffling quiz options...');
       const shuffled = {
         ...quiz,
         questions: quiz.questions.map(q => {
@@ -62,17 +119,10 @@ export default function TakeQuiz() {
           };
         })
       };
+      console.log('Shuffled quiz created:', shuffled);
       setShuffledQuiz(shuffled);
     }
   }, [quiz, shuffledQuiz]);
-
-  // Check attempt limit
-  useEffect(() => {
-    if (attemptCount >= 3) {
-      alert('You have already completed 3 attempts for this quiz. Maximum attempts reached.');
-      navigate('/freelancer/skills-badges');
-    }
-  }, [attemptCount, navigate]);
 
   function startQuiz() {
     setShowInstructions(false);
@@ -135,13 +185,29 @@ export default function TakeQuiz() {
       selectedOptionIndex: answers[q._id] ?? null 
     }));
     
-    const resultAction = await dispatch(submitAttempt({ quizId: id, answers: payload }));
-    
-    if (submitAttempt.fulfilled.match(resultAction)) {
-      navigate('/quizzes/' + id + '/result', { state: { result: resultAction.payload.attempt } });
-    } else {
-      // Even if submission fails, navigate away
+    try {
+      setSubmitting(true);
+      const response = await axios.post(
+        `${API_BASE_URL}/api/quizzes/${id}/attempt`,
+        { answers: payload },
+        { withCredentials: true }
+      );
+      
+      if (response.data.success) {
+        navigate('/quizzes/' + id + '/result', { 
+          state: { 
+            attempt: response.data.data.attempt,
+            awardedBadges: response.data.data.awardedBadges || [] 
+          } 
+        });
+      } else {
+        navigate('/freelancer/skills-badges');
+      }
+    } catch (err) {
+      console.error('Submit failed:', err);
       navigate('/freelancer/skills-badges');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -152,27 +218,55 @@ export default function TakeQuiz() {
       selectedOptionIndex: answers[q._id] ?? null 
     }));
     
+    console.log('=== QUIZ SUBMISSION DEBUG ===');
     console.log('Submitting quiz attempt:', { quizId: id, payload });
     
-    const resultAction = await dispatch(submitAttempt({ quizId: id, answers: payload }));
+    // Debug: Show what user selected vs what's being sent
+    shuffledQuiz.questions.forEach((q, idx) => {
+      const selectedOriginalIndex = answers[q._id];
+      const selectedOption = q.options.find(opt => opt.originalIndex === selectedOriginalIndex);
+      console.log(`Question ${idx + 1}:`, {
+        questionId: q._id,
+        userSelectedOriginalIndex: selectedOriginalIndex,
+        selectedOptionText: selectedOption?.text?.substring(0, 50),
+        allOptions: q.options.map((opt, i) => ({
+          displayIndex: i,
+          originalIndex: opt.originalIndex,
+          text: opt.text.substring(0, 30)
+        }))
+      });
+    });
+    console.log('=== END DEBUG ===');
     
-    if (submitAttempt.fulfilled.match(resultAction)) {
-      console.log('Submission successful:', resultAction.payload);
-      navigate('/quizzes/' + id + '/result', { state: { result: resultAction.payload.attempt } });
-    } else {
-      console.error('Submission failed:', resultAction.error);
-      alert('Submit failed: ' + (resultAction.error?.message || resultAction.payload));
+    try {
+      setSubmitting(true);
+      const response = await axios.post(
+        `${API_BASE_URL}/api/quizzes/${id}/attempt`,
+        { answers: payload },
+        { withCredentials: true }
+      );
+      
+      if (response.data.success) {
+        console.log('Submission successful:', response.data);
+        console.log('Navigating with result:', response.data.data);
+        navigate('/quizzes/' + id + '/result', { 
+          state: { 
+            attempt: response.data.data.attempt,
+            awardedBadges: response.data.data.awardedBadges || [] 
+          } 
+        });
+      } else {
+        alert('Submit failed: ' + (response.data.error?.message || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Submit failed:', err);
+      alert('Submit failed: ' + (err.response?.data?.error?.message || err.message));
+    } finally {
+      setSubmitting(false);
     }
   }
 
-  // Navigate to result when lastSubmission updates
-  useEffect(() => {
-    if (lastSubmission) {
-      navigate('/quizzes/' + id + '/result', { state: { result: lastSubmission } });
-    }
-  }, [lastSubmission, id, navigate]);
-
-  if (quizLoading || !shuffledQuiz) {
+  if (loading || !shuffledQuiz) {
     return (
       <DashboardLayout>
         <div className="p-6 flex items-center justify-center min-h-screen">
@@ -185,12 +279,12 @@ export default function TakeQuiz() {
     );
   }
 
-  if (quizError) {
+  if (error) {
     return (
       <DashboardLayout>
         <div className="p-6">
           <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
-            Error loading quiz: {quizError}
+            Error loading quiz: {error}
           </div>
         </div>
       </DashboardLayout>
@@ -203,8 +297,8 @@ export default function TakeQuiz() {
   // Show instructions dialog before starting quiz
   if (showInstructions) {
     return (
-      <DashboardLayout>
-        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-2xl">
           <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 shadow-2xl">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -236,7 +330,7 @@ export default function TakeQuiz() {
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="text-sm text-gray-600">Your Attempt</div>
-                  <div className="text-2xl font-bold text-gray-800">{attemptCount + 1} of 3</div>
+                  <div className="text-2xl font-bold text-gray-800">{(eligibility?.attemptsUsed || 0) + 1} of {eligibility?.maxAttempts || 2}</div>
                 </div>
               </div>
 
@@ -250,7 +344,7 @@ export default function TakeQuiz() {
                 <ul className="text-sm text-orange-800 space-y-2">
                   <li className="flex items-start gap-2">
                     <span className="text-orange-600 font-bold">•</span>
-                    <span><strong>Maximum 3 attempts allowed</strong> - This is attempt {attemptCount + 1}</span>
+                    <span><strong>Maximum {eligibility?.maxAttempts || 2} attempts allowed</strong> - This is attempt {(eligibility?.attemptsUsed || 0) + 1}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-orange-600 font-bold">•</span>
@@ -292,48 +386,77 @@ export default function TakeQuiz() {
             </div>
           </div>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
+  // Active quiz - full screen without sidebar
   return (
-    <DashboardLayout>
-      <div className="p-6 max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-6">
+    <div className="min-h-screen bg-gray-50">
+      {/* Fixed Header with Timer */}
+      <div className="sticky top-0 z-50 bg-white border-b-2 border-blue-600 shadow-md">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <div>
-              <h2 className="text-2xl font-bold">{shuffledQuiz.title}</h2>
-              <div className="text-sm text-gray-600">{shuffledQuiz.skillName}</div>
-              <div className="mt-2 flex items-center gap-2">
-                <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded font-semibold">
-                  Attempt {attemptCount + 1} of 3
-                </span>
-                {attemptCount >= 2 && (
-                  <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded font-semibold">
-                    Final Attempt!
-                  </span>
-                )}
-              </div>
+              <h2 className="text-lg font-bold text-gray-800">{shuffledQuiz.title}</h2>
+              <div className="text-xs text-gray-600">{shuffledQuiz.skillName}</div>
             </div>
-            <div className="text-right">
-              {timeLeft!==null && (
-                <div className={`text-2xl font-bold ${timeLeft < 60 ? 'text-red-600' : 'text-blue-600'}`}>
-                  {Math.floor(timeLeft/60)}:{('0'+(timeLeft%60)).slice(-2)}
-                </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded font-semibold">
+                Attempt {(eligibility?.attemptsUsed || 0) + 1}/{eligibility?.maxAttempts || 2}
+              </span>
+              {(eligibility?.attemptsUsed || 0) >= (eligibility?.maxAttempts || 2) - 1 && (
+                <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded font-semibold animate-pulse">
+                  Final Attempt!
+                </span>
               )}
-              <div className="text-sm text-gray-600">Progress: {answered}/{total}</div>
             </div>
           </div>
+          
+          <div className="flex items-center gap-6">
+            {/* Timer */}
+            {timeLeft !== null && (
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-2xl font-bold ${
+                timeLeft < 60 ? 'bg-red-100 text-red-700 animate-pulse' : 
+                timeLeft < 300 ? 'bg-orange-100 text-orange-700' : 
+                'bg-blue-100 text-blue-700'
+              }`}>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {Math.floor(timeLeft/60)}:{('0'+(timeLeft%60)).slice(-2)}
+              </div>
+            )}
+            
+            {/* Progress */}
+            <div className="text-center">
+              <div className="text-sm text-gray-600">Progress</div>
+              <div className="text-lg font-bold text-gray-800">{answered}/{total}</div>
+            </div>
+            
+            {/* Leave Quiz Button */}
+            <button 
+              onClick={() => setShowLeaveConfirm(true)}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition text-sm"
+              disabled={submitting}
+            >
+              Leave Quiz
+            </button>
+          </div>
+        </div>
+      </div>
 
+      {/* Quiz Content */}
+      <div className="max-w-4xl mx-auto py-6 px-4">
+        <div className="bg-white rounded-lg shadow-lg p-6">
           {shuffledQuiz.description && (
-            <div className="mb-6 p-4 bg-blue-50 rounded border-l-4 border-blue-500">
-              <p className="text-sm">{shuffledQuiz.description}</p>
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+              <p className="text-sm text-gray-700">{shuffledQuiz.description}</p>
               <p className="text-xs text-gray-600 mt-2">Passing Score: {shuffledQuiz.passingScore}%</p>
             </div>
           )}
 
-          <div className="space-y-6">
-  {shuffledQuiz.questions.map((q, qi) => (
+          <div className="space-y-6">{shuffledQuiz.questions.map((q, qi) => (
     <div key={q._id} className="border rounded-lg p-4">
       <div className="font-medium mb-3">
         Question {qi+1} <span className="text-gray-600 text-sm">({q.marks} marks)</span>
@@ -373,16 +496,10 @@ export default function TakeQuiz() {
   ))}
 </div>
 
-          <div className="mt-6 flex justify-between items-center gap-4">
+          {/* Submit Button - Fixed at bottom */}
+          <div className="mt-8 flex justify-center">
             <button 
-              className="px-6 py-3 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition" 
-              onClick={()=>setShowLeaveConfirm(true)} 
-              disabled={submitting}
-            >
-              Leave Quiz
-            </button>
-            <button 
-              className="px-8 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 transition shadow-lg" 
+              className="px-12 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-bold hover:from-green-700 hover:to-green-800 disabled:opacity-50 transition shadow-xl text-lg" 
               onClick={()=>setShowConfirm(true)} 
               disabled={submitting}
             >
@@ -429,6 +546,6 @@ export default function TakeQuiz() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

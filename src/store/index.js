@@ -1,17 +1,15 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
-import quizzesReducer from './slices/quizzesSlice';
-import attemptsReducer from './slices/attemptsSlice';
 import badgesReducer from './slices/badgesSlice';
 import jobsReducer from './slices/jobsSlice';
+import feedbackReducer from './slices/feedbackSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    quizzes: quizzesReducer,
-    attempts: attemptsReducer,
     badges: badgesReducer,
     jobs: jobsReducer,
+    feedback: feedbackReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

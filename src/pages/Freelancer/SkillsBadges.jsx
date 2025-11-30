@@ -1,37 +1,58 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import BadgesList from '../Profile/BadgesList';
-import { listQuizzes, selectAllQuizzes, selectQuizzesLoading } from '../../store/slices/quizzesSlice';
-import { loadUserBadges, selectUserBadges, selectBadgesLoading } from '../../store/slices/badgesSlice';
-import { loadUserAttempts, selectUserAttempts, selectUserAttemptsLoading } from '../../store/slices/attemptsSlice';
-import { selectUserId } from '../../store/slices/authSlice';
+
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const FreelancerSkillsBadges = () => {
-  const dispatch = useDispatch();
   const { user } = useAuth();
   
-  // Redux selectors
-  const userId = useSelector(selectUserId) || user?.id;
-  const quizzes = useSelector(selectAllQuizzes);
-  const badges = useSelector((state) => selectUserBadges(state, userId));
-  const attempts = useSelector((state) => selectUserAttempts(state, userId));
-  const quizzesLoading = useSelector(selectQuizzesLoading);
-  const badgesLoading = useSelector(selectBadgesLoading);
-  const attemptsLoading = useSelector((state) => selectUserAttemptsLoading(state, userId));
-  
+  // Local state
+  const [quizzes, setQuizzes] = useState([]);
+  const [badges, setBadges] = useState([]);
+  const [attempts, setAttempts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All Categories');
 
   useEffect(() => {
-    dispatch(listQuizzes());
-    if (userId) {
-      dispatch(loadUserBadges(userId));
-      dispatch(loadUserAttempts(userId));
-    }
-  }, [dispatch, userId]);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [quizzesRes, badgesRes, attemptsRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/quizzes`, { withCredentials: true }),
+          user?.id ? axios.get(`${API_BASE_URL}/api/quizzes/users/${user.id}/badges`, { withCredentials: true }) : Promise.resolve({ data: { success: true, data: [] } }),
+          user?.id ? axios.get(`${API_BASE_URL}/api/quizzes/users/${user.id}/attempts`, { withCredentials: true }) : Promise.resolve({ data: { success: true, data: [] } })
+        ]);
+        
+        console.log('Quizzes response:', quizzesRes.data);
+        console.log('Badges response:', badgesRes.data);
+        console.log('Attempts response:', attemptsRes.data);
+        
+        setQuizzes(quizzesRes.data.data || []);
+        setBadges(badgesRes.data.data || []);
+        setAttempts(attemptsRes.data.data || []);
+        
+        console.log('State set - Quizzes:', quizzesRes.data.data?.length || 0);
+        console.log('State set - Badges:', badgesRes.data.data?.length || 0);
+        console.log('State set - Attempts:', attemptsRes.data.data?.length || 0);
+        
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        console.error('Error response:', err.response?.data);
+        setError(err.response?.data?.error?.message || 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [user?.id]);
 
   // Get unique quiz IDs from attempts
   const attemptedQuizIds = new Set(attempts.map(a => String(a.quizId)));
@@ -52,8 +73,6 @@ const FreelancerSkillsBadges = () => {
   const acquiredSkills = badges.length;
   const progress = availableSkills > 0 ? Math.round((acquiredSkills / availableSkills) * 100) : 0;
 
-  const loading = quizzesLoading || badgesLoading || attemptsLoading;
-
   return (
     <DashboardLayout>
       <div className="p-6">
@@ -61,6 +80,14 @@ const FreelancerSkillsBadges = () => {
           <h2 className="text-2xl font-bold text-gray-800">Skills & Badges</h2>
           <p className="text-sm text-gray-500 mt-1">Earn badges by completing tasks and showcasing your expertise. Take quizzes to add new skills to your profile.</p>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6">
+            <div className="font-semibold">Error loading data</div>
+            <div className="text-sm mt-1">{error}</div>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-3 gap-4 mb-6">
@@ -182,7 +209,7 @@ const FreelancerSkillsBadges = () => {
                             <div className={`inline-block px-2 py-1 text-xs font-semibold rounded ${
                               isPassed ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
                             }`}>
-                              {isPassed ? '✓ Passed' : 'Attempted'}
+                              {isPassed ? 'Passed' : 'Attempted'}
                             </div>
                           )}
                         </div>

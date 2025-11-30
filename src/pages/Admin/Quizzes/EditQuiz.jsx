@@ -471,7 +471,7 @@ export default function EditQuiz() {
                 onClick={submit} 
                 disabled={saving}
               >
-                {saving ? 'Updating...' : '✓ Update Quiz'}
+                {saving ? 'Updating...' : 'Update Quiz'}
               </button>
             </div>
           </div>

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import BadgesList from '../Profile/BadgesList';
+import ResumePreviewModal from '../../components/jobApplication/ResumePreviewModal';
+import PublicFeedbackSection from '../../components/PublicFeedbackSection';
 
 const FreelancerProfile = () => {
   const { user } = useAuth();
@@ -10,6 +12,8 @@ const FreelancerProfile = () => {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedResume, setSelectedResume] = useState(null);
+  const [showResumeModal, setShowResumeModal] = useState(false);
 
   useEffect(() => {
     // Load user data from auth context or API
@@ -380,31 +384,32 @@ const FreelancerProfile = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <h3 className="text-2xl font-bold text-blue-600 mb-4">Resume</h3>
             {profileData.resume ? (
-              <a 
-                href={profileData.resume} 
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => {
+                    setSelectedResume(profileData.resume);
+                    setShowResumeModal(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors"
                 >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-                View Resume
-              </a>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  Preview Resume
+                </button>
+               
+              </div>
             ) : (
               <p className="text-gray-500">No resume uploaded yet.</p>
             )}
@@ -415,8 +420,21 @@ const FreelancerProfile = () => {
             <h3 className="text-2xl font-bold text-blue-600 mb-4">Skill Badges</h3>
             <BadgesList userId={user?.id} />
           </div>
+
+          {/* Reviews & Feedback Section */}
+          <PublicFeedbackSection userId={user?.id} userRole="Freelancer" />
         </div>
       </div>
+      {/* Resume Preview Modal */}
+      {showResumeModal && selectedResume && (
+        <ResumePreviewModal
+          resumeUrl={selectedResume}
+          onClose={() => {
+            setShowResumeModal(false);
+            setSelectedResume(null);
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 };

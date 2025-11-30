@@ -24,7 +24,6 @@ const EmployerCurrentJobs = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedFreelancer, setSelectedFreelancer] = useState(null);
   const [showJobModal, setShowJobModal] = useState(false);
-  const [showRatingModal, setShowRatingModal] = useState(false);
 
   useEffect(() => {
     fetchCurrentFreelancers();
@@ -237,7 +236,7 @@ const EmployerCurrentJobs = () => {
                           <i className="fas fa-comment mr-2"></i>
                           Chat
                         </button>
-                        {freelancer.hasRated ? (
+                        {/* {freelancer.hasRated ? (
                           <div className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium flex items-center gap-2">
                             <i className="fas fa-check-circle"></i>
                             Rated: {freelancer.employerRating} <i className="fas fa-star text-yellow-500 ml-1"></i>
@@ -250,7 +249,7 @@ const EmployerCurrentJobs = () => {
                             <i className="fas fa-star mr-2"></i>
                             Rate Freelancer
                           </button>
-                        )}
+                        )} */}
                       </div>
                     </div>
                   </div>
@@ -271,18 +270,6 @@ const EmployerCurrentJobs = () => {
             setSelectedJob(null);
             setSelectedFreelancer(null);
           }}
-        />
-      )}
-
-      {/* Rating Modal */}
-      {showRatingModal && selectedFreelancer && (
-        <RatingModal
-          freelancer={selectedFreelancer}
-          onClose={() => {
-            setShowRatingModal(false);
-            setSelectedFreelancer(null);
-          }}
-          onSuccess={handleRatingSuccess}
         />
       )}
     </DashboardPage>

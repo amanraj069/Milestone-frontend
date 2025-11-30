@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
+import ResumePreviewModal from '../../components/jobApplication/ResumePreviewModal';
 
 const EditProfile = () => {
   const { user } = useAuth();
@@ -25,6 +26,11 @@ const EditProfile = () => {
   const [educationErrors, setEducationErrors] = useState({});
   const [portfolioErrors, setPortfolioErrors] = useState({});
   const [resumeError, setResumeError] = useState('');
+  const [resumeFile, setResumeFile] = useState(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumeFileName, setResumeFileName] = useState('');
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [selectedResume, setSelectedResume] = useState(null);
   const [currentSkillError, setCurrentSkillError] = useState('');
   const [skills, setSkills] = useState([]);
   const [currentSkill, setCurrentSkill] = useState('');
@@ -115,6 +121,75 @@ const EditProfile = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  // Show a top-level form error banner when user attempts to submit invalid form
+  const [showFormErrors, setShowFormErrors] = useState(false);
+
+  // Reset form error banner when all errors are cleared
+  useEffect(() => {
+    const hasErrors = !!phoneError || !!aboutError || !!nameError || !!locationError || !!skillError || !!resumeError ||
+                      Object.keys(experienceErrors).length > 0 || Object.keys(educationErrors).length > 0 || Object.keys(portfolioErrors).length > 0;
+    if (!hasErrors) {
+      setShowFormErrors(false);
+    }
+  }, [phoneError, aboutError, nameError, locationError, skillError, resumeError, experienceErrors, educationErrors, portfolioErrors]);
+
+  const validateAll = () => {
+    let valid = true;
+
+    // Name
+    if (!formData.name || String(formData.name).trim().length < 2) {
+      setNameError('Name is required and must be at least 2 characters');
+      valid = false;
+    }
+
+    // Skills
+    if (!skills || skills.length === 0) {
+      setSkillError('Add at least one skill to showcase your expertise');
+      valid = false;
+    }
+
+    // About
+    if (!formData.about || String(formData.about).trim().length < 50) {
+      setAboutError('About me must be at least 50 characters');
+      valid = false;
+    }
+
+    // Phone (re-run validation)
+    const phone = formData.phone ? String(formData.phone).trim() : '';
+    const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/;
+    if (phone && !phoneRegex.test(phone)) {
+      setPhoneError('Enter a valid phone number (digits, +, spaces, -).');
+      valid = false;
+    }
+
+    // Existing reactive error objects
+    if (Object.keys(experienceErrors).length > 0) valid = false;
+    if (Object.keys(educationErrors).length > 0) valid = false;
+    if (Object.keys(portfolioErrors).length > 0) valid = false;
+    if (!resumeFile && resumeError) valid = false; // Only check resumeError if no new file selected
+
+    if (!valid) {
+      setShowFormErrors(true);
+      // scroll to first visible error (element with red border)
+      setTimeout(() => {
+        const formEl = document.getElementById('edit-profile-form');
+        if (formEl) {
+          const firstErr = formEl.querySelector('.border-red-500, .text-red-600');
+          if (firstErr && typeof firstErr.scrollIntoView === 'function') {
+            firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Try focusing an input inside that element
+            const input = firstErr.querySelector('input, textarea, button');
+            if (input && typeof input.focus === 'function') input.focus();
+          }
+        }
+      }, 60);
+    } else {
+      setShowFormErrors(false);
+    }
+
+    return valid;
   };
 
   // Real-time phone validation
@@ -277,6 +352,11 @@ const EditProfile = () => {
 
   // Real-time resume link validation
   useEffect(() => {
+    if (resumeFile) {
+      // If a new resume file is selected, skip validation for the old link
+      setResumeError('');
+      return;
+    }
     const resume = formData.resumeLink ? String(formData.resumeLink).trim() : '';
     if (!resume) {
       setResumeError('');
@@ -290,7 +370,7 @@ const EditProfile = () => {
     } else {
       setResumeError('');
     }
-  }, [formData.resumeLink]);
+  }, [formData.resumeLink, resumeFile]);
 
   // Real-time current skill validation
   useEffect(() => {
@@ -425,6 +505,22 @@ const EditProfile = () => {
     }
   };
 
+  const handleResumeFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Allow PDF only, max 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Resume must be less than 10MB');
+      return;
+    }
+    if (file.type !== 'application/pdf') {
+      alert('Only PDF resumes are allowed');
+      return;
+    }
+    setResumeFile(file);
+    setResumeFileName(file.name);
+  };
+
   const uploadPortfolioImages = async () => {
     const uploadedUrls = {};
     
@@ -455,9 +551,44 @@ const EditProfile = () => {
     return uploadedUrls;
   };
 
+  const uploadResumeFile = async () => {
+    if (!resumeFile) return null;
+    setResumeUploading(true);
+    const formDataResume = new FormData();
+    formDataResume.append('resume', resumeFile);
+
+    try {
+      const resp = await fetch('http://localhost:9000/api/freelancer/resume/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: formDataResume
+      });
+      const resJson = await resp.json();
+      if (resp.ok && resJson.success) {
+        // prefer common keys
+        return resJson.data?.resumeUrl || resJson.data?.url || resJson.data?.resume || null;
+      } else {
+        throw new Error(resJson.error || 'Resume upload failed');
+      }
+    } catch (err) {
+      console.error('Resume upload error', err);
+      alert(err.message || 'Failed to upload resume');
+      return null;
+    } finally {
+      setResumeUploading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    // Run full validation before uploading files
+    const ok = validateAll();
+    if (!ok) {
+      setLoading(false);
+      return;
+    }
 
     try {
       // First upload profile picture if selected
@@ -482,6 +613,20 @@ const EditProfile = () => {
           setLoading(false);
           return;
         }
+      }
+
+      // Upload resume file if user selected one
+      if (resumeFile) {
+        const resumeUrl = await uploadResumeFile();
+        if (!resumeUrl) {
+          setLoading(false);
+          return;
+        }
+        // set the returned URL into formData for the profile update
+        formData.resumeLink = resumeUrl;
+        // reset selected resume file so it's not re-uploaded accidentally
+        setResumeFile(null);
+        setResumeFileName('');
       }
 
       // Upload portfolio images if any
@@ -576,7 +721,12 @@ const EditProfile = () => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form id="edit-profile-form" onSubmit={handleSubmit} className="space-y-6">
+          {showFormErrors && (
+            <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-2">
+              <p className="text-sm text-red-700">Please fix the highlighted fields before saving.</p>
+            </div>
+          )}
           {/* Profile Picture Upload */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <h3 className="text-2xl font-bold text-blue-600 mb-6">Profile Picture</h3>
@@ -613,7 +763,7 @@ const EditProfile = () => {
                   </p>
                   {/* {formData.profileImageUrl && (
                     <p className="text-xs text-green-600">
-                      ✓ Current image URL: {formData.profileImageUrl.substring(0, 50)}...
+                      Current image URL: {formData.profileImageUrl.substring(0, 50)}...
                     </p>
                   )} */}
                 </div>
@@ -1017,11 +1167,11 @@ const EditProfile = () => {
     onChange={(e) => handlePortfolioChange(index, 'description', e.target.value)}
     placeholder="Description (minimum 20 characters)"
     rows="3"
-    className={`w-full px-4 py-2 rounded-lg outline-none resize-none transition-colors
-      ${item.description?.trim().length > 0 && item.description.trim().length < 20 
-        ? 'border-red-500 focus:ring-red-400' 
+    className={`w-full px-4 py-2 rounded-lg resize-none transition-colors focus:ring-2 outline-none border ${
+      item.description?.trim().length > 0 && item.description.trim().length < 20
+        ? 'border-red-500 focus:ring-red-400'
         : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-      } focus:ring-2`}
+    }`}
   />
 
   {/* Live character counter + error message */}
@@ -1073,22 +1223,42 @@ const EditProfile = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <h3 className="text-2xl font-bold text-blue-600 mb-6">Resume</h3>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Resume Link</label>
-              <input
-                type="url"
-                name="resumeLink"
-                value={formData.resumeLink}
-                onChange={handleChange}
-                placeholder="https://example.com/resume.pdf"
-                className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${
-                  resumeError ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'
-                }`}
-              />
-              {resumeError ? (
-                <p className="text-sm text-red-600 mt-2">{resumeError}</p>
+              {formData.resumeLink ? (
+                <div className="flex items-center gap-4 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedResume(formData.resumeLink); setShowResumeModal(true); }}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    Preview Resume
+                  </button>
+                  
+                </div>
               ) : (
-                <p className="text-sm text-gray-500 mt-2">Enter a direct link to your resume (PDF or DOC)</p>
+                <p className="text-gray-500 mb-4">No resume uploaded yet.</p>
               )}
+
+              <div className="mt-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Upload New Resume (PDF, max 10MB)</label>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleResumeFileChange}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                {resumeFileName && (
+                  <p className="text-sm text-gray-600 mt-2">Selected: {resumeFileName} {resumeUploading && '(Uploading...)'}</p>
+                )}
+                {resumeError ? (
+                  <p className="text-sm text-red-600 mt-2">{resumeError}</p>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-2">You can upload a PDF resume and it will be saved when you click Save Changes.</p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1097,18 +1267,7 @@ const EditProfile = () => {
             
             <button
               type="submit"
-              disabled={
-                loading || 
-                !!phoneError || 
-                !!aboutError || 
-                !!nameError || 
-                !!locationError || 
-                !!skillError ||
-                !!resumeError ||
-                Object.keys(experienceErrors).length > 0 ||
-                Object.keys(educationErrors).length > 0 ||
-                Object.keys(portfolioErrors).length > 0
-              }
+              disabled={loading}
               className="px-8 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Saving...' : 'Save Changes'}
@@ -1116,7 +1275,17 @@ const EditProfile = () => {
           </div>
         </form>
       </div>
-    </DashboardLayout>
+        {/* Resume Preview Modal */}
+        {showResumeModal && selectedResume && (
+          <ResumePreviewModal
+            resumeUrl={selectedResume}
+            onClose={() => {
+              setShowResumeModal(false);
+              setSelectedResume(null);
+            }}
+          />
+        )}
+      </DashboardLayout>
   );
 };
 
