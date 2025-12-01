@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchComplaints, selectComplaint, updateComplaintStatus } from '../../redux/slices/complaintsSlice';
 import DashboardPage from '../../components/DashboardPage';
 import { useChatContext } from '../../context/ChatContext';
 import '../Freelancer/ComplaintForm.css';
@@ -10,96 +11,48 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'
 const ComplaintDetail = () => {
   const { complaintId } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { openChatWith } = useChatContext();
-  const [complaint, setComplaint] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  
+  const { selectedComplaint: complaint, loading, error: reduxError } = useSelector(state => state.complaints);
+  
   const [adminNotes, setAdminNotes] = useState('');
-  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
-    fetchComplaintDetail();
-  }, [complaintId]);
-
-  const fetchComplaintDetail = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('🔍 Fetching complaint details for ID:', complaintId);
-      const response = await axios.get(
-        `${API_BASE_URL}/api/admin/complaints`,
-        { withCredentials: true }
-      );
-
-      console.log('📨 Backend response:', response.data);
-      console.log('📋 All complaints received:', response.data.complaints);
-
-      if (response.data.success) {
-        const foundComplaint = response.data.complaints.find(
-          c => c.complaintId === complaintId
-        );
-        console.log('🎯 Found complaint:', foundComplaint);
-        if (foundComplaint) {
-          console.log('✅ Setting complaint with complainantUserId:', foundComplaint.complainantUserId);
-          setComplaint(foundComplaint);
-          setAdminNotes(foundComplaint.adminNotes || '');
-        } else {
-          console.error('❌ Complaint not found with ID:', complaintId);
-          setError('Complaint not found');
-        }
-      }
-    } catch (error) {
-      console.error('💥 Error fetching complaint:', error);
-      setError('Failed to load complaint details. Please try again.');
-    } finally {
-      setLoading(false);
+    dispatch(selectComplaint(complaintId));
+    if (!complaint) {
+      dispatch(fetchComplaints());
     }
-  };
+  }, [complaintId, dispatch]);
+
+  useEffect(() => {
+    if (complaint) {
+      setAdminNotes(complaint.adminNotes || '');
+    }
+    if (reduxError) {
+      setError(reduxError);
+    }
+  }, [complaint, reduxError]);
 
   const handleUpdateStatus = async (status) => {
     if (!complaint) return;
 
-    setUpdating(true);
     setSuccessMessage('');
+    setError(null);
+    
     try {
-      const response = await axios.put(
-        `${API_BASE_URL}/api/admin/complaints/${complaint.complaintId}`,
-        { status, adminNotes },
-        { withCredentials: true }
-      );
-
-      if (response.data.success) {
-        // Use the updated complaint from the server response
-        setComplaint(response.data.complaint);
-        setSuccessMessage(`Complaint status updated to ${status} successfully!`);
-        console.log('✅ Updated complaint with complainantUserId:', response.data.complaint.complainantUserId);
-      }
+      await dispatch(updateComplaintStatus({ 
+        complaintId: complaint.complaintId, 
+        status, 
+        adminNotes 
+      })).unwrap();
+      
+      setSuccessMessage(`Complaint status updated to ${status} successfully!`);
     } catch (error) {
       console.error('Error updating complaint:', error);
       setError('Failed to update complaint status');
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case 'Pending': return 'status-pending';
-      case 'Under Review': return 'status-review';
-      case 'Resolved': return 'status-resolved';
-      case 'Rejected': return 'status-rejected';
-      default: return '';
-    }
-  };
-
-  const getPriorityBadgeClass = (priority) => {
-    switch (priority) {
-      case 'Low': return 'priority-low';
-      case 'Medium': return 'priority-medium';
-      case 'High': return 'priority-high';
-      case 'Critical': return 'priority-critical';
-      default: return '';
     }
   };
 
@@ -301,46 +254,46 @@ const ComplaintDetail = () => {
                 type="button"
                 className="submit-btn"
                 onClick={() => handleUpdateStatus('Pending')}
-                disabled={updating || complaint.status === 'Pending' || complaint.status === 'Resolved' || complaint.status === 'Rejected'}
+                disabled={loading || complaint.status === 'Pending' || complaint.status === 'Resolved' || complaint.status === 'Rejected'}
                 style={{
                   background: complaint.status === 'Pending' || complaint.status === 'Resolved' || complaint.status === 'Rejected' ? '#ccc' : '#ffc107',
                   color: '#000'
                 }}
               >
-                {updating ? <i className="fas fa-spinner fa-spin"></i> : 'Mark as Pending'}
+                {loading ? <i className="fas fa-spinner fa-spin"></i> : 'Mark as Pending'}
               </button>
               <button
                 type="button"
                 className="submit-btn"
                 onClick={() => handleUpdateStatus('Under Review')}
-                disabled={updating || complaint.status === 'Under Review' || complaint.status === 'Resolved' || complaint.status === 'Rejected'}
+                disabled={loading || complaint.status === 'Under Review' || complaint.status === 'Resolved' || complaint.status === 'Rejected'}
                 style={{
                   background: complaint.status === 'Under Review' || complaint.status === 'Resolved' || complaint.status === 'Rejected' ? '#ccc' : '#17a2b8'
                 }}
               >
-                {updating ? <i className="fas fa-spinner fa-spin"></i> : 'Under Review'}
+                {loading ? <i className="fas fa-spinner fa-spin"></i> : 'Under Review'}
               </button>
               <button
                 type="button"
                 className="submit-btn"
                 onClick={() => handleUpdateStatus('Resolved')}
-                disabled={updating || complaint.status === 'Resolved' || complaint.status === 'Rejected'}
+                disabled={loading || complaint.status === 'Resolved' || complaint.status === 'Rejected'}
                 style={{
                   background: complaint.status === 'Resolved' || complaint.status === 'Rejected' ? '#ccc' : '#28a745'
                 }}
               >
-                {updating ? <i className="fas fa-spinner fa-spin"></i> : 'Mark as Resolved'}
+                {loading ? <i className="fas fa-spinner fa-spin"></i> : 'Mark as Resolved'}
               </button>
               <button
                 type="button"
                 className="submit-btn"
                 onClick={() => handleUpdateStatus('Rejected')}
-                disabled={updating || complaint.status === 'Rejected' || complaint.status === 'Resolved'}
+                disabled={loading || complaint.status === 'Rejected' || complaint.status === 'Resolved'}
                 style={{
                   background: complaint.status === 'Rejected' || complaint.status === 'Resolved' ? '#ccc' : '#dc3545'
                 }}
               >
-                {updating ? <i className="fas fa-spinner fa-spin"></i> : 'Reject'}
+                {loading ? <i className="fas fa-spinner fa-spin"></i> : 'Reject'}
               </button>
             </div>
           </form>
