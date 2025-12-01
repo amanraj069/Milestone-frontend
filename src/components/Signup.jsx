@@ -12,6 +12,13 @@ const Signup = () => {
     role: ''
   });
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: ''
+  });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -19,32 +26,119 @@ const Signup = () => {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
-    setError(''); // Clear error when user types
+    
+    // Real-time validation for name field
+    if (name === 'name') {
+      if (value.trim() === '') {
+        setFieldErrors(prev => ({ ...prev, name: 'Full name is required' }));
+      } else if (value.trim().length < 2) {
+        setFieldErrors(prev => ({ ...prev, name: 'Name must be at least 2 characters' }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, name: '' }));
+      }
+    }
+    // Real-time validation for email field
+    else if (name === 'email') {
+      if (value.trim() === '') {
+        setFieldErrors(prev => ({ ...prev, email: 'Email is required' }));
+      } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value)) {
+        setFieldErrors(prev => ({ ...prev, email: 'Please enter a valid email address' }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, email: '' }));
+      }
+    }
+    // Real-time validation for password field
+    else if (name === 'password') {
+      if (value === '') {
+        setFieldErrors(prev => ({ ...prev, password: 'Password is required' }));
+      } else if (value.length < 6) {
+        setFieldErrors(prev => ({ ...prev, password: 'Password must be at least 6 characters' }));
+      } else if (!/[A-Z]/.test(value)) {
+        setFieldErrors(prev => ({ ...prev, password: 'Password must contain at least one capital letter' }));
+      } else if (!/[0-9]/.test(value)) {
+        setFieldErrors(prev => ({ ...prev, password: 'Password must contain at least one digit' }));
+      } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) {
+        setFieldErrors(prev => ({ ...prev, password: 'Password must contain at least one special character' }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, password: '' }));
+      }
+      
+      // Also validate confirm password if it has a value
+      if (formData.confirmPassword) {
+        if (formData.confirmPassword !== value) {
+          setFieldErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
+        } else {
+          setFieldErrors(prev => ({ ...prev, confirmPassword: '' }));
+        }
+      }
+    }
+    // Real-time validation for confirm password field
+    else if (name === 'confirmPassword') {
+      if (value === '') {
+        setFieldErrors(prev => ({ ...prev, confirmPassword: 'Please confirm your password' }));
+      } else if (value !== formData.password) {
+        setFieldErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, confirmPassword: '' }));
+      }
+    }
+    // Real-time validation for role field
+    else if (name === 'role') {
+      if (value === '') {
+        setFieldErrors(prev => ({ ...prev, role: 'Please select your role' }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, role: '' }));
+      }
+    }
+    
+    // Clear general error when user types
+    setError('');
   };
 
   const handleNextStep = (e) => {
     e.preventDefault();
     setError('');
+    
+    // Reset field errors
+    setFieldErrors({
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      role: ''
+    });
 
-    // Validate step 1 fields
+    let hasErrors = false;
+
+    // Validate step 1 fields and set field-specific errors
     if (!formData.name.trim()) {
-      setError('Full name is required');
-      return;
+      setFieldErrors(prev => ({ ...prev, name: 'Full name is required' }));
+      hasErrors = true;
+    } else if (formData.name.trim().length < 2) {
+      setFieldErrors(prev => ({ ...prev, name: 'Name must be at least 2 characters' }));
+      hasErrors = true;
     }
+    
     if (!formData.email.trim()) {
-      setError('Email is required');
-      return;
+      setFieldErrors(prev => ({ ...prev, email: 'Email is required' }));
+      hasErrors = true;
+    } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)) {
+      setFieldErrors(prev => ({ ...prev, email: 'Please enter a valid email address' }));
+      hasErrors = true;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setError('Please enter a valid email address');
-      return;
-    }
+    
     if (!formData.role) {
-      setError('Please select your role');
+      setFieldErrors(prev => ({ ...prev, role: 'Please select your role' }));
+      hasErrors = true;
+    }
+
+    if (hasErrors) {
       return;
     }
 
@@ -54,26 +148,57 @@ const Signup = () => {
   const handlePrevStep = () => {
     setCurrentStep(1);
     setError('');
+    // Clear field errors when going back
+    setFieldErrors({
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      role: ''
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    
+    // Reset field errors
+    setFieldErrors(prev => ({
+      ...prev,
+      password: '',
+      confirmPassword: ''
+    }));
 
-    // Validate password fields
+    let hasErrors = false;
+
+    // Validate password fields and set field-specific errors
     if (!formData.password) {
-      setError('Password is required');
-      setLoading(false);
-      return;
+      setFieldErrors(prev => ({ ...prev, password: 'Password is required' }));
+      hasErrors = true;
+    } else if (formData.password.length < 6) {
+      setFieldErrors(prev => ({ ...prev, password: 'Password must be at least 6 characters' }));
+      hasErrors = true;
+    } else if (!/[A-Z]/.test(formData.password)) {
+      setFieldErrors(prev => ({ ...prev, password: 'Password must contain at least one capital letter' }));
+      hasErrors = true;
+    } else if (!/[0-9]/.test(formData.password)) {
+      setFieldErrors(prev => ({ ...prev, password: 'Password must contain at least one digit' }));
+      hasErrors = true;
+    } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
+      setFieldErrors(prev => ({ ...prev, password: 'Password must contain at least one special character' }));
+      hasErrors = true;
     }
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      setLoading(false);
-      return;
+    
+    if (!formData.confirmPassword) {
+      setFieldErrors(prev => ({ ...prev, confirmPassword: 'Please confirm your password' }));
+      hasErrors = true;
+    } else if (formData.password !== formData.confirmPassword) {
+      setFieldErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
+      hasErrors = true;
     }
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+
+    if (hasErrors) {
       setLoading(false);
       return;
     }
@@ -132,8 +257,19 @@ const Signup = () => {
                       placeholder="Enter your full name"
                       autoComplete="name"
                       autoFocus
-                      className="px-4 py-3 border-2 border-gray-300 rounded-lg text-base bg-gray-50 transition-all outline-none text-gray-900 focus:border-navy-700 focus:bg-white focus:ring-4 focus:ring-navy-100 placeholder:text-gray-400"
+                      className={`px-4 py-3 border-2 rounded-lg text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
+                        fieldErrors.name 
+                          ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-50' 
+                          : formData.name.trim().length >= 2 
+                            ? 'border-emerald-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50' 
+                            : 'border-gray-300 focus:border-navy-500 focus:ring-4 focus:ring-navy-50'
+                      }`}
                     />
+                    {fieldErrors.name && (
+                      <div className="text-rose-600 text-sm mt-1">
+                        {fieldErrors.name}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-1.5">
@@ -145,8 +281,19 @@ const Signup = () => {
                       onChange={handleChange}
                       placeholder="Enter your email address"
                       autoComplete="email"
-                      className="px-4 py-3 border-2 border-gray-300 rounded-lg text-base bg-gray-50 transition-all outline-none text-gray-900 focus:border-navy-700 focus:bg-white focus:ring-4 focus:ring-navy-100 placeholder:text-gray-400"
+                      className={`px-4 py-3 border-2 rounded-lg text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
+                        fieldErrors.email 
+                          ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-50' 
+                          : formData.email && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email) 
+                            ? 'border-emerald-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50' 
+                            : 'border-gray-300 focus:border-navy-500 focus:ring-4 focus:ring-navy-50'
+                      }`}
                     />
+                    {fieldErrors.email && (
+                      <div className="text-rose-600 text-sm mt-1">
+                        {fieldErrors.email}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-1.5">
@@ -155,13 +302,24 @@ const Signup = () => {
                       name="role"
                       value={formData.role}
                       onChange={handleChange}
-                      className="px-4 py-3 border-2 border-gray-300 rounded-lg text-base bg-gray-50 transition-all outline-none text-gray-900 focus:border-navy-700 focus:bg-white focus:ring-4 focus:ring-navy-100"
+                      className={`px-4 py-3 border-2 rounded-lg text-base bg-gray-50 transition-all outline-none text-gray-900 focus:bg-white focus:ring-4 ${
+                        fieldErrors.role 
+                          ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-50' 
+                          : formData.role
+                            ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-50'
+                            : 'border-gray-300 focus:border-navy-700 focus:ring-navy-100'
+                      }`}
                     >
                       <option value="">Select role</option>
                       <option value="Freelancer">Freelancer</option>
                       <option value="Employer">Employer</option>
                       <option value="Admin">Admin</option>
                     </select>
+                    {fieldErrors.role && (
+                      <div className="text-rose-600 text-sm mt-1">
+                        {fieldErrors.role}
+                      </div>
+                    )}
                   </div>
 
                   <button type="submit" className="px-6 py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-base inline-flex items-center justify-center gap-2 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white w-full hover:from-navy-900 hover:via-navy-800 hover:to-navy-700 hover:shadow-lg hover:-translate-y-0.5">
@@ -218,9 +376,19 @@ const Signup = () => {
                         value={formData.password}
                         onChange={handleChange}
                         placeholder="Create a strong password"
-                        autoComplete="new-password"
+                        autoComplete="off"
                         autoFocus
-                        className="px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg text-base bg-gray-50 transition-all outline-none text-gray-900 focus:border-navy-700 focus:bg-white focus:ring-4 focus:ring-navy-100 placeholder:text-gray-400 w-full"
+                        className={`px-4 py-3 pr-12 border-2 rounded-lg text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 w-full ${
+                          fieldErrors.password 
+                            ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-50' 
+                            : formData.password && 
+                              formData.password.length >= 6 && 
+                              /[A-Z]/.test(formData.password) && 
+                              /[0-9]/.test(formData.password) && 
+                              /[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
+                              ? 'border-emerald-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50' 
+                              : 'border-gray-300 focus:border-navy-500 focus:ring-4 focus:ring-navy-50'
+                        }`}
                       />
                       <button
                         type="button"
@@ -230,9 +398,15 @@ const Signup = () => {
                         <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                       </button>
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      At least 6 characters
-                    </div>
+                    {fieldErrors.password ? (
+                      <div className="text-rose-600 text-xs mt-1">
+                        {fieldErrors.password}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Min 6 characters, 1 capital, 1 digit, 1 special character
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-1.5">
@@ -244,8 +418,14 @@ const Signup = () => {
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         placeholder="Confirm your password"
-                        autoComplete="new-password"
-                        className="px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg text-base bg-gray-50 transition-all outline-none text-gray-900 focus:border-navy-700 focus:bg-white focus:ring-4 focus:ring-navy-100 placeholder:text-gray-400 w-full"
+                        autoComplete="off"
+                        className={`px-4 py-3 pr-12 border-2 rounded-lg text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 w-full ${
+                          fieldErrors.confirmPassword 
+                            ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-50' 
+                            : formData.confirmPassword && formData.confirmPassword === formData.password
+                              ? 'border-emerald-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50' 
+                              : 'border-gray-300 focus:border-navy-500 focus:ring-4 focus:ring-navy-50'
+                        }`}
                       />
                       <button
                         type="button"
@@ -255,6 +435,11 @@ const Signup = () => {
                         <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                       </button>
                     </div>
+                    {fieldErrors.confirmPassword && (
+                      <div className="text-rose-600 text-xs mt-1">
+                        {fieldErrors.confirmPassword}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-3 mt-6">

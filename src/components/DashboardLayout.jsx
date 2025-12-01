@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const DashboardLayout = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, checkAuthStatus } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isPremium, setIsPremium] = useState(false);
@@ -12,6 +12,35 @@ const DashboardLayout = ({ children }) => {
     // Update premium status whenever user changes
     setIsPremium(user?.subscription === 'Premium');
   }, [user]);
+
+  // Listen for profile updates from other pages (EditProfile)
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === 'profileUpdated') {
+        // Refresh auth/user data so sidebar reflects latest profile picture/name
+        if (typeof checkAuthStatus === 'function') {
+          checkAuthStatus();
+        }
+        try {
+          // remove the flag
+          localStorage.removeItem('profileUpdated');
+        } catch (err) {
+          // ignore
+        }
+      }
+    };
+
+    const onCustom = () => {
+      if (typeof checkAuthStatus === 'function') checkAuthStatus();
+    };
+
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('profileUpdated', onCustom);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('profileUpdated', onCustom);
+    };
+  }, [checkAuthStatus]);
 
   const handleLogout = async () => {
     await logout();
@@ -29,6 +58,7 @@ const DashboardLayout = ({ children }) => {
           { name: 'Complaints', path: '/admin/complaints', icon: 'fas fa-exclamation-triangle' },
           { name: 'Quizzes', path: '/admin/quizzes', icon: 'fas fa-question-circle' },
           { name: 'Blogs', path: '/admin/blogs', icon: 'fas fa-blog' },
+          { name: 'Chat', path: '/admin/chat', icon: 'fas fa-comments' },
           { name: 'Profile', path: '/admin/profile', icon: 'fas fa-user' },
         ];
       case 'Employer':
@@ -39,6 +69,7 @@ const DashboardLayout = ({ children }) => {
           { name: 'Current Jobs', path: '/employer/current-jobs', icon: 'fas fa-tasks' },
           { name: 'Applications', path: '/employer/applications', icon: 'fas fa-file-alt' },
           { name: 'Work History', path: '/employer/work-history', icon: 'fas fa-history' },
+          { name: 'Chat', path: '/employer/chat', icon: 'fas fa-comments' },
           { name: 'Subscription', path: '/employer/subscription', icon: 'fas fa-crown' },
           { name: 'Transactions', path: '/employer/transactions', icon: 'fas fa-credit-card' },
         ];
@@ -50,6 +81,7 @@ const DashboardLayout = ({ children }) => {
           { name: 'Job History', path: '/freelancer/job-history', icon: 'fas fa-history' },
           { name: 'Payments', path: '/freelancer/payments', icon: 'fas fa-credit-card' },
           { name: 'Skills & Badges', path: '/freelancer/skills-badges', icon: 'fas fa-award' },
+          { name: 'Chat', path: '/freelancer/chat', icon: 'fas fa-comments' },
           { name: 'Subscription', path: '/freelancer/subscription', icon: 'fas fa-crown' },
         ];
       default:
@@ -82,21 +114,23 @@ const DashboardLayout = ({ children }) => {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center overflow-hidden border-3 border-blue-500">
-              <img 
-                src="/assets/profile.png" 
-                alt="Profile" 
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.parentElement.innerHTML = '<i class="fas fa-user text-blue-600 text-xl"></i>';
-                }}
-              />
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-blue-500">
+                <img 
+                  src={user?.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover rounded-full"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML = '<i class="fas fa-user text-blue-600 text-xl"></i>';
+                  }}
+                />
+              </div>
             </div>
             <div>
               <h2 className="text-base font-semibold leading-tight">Welcome, {getRoleDisplay()} {user?.name ? user.name.split(' ')[0] : 'User'}!</h2>
               {isPremium && (
-                <p className="text-xs text-yellow-300 font-medium mt-0.5">Premium Member ⭐</p>
+                <p className="text-xs text-yellow-300 font-medium mt-0.5">Premium Member</p>
               )}
             </div>
           </div>
@@ -124,7 +158,7 @@ const DashboardLayout = ({ children }) => {
         </nav>
 
         {/* Logout Button */}
-        <div className="p-6 border-t border-blue-600/30">
+        <div className="p-2 border-t border-blue-600/30">
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-base transition-all border border-white/20 hover:border-white/40"

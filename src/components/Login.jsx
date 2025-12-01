@@ -9,22 +9,92 @@ const Login = () => {
     role: ''
   });
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({
+    email: '',
+    password: '',
+    role: ''
+  });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+    
+    // Real-time validation for email field
+    if (name === 'email') {
+      if (value.trim() === '') {
+        setFieldErrors(prev => ({ ...prev, email: 'Email is required' }));
+      } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value)) {
+        setFieldErrors(prev => ({ ...prev, email: 'Please enter a valid email address' }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, email: '' }));
+      }
+    }
+    // Real-time validation for password field
+    else if (name === 'password') {
+      if (value === '') {
+        setFieldErrors(prev => ({ ...prev, password: 'Password is required' }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, password: '' }));
+      }
+    }
+    // Real-time validation for role field
+    else if (name === 'role') {
+      if (value === '') {
+        setFieldErrors(prev => ({ ...prev, role: 'Please select your role' }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, role: '' }));
+      }
+    }
+    
+    // Clear general error when user types
+    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    
+    // Reset field errors
+    setFieldErrors({
+      email: '',
+      password: '',
+      role: ''
+    });
+
+    let hasErrors = false;
+
+    // Validate all required fields and set field-specific errors
+    if (!formData.email.trim()) {
+      setFieldErrors(prev => ({ ...prev, email: 'Email is required' }));
+      hasErrors = true;
+    } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)) {
+      setFieldErrors(prev => ({ ...prev, email: 'Please enter a valid email address' }));
+      hasErrors = true;
+    }
+    
+    if (!formData.password) {
+      setFieldErrors(prev => ({ ...prev, password: 'Password is required' }));
+      hasErrors = true;
+    }
+    
+    if (!formData.role) {
+      setFieldErrors(prev => ({ ...prev, role: 'Please select your role' }));
+      hasErrors = true;
+    }
+
+    if (hasErrors) {
+      setLoading(false);
+      return;
+    }
 
     const result = await login(formData);
     
@@ -74,9 +144,20 @@ const Login = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Enter your email"
-                  required
-                  className="px-4 py-3 border-2 border-gray-300 rounded-lg text-base bg-gray-50 transition-all outline-none text-gray-900 focus:border-navy-700 focus:bg-white focus:ring-4 focus:ring-navy-100 placeholder:text-gray-400"
+                  autoComplete="email"
+                  className={`px-4 py-3 border-2 rounded-lg text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
+                    fieldErrors.email 
+                      ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-50' 
+                      : formData.email && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email) 
+                        ? 'border-emerald-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50' 
+                        : 'border-gray-300 focus:border-navy-500 focus:ring-4 focus:ring-navy-50'
+                  }`}
                 />
+                {fieldErrors.email && (
+                  <div className="text-rose-600 text-sm mt-1">
+                    {fieldErrors.email}
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -88,8 +169,14 @@ const Login = () => {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="Enter your password"
-                    required
-                    className="px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg text-base bg-gray-50 transition-all outline-none text-gray-900 focus:border-navy-700 focus:bg-white focus:ring-4 focus:ring-navy-100 placeholder:text-gray-400 w-full"
+                    autoComplete="off"
+                    className={`px-4 py-3 pr-12 border-2 rounded-lg text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 w-full ${
+                      fieldErrors.password 
+                        ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-50' 
+                        : formData.password
+                          ? 'border-emerald-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50' 
+                          : 'border-gray-300 focus:border-navy-500 focus:ring-4 focus:ring-navy-50'
+                    }`}
                   />
                   <button
                     type="button"
@@ -99,6 +186,11 @@ const Login = () => {
                     <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                   </button>
                 </div>
+                {fieldErrors.password && (
+                  <div className="text-rose-600 text-sm mt-1">
+                    {fieldErrors.password}
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -107,14 +199,24 @@ const Login = () => {
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  required
-                  className="px-4 py-3 border-2 border-gray-300 rounded-lg text-base bg-gray-50 transition-all outline-none text-gray-900 focus:border-navy-700 focus:bg-white focus:ring-4 focus:ring-navy-100"
+                  className={`px-4 py-3 border-2 rounded-lg text-base bg-gray-50 transition-all outline-none text-gray-900 focus:bg-white focus:ring-4 ${
+                    fieldErrors.role 
+                      ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-50' 
+                      : formData.role
+                        ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-50'
+                        : 'border-gray-300 focus:border-navy-700 focus:ring-navy-100'
+                  }`}
                 >
                   <option value="">Select role</option>
                   <option value="Freelancer">Freelancer</option>
                   <option value="Employer">Employer</option>
                   <option value="Admin">Admin</option>
                 </select>
+                {fieldErrors.role && (
+                  <div className="text-rose-600 text-sm mt-1">
+                    {fieldErrors.role}
+                  </div>
+                )}
               </div>
 
               <div className="text-right -mt-1 mb-1">

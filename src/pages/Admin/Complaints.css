@@ -1,5 +1,17 @@
 .admin-complaints-container {
-  padding: 2rem;
+  padding: 0;
+}
+
+.admin-complaints-container .page-header {
+  margin-bottom: 2rem;
+}
+
+.admin-complaints-container .search-section {
+  margin-bottom: 1.5rem;
+}
+
+.admin-complaints-container .filters-section {
+  margin-bottom: 2rem;
 }
 
 .page-header {
@@ -37,6 +49,45 @@
 
 .refresh-btn:hover {
   background: #0056b3;
+}
+
+.search-section {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.search-bar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #f8f9fa;
+}
+
+.search-bar i {
+  color: #666;
+}
+
+.search-bar input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.search-stats {
+  font-weight: 600;
+  color: #666;
 }
 
 .filters-section {
@@ -177,13 +228,13 @@
 }
 
 .status-pending {
-  background: #fff3cd;
-  color: #856404;
+  background: #ffe0b2;
+  color: #e65100;
 }
 
 .status-review {
-  background: #cce5ff;
-  color: #004085;
+  background: #b2ebf2;
+  color: #006064;
 }
 
 .status-resolved {
@@ -192,28 +243,23 @@
 }
 
 .status-rejected {
-  background: #f8d7da;
-  color: #721c24;
+  background: #ffcdd2;
+  color: #b71c1c;
 }
 
 .priority-low {
-  background: #d1ecf1;
-  color: #0c5460;
+  background: #cfe2ff;
+  color: #084298;
 }
 
 .priority-medium {
   background: #fff3cd;
-  color: #856404;
+  color: #997404;
 }
 
 .priority-high {
   background: #f8d7da;
-  color: #721c24;
-}
-
-.priority-critical {
-  background: #721c24;
-  color: white;
+  color: #842029;
 }
 
 .type-badge {

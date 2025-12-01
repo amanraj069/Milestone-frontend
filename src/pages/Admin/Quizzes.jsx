@@ -1,9 +1,334 @@
-import React from 'react';
-import DashboardPage from '../../components/DashboardPage';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import DashboardLayout from '../../components/DashboardLayout';
 
 const AdminQuizzes = () => {
-  return <DashboardPage title="Quizzes" />;
+  const navigate = useNavigate();
+  const [quizzes, setQuizzes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedQuiz, setExpandedQuiz] = useState(null);
+  const [attemptDetails, setAttemptDetails] = useState(null);
+  const [loadingAttempts, setLoadingAttempts] = useState(false);
+
+  useEffect(() => { 
+    fetchList(); 
+  }, []);
+
+  async function fetchList() {
+    try {
+      const res = await fetch('/api/admin/quizzes', { credentials: 'include' });
+      const j = await res.json();
+      if (j.success) {
+        setQuizzes(j.data.quizzes || []);
+      }
+    } catch (error) {
+      console.error('Error fetching quizzes:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const toggleInfo = async (quizId) => {
+    if (expandedQuiz === quizId) {
+      setExpandedQuiz(null);
+      setAttemptDetails(null);
+    } else {
+      setExpandedQuiz(quizId);
+      setLoadingAttempts(true);
+      try {
+        const res = await fetch(`/api/admin/quizzes/${quizId}/attempts`, { credentials: 'include' });
+        const data = await res.json();
+        if (data.success) {
+          setAttemptDetails(data.data);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Failed to load attempt details');
+      } finally {
+        setLoadingAttempts(false);
+      }
+    }
+  };
+
+  const exportToPDF = (quizId) => {
+    if (!attemptDetails) return;
+    
+    const printWindow = window.open('', '_blank');
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Quiz Attempts Report - ${attemptDetails.quizTitle}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; }
+          h1 { color: #2563eb; border-bottom: 3px solid #2563eb; padding-bottom: 10px; }
+          h2 { color: #475569; margin-top: 30px; }
+          .header { margin-bottom: 30px; }
+          .info { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+          .info-item { margin: 5px 0; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th { background: #2563eb; color: white; padding: 12px; text-align: left; }
+          td { border: 1px solid #e2e8f0; padding: 10px; }
+          tr:nth-child(even) { background: #f8fafc; }
+          .passed { color: #16a34a; font-weight: bold; }
+          .failed { color: #dc2626; font-weight: bold; }
+          .badge { color: #ca8a04; }
+          .footer { margin-top: 40px; text-align: center; color: #64748b; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Quiz Attempts Report</h1>
+          <div class="info">
+            <div class="info-item"><strong>Quiz Title:</strong> ${attemptDetails.quizTitle}</div>
+            <div class="info-item"><strong>Skill:</strong> ${attemptDetails.skillName}</div>
+            <div class="info-item"><strong>Passing Score:</strong> ${attemptDetails.passingScore}%</div>
+            <div class="info-item"><strong>Total Attempts:</strong> ${attemptDetails.totalAttempts}</div>
+            <div class="info-item"><strong>Passed Attempts:</strong> ${attemptDetails.passedAttempts} (${attemptDetails.totalAttempts > 0 ? Math.round((attemptDetails.passedAttempts / attemptDetails.totalAttempts) * 100) : 0}%)</div>
+            <div class="info-item"><strong>Report Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+        </div>
+        
+        <h2>Detailed Attempts</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Freelancer Name</th>
+              <th>Email</th>
+              <th>Marks Obtained</th>
+              <th>Total Marks</th>
+              <th>Percentage</th>
+              <th>Status</th>
+              <th>Badge Awarded</th>
+              <th>Attempted At</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${attemptDetails.attempts.map((attempt, idx) => `
+              <tr>
+                <td>${idx + 1}</td>
+                <td>${attempt.freelancerName}</td>
+                <td>${attempt.email}</td>
+                <td>${attempt.marksObtained}</td>
+                <td>${attempt.totalMarks}</td>
+                <td>${attempt.percentage.toFixed(2)}%</td>
+                <td class="${attempt.passed ? 'passed' : 'failed'}">
+                  ${attempt.passed ? 'PASSED' : 'FAILED'}
+                </td>
+                <td class="badge">${attempt.badgeAwarded ? 'Yes' : 'No'}</td>
+                <td>${new Date(attempt.attemptedAt).toLocaleString()}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <div class="footer">
+          <p>This report was generated by the Admin Dashboard</p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(html);
+    printWindow.document.close();
+    
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="p-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Quizzes</h1>
+          <div className="h-1 w-32 bg-blue-600 rounded"></div>
+        </div>
+
+        <div className="mb-8">
+          <Link 
+            to="/admin/quizzes/new" 
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition shadow-md inline-flex items-center gap-2"
+          >
+            <span className="text-xl">+</span>
+            Create Quiz
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="text-gray-600 mt-2">Loading quizzes...</p>
+            </div>
+          ) : quizzes.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <svg className="w-20 h-20 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="text-lg font-medium">No quizzes found</p>
+              <p className="text-sm">Create your first skill quiz to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {quizzes.map(q => (
+                <div key={q._id} className="border-2 border-gray-200 rounded-lg overflow-hidden hover:border-blue-300 transition">
+                  <div className="p-4 flex justify-between items-center bg-gray-50">
+                    <div className="flex-1">
+                      <div className="font-semibold text-lg text-gray-800">{q.title}</div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium mr-2">
+                          {q.skillName}
+                        </span>
+                        <span className="text-gray-500">
+                          {q.questions?.length || 0} Questions • {q.passingScore}% passing score
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => toggleInfo(q._id)}
+                        className={`p-2 rounded-lg transition ${
+                          expandedQuiz === q._id 
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                        title="View attempt details"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </button>
+                      <button 
+                        onClick={() => navigate(`/admin/quizzes/${q._id}/edit`)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+
+                  {expandedQuiz === q._id && (
+                    <div className="border-t-2 border-gray-200 bg-white p-6">
+                      {loadingAttempts ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                          <p className="mt-2">Loading attempt details...</p>
+                        </div>
+                      ) : attemptDetails ? (
+                        <div>
+                          <div className="flex justify-between items-start mb-6">
+                            <div>
+                              <h3 className="text-lg font-bold text-gray-800 mb-4">Attempt Statistics</h3>
+                              <div className="grid grid-cols-3 gap-4">
+                                <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                                  <div className="text-xs text-gray-600 mb-1">Total Attempts</div>
+                                  <div className="text-2xl font-bold text-blue-600">{attemptDetails.totalAttempts}</div>
+                                </div>
+                                <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                                  <div className="text-xs text-gray-600 mb-1">Passed</div>
+                                  <div className="text-2xl font-bold text-green-600">{attemptDetails.passedAttempts}</div>
+                                </div>
+                                <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                                  <div className="text-xs text-gray-600 mb-1">Pass Rate</div>
+                                  <div className="text-2xl font-bold text-purple-600">
+                                    {attemptDetails.totalAttempts > 0 
+                                      ? Math.round((attemptDetails.passedAttempts / attemptDetails.totalAttempts) * 100) 
+                                      : 0}%
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => exportToPDF(q._id)}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium flex items-center gap-2"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                              Export PDF
+                            </button>
+                          </div>
+
+                          {attemptDetails.attempts.length > 0 ? (
+                            <div>
+                              <h4 className="font-semibold text-gray-800 mb-3">Detailed Attempts</h4>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                  <thead>
+                                    <tr className="bg-gray-100">
+                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">#</th>
+                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Freelancer</th>
+                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Email</th>
+                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Marks</th>
+                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">%</th>
+                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Status</th>
+                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Badge</th>
+                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Date</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {attemptDetails.attempts.map((attempt, idx) => (
+                                      <tr key={attempt.attemptId} className="hover:bg-gray-50">
+                                        <td className="border border-gray-300 px-4 py-2 text-sm">{idx + 1}</td>
+                                        <td className="border border-gray-300 px-4 py-2 text-sm font-medium">{attempt.freelancerName}</td>
+                                        <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">{attempt.email}</td>
+                                        <td className="border border-gray-300 px-4 py-2 text-sm">
+                                          <span className="font-semibold">{attempt.marksObtained}</span>
+                                          <span className="text-gray-500">/{attempt.totalMarks}</span>
+                                        </td>
+                                        <td className="border border-gray-300 px-4 py-2 text-sm font-semibold">
+                                          {attempt.percentage.toFixed(2)}%
+                                        </td>
+                                        <td className="border border-gray-300 px-4 py-2 text-sm">
+                                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                            attempt.passed 
+                                              ? 'bg-green-100 text-green-800' 
+                                              : 'bg-red-100 text-red-800'
+                                          }`}>
+                                            {attempt.passed ? 'PASSED' : 'FAILED'}
+                                          </span>
+                                        </td>
+                                        <td className="border border-gray-300 px-4 py-2 text-sm">
+                                          {attempt.badgeAwarded ? (
+                                            <span className="text-yellow-600 font-semibold">Yes</span>
+                                          ) : (
+                                            <span className="text-gray-400">No</span>
+                                          )}
+                                        </td>
+                                        <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
+                                          {new Date(attempt.attemptedAt).toLocaleDateString()}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 text-gray-500">
+                              <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <p className="font-medium">No attempts yet</p>
+                              <p className="text-sm">This quiz hasn't been attempted by any freelancer</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-red-500">Failed to load attempt details</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </DashboardLayout>
+  );
 };
 
 export default AdminQuizzes;
-
