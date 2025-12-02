@@ -138,17 +138,22 @@ const PublicJobListing = () => {
       );
     }
 
-    // Sort filtered results
+    // Sort filtered results - sponsored jobs first (newest to oldest), then regular jobs (newest to oldest)
     filtered.sort((a, b) => {
+      // First, prioritize sponsored/premium jobs
+      if (a.isSponsored && !b.isSponsored) return -1;
+      if (!a.isSponsored && b.isSponsored) return 1;
+      
+      // Within same tier, apply selected sorting
       switch (sortBy) {
         case 'salary-desc':
           return b.budget.amount - a.budget.amount;
         case 'salary-asc':
           return a.budget.amount - b.budget.amount;
         case 'date':
-          return new Date(b.postedDate) - new Date(a.postedDate);
         default:
-          return 0;
+          // Newest first (descending order)
+          return new Date(b.postedDate) - new Date(a.postedDate);
       }
     });
 
@@ -367,6 +372,11 @@ const PublicJobListing = () => {
                               {isNewJob(job.postedDate) && (
                                 <span className="inline-block px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">
                                   New
+                                </span>
+                              )}
+                              {job.isSponsored && (
+                                <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
+                                  Sponsored
                                 </span>
                               )}
                             </div>

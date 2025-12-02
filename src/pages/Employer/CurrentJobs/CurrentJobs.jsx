@@ -128,11 +128,11 @@ const EmployerCurrentJobs = () => {
 
         {/* Search Bar */}
         <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center gap-3 max-w-lg">
+          <div className="flex items-center gap-3">
             <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="Find specific skills..."
+                placeholder="Find current working freelancers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

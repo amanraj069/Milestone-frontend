@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { useSelector } from 'react-redux';
 import DashboardPage from '../../components/DashboardPage';
 import BadgesList from '../Profile/BadgesList';
 
@@ -9,6 +10,10 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'
 
 const FreelancerSkillsBadges = () => {
   const { user } = useAuth();
+  const subscription = useSelector((state) => state.subscription);
+  const isPremium = user?.subscription === 'Premium' || subscription?.plan === 'Premium';
+  const maxAttempts = isPremium ? 3 : 2;
+  const cooldownDays = isPremium ? 5 : 10;
   
   // Local state
   const [quizzes, setQuizzes] = useState([]);
@@ -18,6 +23,8 @@ const FreelancerSkillsBadges = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All Categories');
+  const [showMaxAttemptsModal, setShowMaxAttemptsModal] = useState(false);
+  const [selectedQuizInfo, setSelectedQuizInfo] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -208,21 +215,28 @@ const FreelancerSkillsBadges = () => {
                             Best: {bestAttempt.percentage.toFixed(0)}%
                           </span>
                         )}
-                        <Link 
-                          to={`/quizzes/${q._id}`} 
+                        <Link
+                          to={`/quizzes/${q._id}`}
                           className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                            quizAttempts.length >= 3 
+                            quizAttempts.length >= maxAttempts 
                               ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
                               : 'bg-blue-600 text-white hover:bg-blue-700'
                           }`}
                           onClick={(e) => {
-                            if (quizAttempts.length >= 3) {
+                            if (quizAttempts.length >= maxAttempts) {
                               e.preventDefault();
-                              alert('Maximum 3 attempts reached for this quiz');
+                              setSelectedQuizInfo({
+                                title: q.title,
+                                skillName: q.skillName,
+                                maxAttempts: maxAttempts,
+                                cooldownDays: cooldownDays,
+                                isPremium: isPremium
+                              });
+                              setShowMaxAttemptsModal(true);
                             }
                           }}
                         >
-                          {quizAttempts.length >= 3 ? 'Max Attempts' : isPassed ? 'Retake' : 'Take Quiz'}
+                          {quizAttempts.length >= maxAttempts ? 'Max Attempts' : isPassed ? 'Retake' : 'Take Quiz'}
                         </Link>
                       </div>
                     </div>
@@ -233,7 +247,76 @@ const FreelancerSkillsBadges = () => {
           )}
         </div>
       </div>
-    </DashboardPage>
+
+        {/* Max Attempts Modal */}
+        {showMaxAttemptsModal && selectedQuizInfo && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowMaxAttemptsModal(false)}>
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="bg-gradient-to-r from-red-500 to-red-600 p-6 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">Maximum Attempts Reached</h3>
+                    <p className="text-red-100 text-sm mt-1">{selectedQuizInfo.skillName}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="mb-4">
+                  <p className="text-gray-700 text-lg font-semibold mb-2">
+                    Maximum {selectedQuizInfo.maxAttempts} attempts reached for this quiz.
+                  </p>
+                  <p className="text-gray-600">
+                    You can give this <span className="font-semibold text-blue-600">{selectedQuizInfo.skillName}</span> skill quiz after a period of <span className="font-bold text-red-600">{selectedQuizInfo.cooldownDays} days</span>.
+                  </p>
+                </div>
+
+                {!selectedQuizInfo.isPremium && (
+                  <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-l-4 border-yellow-400 p-4 rounded-r-lg mb-4">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      <div>
+                        <p className="font-semibold text-yellow-900 mb-1">Upgrade to Premium!</p>
+                        <p className="text-sm text-yellow-800">
+                          Get <strong>3 attempts</strong> instead of 2 and only <strong>{selectedQuizInfo.cooldownDays === 10 ? '5 days' : '4 days'} cooldown</strong> instead of {selectedQuizInfo.cooldownDays} days.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="bg-gray-50 px-6 py-4 flex gap-3">
+                {!selectedQuizInfo.isPremium && (
+                  <Link
+                    to="/freelancer/subscription"
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-lg font-semibold hover:from-yellow-500 hover:to-yellow-600 transition text-center"
+                    onClick={() => setShowMaxAttemptsModal(false)}
+                  >
+                    Upgrade to Premium
+                  </Link>
+                )}
+                <button
+                  onClick={() => setShowMaxAttemptsModal(false)}
+                  className={`${selectedQuizInfo.isPremium ? 'flex-1' : 'flex-1'} px-4 py-2 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition`}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </DashboardPage>
   );
 };
 

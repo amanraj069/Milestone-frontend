@@ -16,6 +16,7 @@ import blogReducer from "./slices/blogSlice";
 import complaintsReducer from "./slices/complaintsSlice";
 import feedbackReducer from "./slices/feedbackSlice";
 import jobsReducer from "./slices/jobsSlice";
+import subscriptionReducer from "./slices/subscriptionSlice";
 
 // Persist configuration - only persist auth state
 const persistConfig = {
@@ -32,6 +33,7 @@ const rootReducer = combineReducers({
   complaints: complaintsReducer,
   feedback: feedbackReducer,
   jobs: jobsReducer,
+  subscription: subscriptionReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

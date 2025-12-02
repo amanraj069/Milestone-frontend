@@ -219,26 +219,26 @@ export default function FreelancerJobHistory() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Feedback Modal */}
-      {feedbackModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <FeedbackForm
-              jobId={feedbackModal.jobId}
-              toUserId={feedbackModal.toUserId}
-              toRole={feedbackModal.toRole}
-              counterpartyName={feedbackModal.counterpartyName}
-              onSuccess={() => {
-                setFeedbackModal(null);
-                dispatch(checkCanGiveFeedback(feedbackModal.jobId));
-              }}
-              onCancel={() => setFeedbackModal(null)}
-            />
+        {/* Feedback Modal */}
+        {feedbackModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <FeedbackForm
+                jobId={feedbackModal.jobId}
+                toUserId={feedbackModal.toUserId}
+                toRole={feedbackModal.toRole}
+                counterpartyName={feedbackModal.counterpartyName}
+                onSuccess={() => {
+                  setFeedbackModal(null);
+                  dispatch(checkCanGiveFeedback(feedbackModal.jobId));
+                }}
+                onCancel={() => setFeedbackModal(null)}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </DashboardPage>
   );
 }

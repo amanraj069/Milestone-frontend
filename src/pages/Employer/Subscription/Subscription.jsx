@@ -1,45 +1,94 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
 import DashboardPage from '../../../components/DashboardPage';
 import SuccessModal from './SuccessModal';
+import PlanSelectionModal from './PlanSelectionModal';
+import UnsubscribeModal from './UnsubscribeModal';
+import PaymentProcessingModal from './PaymentProcessingModal';
 import { useAuth } from '../../../context/AuthContext';
+import { setSubscriptionPlan, resetSubscription } from '../../../redux/slices/subscriptionSlice';
 import './Subscription.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const EmployerSubscription = () => {
   const { user, checkAuthStatus } = useAuth();
+  const dispatch = useDispatch();
+  const subscriptionState = useSelector((state) => state.subscription);
+  
   const [currentPlan, setCurrentPlan] = useState('Basic');
+  const [currentDuration, setCurrentDuration] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [showUnsubscribeModal, setShowUnsubscribeModal] = useState(false);
+  const [showPaymentProcessing, setShowPaymentProcessing] = useState(false);
+  const [selectedPlanData, setSelectedPlanData] = useState(null);
 
   useEffect(() => {
     if (user?.subscription) {
       setCurrentPlan(user.subscription);
     }
-  }, [user]);
+    if (user?.subscriptionDuration) {
+      setCurrentDuration(user.subscriptionDuration);
+    } else if (subscriptionState.duration) {
+      setCurrentDuration(subscriptionState.duration);
+    }
+  }, [user, subscriptionState]);
 
-  const handleUpgradeToPremium = async () => {
-    if (loading) return;
+  const handleUpgradeToPremium = () => {
+    setShowPlanModal(true);
+  };
 
-    const confirmed = window.confirm(
-      'Upgrade to Premium Plan for ₹868/month?\n\nYou will get:\n• Unlimited job postings\n• Advanced applicant filtering\n• Priority job listing\n• Detailed analytics & insights\n• Premium support (24/7)\n• Custom branding options'
-    );
-
-    if (!confirmed) return;
-
+  const handlePlanSelection = async (planData) => {
     try {
+      setShowPlanModal(false);
+      setShowPaymentProcessing(true);
+      
+      // Store plan data for later use
+      setSelectedPlanData(planData);
+      
+      // Simulate payment processing
+      // In production, this would call a payment gateway API
+      
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      setShowPaymentProcessing(false);
+      alert('Payment failed. Please try again.');
+    }
+  };
+
+  const handlePaymentComplete = async () => {
+    try {
+      setShowPaymentProcessing(false);
       setLoading(true);
+      
+      if (!selectedPlanData) {
+        throw new Error('No plan data available');
+      }
+      
       const response = await axios.post(
         `${API_BASE_URL}/api/employer/upgrade_subscription`,
-        {},
+        {
+          duration: selectedPlanData.duration,
+          paymentDetails: selectedPlanData.paymentDetails
+        },
         { withCredentials: true }
       );
 
       if (response.data.success) {
-        // Refresh user data from backend to get updated subscription
+        // Update Redux state
+        dispatch(setSubscriptionPlan({
+          plan: 'Premium',
+          duration: selectedPlanData.duration,
+          expiryDate: response.data.expiryDate,
+        }));
+
+        // Refresh user data
         await checkAuthStatus();
+        setCurrentDuration(selectedPlanData.duration);
         setModalMessage('Successfully upgraded to Premium Plan!');
         setShowModal(true);
       }
@@ -51,15 +100,11 @@ const EmployerSubscription = () => {
     }
   };
 
-  const handleDowngradeToBasic = async () => {
-    if (loading) return;
+  const handleDowngradeClick = () => {
+    setShowUnsubscribeModal(true);
+  };
 
-    const confirmed = window.confirm(
-      'Downgrade to Basic Plan (Free)?\n\nYou will lose:\n• Unlimited job postings\n• Advanced applicant filtering\n• Priority job listing\n• Detailed analytics & insights\n• Premium support\n• Custom branding options'
-    );
-
-    if (!confirmed) return;
-
+  const handleConfirmDowngrade = async () => {
     try {
       setLoading(true);
       const response = await axios.post(
@@ -69,8 +114,13 @@ const EmployerSubscription = () => {
       );
 
       if (response.data.success) {
-        // Refresh user data from backend to get updated subscription
+        // Reset Redux state
+        dispatch(resetSubscription());
+        
+        // Refresh user data
         await checkAuthStatus();
+        setCurrentDuration(null);
+        setShowUnsubscribeModal(false);
         setModalMessage('Successfully downgraded to Basic Plan.');
         setShowModal(true);
       }
@@ -91,7 +141,7 @@ const EmployerSubscription = () => {
           <div>
             <h2>Your Current Plan</h2>
             <p className="plan-name">
-              {currentPlan} - {currentPlan === 'Basic' ? 'Includes basic features. Upgrade for more!' : 'Premium features unlocked'}
+              {currentPlan} {currentDuration && currentDuration === 12 ? '(12 months)' : currentDuration ? `(${currentDuration} month${currentDuration > 1 ? 's' : ''})` : ''} - {currentPlan === 'Basic' ? 'Includes basic features. Upgrade for more!' : 'Premium features unlocked'}
             </p>
           </div>
         </div>
@@ -145,7 +195,7 @@ const EmployerSubscription = () => {
 
             <button
               className={`plan-button ${currentPlan === 'Basic' ? 'current' : 'secondary'}`}
-              onClick={currentPlan === 'Premium' ? handleDowngradeToBasic : null}
+              onClick={currentPlan === 'Premium' ? handleDowngradeClick : null}
               disabled={currentPlan === 'Basic' || loading}
             >
               {currentPlan === 'Basic' ? 'Current Plan' : loading ? 'Processing...' : 'Downgrade to Basic'}
@@ -235,6 +285,28 @@ const EmployerSubscription = () => {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         message={modalMessage}
+      />
+
+      {/* Plan Selection Modal */}
+      <PlanSelectionModal
+        isOpen={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        onSelectPlan={handlePlanSelection}
+        userType="Employer"
+      />
+
+      {/* Unsubscribe Confirmation Modal */}
+      <UnsubscribeModal
+        isOpen={showUnsubscribeModal}
+        onClose={() => setShowUnsubscribeModal(false)}
+        onConfirm={handleConfirmDowngrade}
+        loading={loading}
+      />
+
+      {/* Payment Processing Modal */}
+      <PaymentProcessingModal
+        isOpen={showPaymentProcessing}
+        onComplete={handlePaymentComplete}
       />
     </div>
   );
