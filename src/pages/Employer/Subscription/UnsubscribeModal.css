@@ -1,0 +1,154 @@
+.modal-overlay-unsubscribe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content-unsubscribe {
+  background: white;
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 440px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: slideUp 0.4s ease;
+  text-align: center;
+}
+
+.warning-icon-unsubscribe {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.warning-icon-unsubscribe i {
+  font-size: 40px;
+  color: #d97706;
+}
+
+.modal-title-unsubscribe {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.warning-message-unsubscribe {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.benefits-compact-unsubscribe {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 0 0 20px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.benefits-compact-unsubscribe span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #991b1b;
+  text-align: left;
+}
+
+.benefits-compact-unsubscribe span i {
+  color: #ef4444;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.note-unsubscribe {
+  background: #f0f9ff;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #0369a1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.actions-unsubscribe {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-cancel-unsubscribe,
+.btn-confirm-unsubscribe {
+  flex: 1;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-cancel-unsubscribe {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.btn-cancel-unsubscribe:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.btn-confirm-unsubscribe {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.btn-confirm-unsubscribe:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.btn-cancel-unsubscribe:disabled,
+.btn-confirm-unsubscribe:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .modal-content-unsubscribe {
+    padding: 24px;
+  }
+
+  .benefits-compact-unsubscribe {
+    grid-template-columns: 1fr;
+  }
+
+  .actions-unsubscribe {
+    flex-direction: column;
+  }
+}

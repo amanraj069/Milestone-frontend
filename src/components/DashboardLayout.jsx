@@ -104,14 +104,14 @@ const DashboardLayout = ({ children }) => {
         <div className="p-6 border-b border-blue-600/30">
           <div className="flex items-center gap-2 mb-4">
             <h1 className="text-3xl font-bold">Dashboard</h1>
-            {isPremium && (
+            {/* {isPremium && (
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center shadow-lg">
                   <i className="fas fa-star text-white text-sm"></i>
                 </div>
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-blue-900 animate-pulse"></div>
               </div>
-            )}
+            )} */}
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-3">

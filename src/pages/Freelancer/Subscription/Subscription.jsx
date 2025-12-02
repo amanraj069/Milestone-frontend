@@ -2,44 +2,77 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DashboardPage from '../../../components/DashboardPage';
 import SuccessModal from './SuccessModal';
+import PlanSelectionModal from './PlanSelectionModal';
+import PaymentProcessingModal from './PaymentProcessingModal';
+import UnsubscribeModal from './UnsubscribeModal';
 import { useAuth } from '../../../context/AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { setSubscriptionPlan, resetSubscription } from '../../../store/slices/subscriptionSlice';
 import './Subscription.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const FreelancerSubscription = () => {
   const { user, checkAuthStatus } = useAuth();
+  const dispatch = useDispatch();
+  const subscription = useSelector((state) => state.subscription);
   const [currentPlan, setCurrentPlan] = useState('Basic');
+  const [currentDuration, setCurrentDuration] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [showPlanSelectionModal, setShowPlanSelectionModal] = useState(false);
+  const [showPaymentProcessing, setShowPaymentProcessing] = useState(false);
+  const [showUnsubscribeModal, setShowUnsubscribeModal] = useState(false);
+  const [selectedPlanData, setSelectedPlanData] = useState(null);
 
   useEffect(() => {
     if (user?.subscription) {
       setCurrentPlan(user.subscription);
     }
-  }, [user]);
+    if (user?.subscriptionDuration) {
+      setCurrentDuration(user.subscriptionDuration);
+    } else if (subscription.duration) {
+      setCurrentDuration(subscription.duration);
+    }
+  }, [user, subscription]);
 
-  const handleUpgradeToPremium = async () => {
-    if (loading) return;
+  const handleUpgradeToPremium = () => {
+    setShowPlanSelectionModal(true);
+  };
 
-    const confirmed = window.confirm(
-      'Upgrade to Premium Plan for ₹868.61/month?\n\nYou will get:\n• Unlimited projects\n• Advanced analytics\n• Priority support\n• Ad-free experience\n• Advanced tools'
-    );
+  const handlePlanSelection = (planData) => {
+    setSelectedPlanData(planData);
+    setShowPlanSelectionModal(false);
+    setShowPaymentProcessing(true);
+  };
 
-    if (!confirmed) return;
-
+  const handlePaymentComplete = async () => {
     try {
       setLoading(true);
+      
+      if (!selectedPlanData) {
+        throw new Error('No plan data available');
+      }
+      
       const response = await axios.post(
         `${API_BASE_URL}/api/freelancer/upgrade_subscription`,
-        {},
+        {
+          duration: selectedPlanData.duration,
+          paymentDetails: selectedPlanData.paymentDetails
+        },
         { withCredentials: true }
       );
 
       if (response.data.success) {
-        // Refresh user data from backend to get updated subscription
+        dispatch(setSubscriptionPlan({
+          plan: 'Premium',
+          duration: selectedPlanData.duration,
+          expiryDate: response.data.expiryDate,
+        }));
+        
         await checkAuthStatus();
+        setCurrentDuration(selectedPlanData.duration);
         setModalMessage('Successfully upgraded to Premium Plan!');
         setShowModal(true);
       }
@@ -48,20 +81,19 @@ const FreelancerSubscription = () => {
       alert(error.response?.data?.error || 'Failed to upgrade subscription. Please try again.');
     } finally {
       setLoading(false);
+      setShowPaymentProcessing(false);
     }
   };
 
-  const handleDowngradeToBasic = async () => {
-    if (loading) return;
+  const handleDowngradeClick = () => {
+    setShowUnsubscribeModal(true);
+  };
 
-    const confirmed = window.confirm(
-      'Downgrade to Basic Plan (Free)?\n\nYou will lose:\n• Unlimited projects\n• Advanced analytics\n• Priority support\n• Ad-free experience\n• Advanced tools'
-    );
-
-    if (!confirmed) return;
-
+  const handleConfirmDowngrade = async () => {
     try {
       setLoading(true);
+      setShowUnsubscribeModal(false);
+      
       const response = await axios.post(
         `${API_BASE_URL}/api/freelancer/downgrade_subscription`,
         {},
@@ -69,7 +101,7 @@ const FreelancerSubscription = () => {
       );
 
       if (response.data.success) {
-        // Refresh user data from backend to get updated subscription
+        dispatch(resetSubscription());
         await checkAuthStatus();
         setModalMessage('Successfully downgraded to Basic Plan.');
         setShowModal(true);
@@ -92,7 +124,7 @@ const FreelancerSubscription = () => {
           <div>
             <h2>Your Current Plan</h2>
             <p className="plan-name">
-              {currentPlan} - {currentPlan === 'Basic' ? 'Includes basic features. Upgrade for more!' : 'Premium features unlocked'}
+              {currentPlan} {currentDuration && currentDuration === 12 ? '(12 months)' : currentDuration ? `(${currentDuration} month${currentDuration > 1 ? 's' : ''})` : ''} - {currentPlan === 'Basic' ? 'Includes basic features. Upgrade for more!' : 'Premium features unlocked'}
             </p>
           </div>
         </div>
@@ -138,7 +170,7 @@ const FreelancerSubscription = () => {
 
             <button
               className={`plan-button ${currentPlan === 'Basic' ? 'current' : 'secondary'}`}
-              onClick={currentPlan === 'Premium' ? handleDowngradeToBasic : null}
+              onClick={currentPlan === 'Premium' ? handleDowngradeClick : null}
               disabled={currentPlan === 'Basic' || loading}
             >
               {currentPlan === 'Basic' ? 'Current Plan' : loading ? 'Processing...' : 'Downgrade to Basic'}
@@ -228,6 +260,26 @@ const FreelancerSubscription = () => {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         message={modalMessage}
+      />
+
+      {/* Plan Selection Modal */}
+      <PlanSelectionModal
+        isOpen={showPlanSelectionModal}
+        onClose={() => setShowPlanSelectionModal(false)}
+        onSelectPlan={handlePlanSelection}
+      />
+
+      {/* Payment Processing Modal */}
+      <PaymentProcessingModal
+        isOpen={showPaymentProcessing}
+        onComplete={handlePaymentComplete}
+      />
+
+      {/* Unsubscribe Modal */}
+      <UnsubscribeModal
+        isOpen={showUnsubscribeModal}
+        onClose={() => setShowUnsubscribeModal(false)}
+        onConfirm={handleConfirmDowngrade}
       />
     </div>
   );
