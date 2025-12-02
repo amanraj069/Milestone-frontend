@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Home from './components/Home';
 import Login from './components/Login';
 import Signup from './components/Signup';
+import ForgotPassword from './components/ForgotPassword';
 import Chat from './components/Chat/Chat';
 
 // Public Pages
@@ -41,6 +42,7 @@ import EmployerApplications from './pages/Employer/Applications/Applications';
 import EmployerWorkHistory from './pages/Employer/WorkHistory/WorkHistory';
 import EmployerSubscription from './pages/Employer/Subscription/Subscription';
 import EmployerTransactions from './pages/Employer/Transactions/Transactions';
+import TransactionDetails from './pages/Employer/Transactions/TransactionDetails';
 import EmployerComplaintForm from './pages/Employer/ComplaintForm/ComplaintForm';
 
 // Freelancer Pages
@@ -66,6 +68,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/jobs" element={<PublicJobListing />} />
               <Route path="/jobs/:jobId" element={<JobDescription />} />
               <Route path="/jobs/apply/:jobId" element={<ProtectedRoute requiredRole="Freelancer"><JobApplication /></ProtectedRoute>} />
@@ -102,6 +105,7 @@ function App() {
               <Route path="/employer/work-history" element={<ProtectedRoute requiredRole="Employer"><EmployerWorkHistory /></ProtectedRoute>} />
               <Route path="/employer/subscription" element={<ProtectedRoute requiredRole="Employer"><EmployerSubscription /></ProtectedRoute>} />
               <Route path="/employer/transactions" element={<ProtectedRoute requiredRole="Employer"><EmployerTransactions /></ProtectedRoute>} />
+              <Route path="/employer/transactions/:jobId" element={<ProtectedRoute requiredRole="Employer"><TransactionDetails /></ProtectedRoute>} />
               <Route path="/employer/chat" element={<ProtectedRoute requiredRole="Employer"><Chat /></ProtectedRoute>} />
               <Route path="/employer/complaint" element={<ProtectedRoute requiredRole="Employer"><EmployerComplaintForm /></ProtectedRoute>} />
 

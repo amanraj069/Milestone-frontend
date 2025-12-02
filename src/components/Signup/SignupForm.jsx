@@ -6,22 +6,34 @@ const SignupForm = ({
   formData,
   error,
   loading,
+  resendDisabled,
+  resendTimer,
   handleChange,
   handleNextStep,
   handlePrevStep,
-  handleSubmit
+  handleSubmit,
+  handleVerifyOtp,
+  handleResendOtp
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Handle OTP input - only allow numbers and max 6 digits
+  const handleOtpChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    handleChange({ target: { name: 'otp', value } });
+  };
 
   return (
   <div className="auth-form-content">
     <div className="step-indicator">
       <div className="step-counter">
         <span className="current-step">{currentStep}</span>
-        <span className="total-steps">of 2</span>
+        <span className="total-steps">of 3</span>
       </div>
     </div>
+    
+    {/* Step 1: Basic Information */}
     {currentStep === 1 && (
       <>
         <div className="form-header">
@@ -70,9 +82,18 @@ const SignupForm = ({
               <option value="Employer">Hire talented freelancers</option>
             </select>
           </div>
-          <button type="submit" className="milestone-btn milestone-btn-primary">
-            <span>Continue</span>
-            <i className="fas fa-arrow-right"></i>
+          <button type="submit" className="milestone-btn milestone-btn-primary" disabled={loading}>
+            {loading ? (
+              <>
+                <i className="fas fa-spinner fa-spin"></i>
+                <span>Sending OTP...</span>
+              </>
+            ) : (
+              <>
+                <span>Continue</span>
+                <i className="fas fa-arrow-right"></i>
+              </>
+            )}
           </button>
         </form>
         <div className="auth-switch">
@@ -81,7 +102,95 @@ const SignupForm = ({
         </div>
       </>
     )}
+    
+    {/* Step 2: OTP Verification */}
     {currentStep === 2 && (
+      <>
+        <div className="form-header">
+          <h2>Verify Your Email</h2>
+          <p>We've sent a 6-digit OTP to <strong>{formData.email}</strong></p>
+        </div>
+        {error && (
+          <div className="error-message">
+            <i className="fas fa-exclamation-circle"></i>
+            {error}
+          </div>
+        )}
+        <div className="milestone-form">
+          <div className="form-field">
+            <label>Enter OTP</label>
+            <input
+              type="text"
+              name="otp"
+              value={formData.otp}
+              onChange={handleOtpChange}
+              placeholder="Enter 6-digit OTP"
+              maxLength={6}
+              autoFocus
+              style={{
+                textAlign: 'center',
+                letterSpacing: '8px',
+                fontSize: '24px',
+                fontWeight: 'bold'
+              }}
+            />
+            <div className="password-hint" style={{ textAlign: 'center', marginTop: '10px' }}>
+              OTP is valid for 10 minutes
+            </div>
+          </div>
+          <div className="form-actions" style={{ flexDirection: 'column', gap: '10px' }}>
+            <button 
+              type="button" 
+              onClick={handleVerifyOtp} 
+              className="milestone-btn milestone-btn-primary" 
+              disabled={loading || formData.otp.length !== 6}
+            >
+              {loading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i>
+                  <span>Verifying...</span>
+                </>
+              ) : (
+                <>
+                  <span>Verify OTP</span>
+                  <i className="fas fa-check"></i>
+                </>
+              )}
+            </button>
+            <div style={{ textAlign: 'center', marginTop: '10px' }}>
+              <span style={{ color: '#666' }}>Didn't receive the OTP? </span>
+              <button 
+                type="button" 
+                onClick={handleResendOtp} 
+                disabled={resendDisabled || loading}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: resendDisabled ? '#999' : '#2563eb',
+                  cursor: resendDisabled ? 'not-allowed' : 'pointer',
+                  fontWeight: '600',
+                  padding: 0
+                }}
+              >
+                {resendDisabled ? `Resend in ${resendTimer}s` : 'Resend OTP'}
+              </button>
+            </div>
+            <button 
+              type="button" 
+              onClick={handlePrevStep} 
+              className="milestone-btn milestone-btn-outline"
+              style={{ marginTop: '10px' }}
+            >
+              <i className="fas fa-arrow-left"></i>
+              <span>Change Email</span>
+            </button>
+          </div>
+        </div>
+      </>
+    )}
+    
+    {/* Step 3: Password */}
+    {currentStep === 3 && (
       <>
         <div className="form-header">
           <h2>Secure Your Account</h2>
@@ -94,13 +203,22 @@ const SignupForm = ({
             </div>
             <div>
               <div className="user-name">{formData.name}</div>
-              <div className="user-email">{formData.email}</div>
+              <div className="user-email" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {formData.email}
+                <span style={{ 
+                  color: '#22c55e', 
+                  fontSize: '12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px'
+                }}>
+                  <i className="fas fa-check-circle"></i>
+                  Verified
+                </span>
+              </div>
               <div className="user-role">{formData.role}</div>
             </div>
           </div>
-          <button onClick={handlePrevStep} className="edit-btn">
-            <i className="fas fa-edit"></i>
-          </button>
         </div>
         {error && (
           <div className="error-message">
