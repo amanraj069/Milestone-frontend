@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Signup = () => {
+  // Step 1: Basic info, Step 2: Password, Step 3: OTP verification
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: ''
+    role: '',
+    otp: ''
   });
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({
@@ -22,8 +24,27 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { signup, getDashboardRoute } = useAuth();
+  const [resendDisabled, setResendDisabled] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const otpInputRefs = useRef([]);
+  const { signup, sendOtp, verifyOtp, getDashboardRoute } = useAuth();
   const navigate = useNavigate();
+
+  const startResendTimer = () => {
+    setResendDisabled(true);
+    setResendTimer(60);
+    const interval = setInterval(() => {
+      setResendTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setResendDisabled(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -101,7 +122,126 @@ const Signup = () => {
     setError('');
   };
 
-  const handleNextStep = (e) => {
+  // Handle individual OTP digit input
+  const handleOtpDigitChange = (index, value) => {
+    // Only allow single digit
+    const digit = value.replace(/\D/g, '').slice(0, 1);
+    
+    const newOtpDigits = [...otpDigits];
+    newOtpDigits[index] = digit;
+    setOtpDigits(newOtpDigits);
+    
+    // Update formData.otp with combined digits
+    const combinedOtp = newOtpDigits.join('');
+    setFormData(prev => ({ ...prev, otp: combinedOtp }));
+    setError('');
+    
+    // Auto-focus next input if digit entered
+    if (digit && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  // Handle backspace for OTP inputs
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace') {
+      if (!otpDigits[index] && index > 0) {
+        // If current input is empty, move to previous and clear it
+        otpInputRefs.current[index - 1]?.focus();
+        const newOtpDigits = [...otpDigits];
+        newOtpDigits[index - 1] = '';
+        setOtpDigits(newOtpDigits);
+        setFormData(prev => ({ ...prev, otp: newOtpDigits.join('') }));
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  // Handle paste for OTP
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pastedData) {
+      const newOtpDigits = [...otpDigits];
+      for (let i = 0; i < 6; i++) {
+        newOtpDigits[i] = pastedData[i] || '';
+      }
+      setOtpDigits(newOtpDigits);
+      setFormData(prev => ({ ...prev, otp: newOtpDigits.join('') }));
+      
+      // Focus the last filled input or the next empty one
+      const focusIndex = Math.min(pastedData.length, 5);
+      otpInputRefs.current[focusIndex]?.focus();
+    }
+  };
+
+  const handleSendOtp = async () => {
+    setLoading(true);
+    setError('');
+    
+    // Send all user data along with OTP request
+    const result = await sendOtp(formData.email, formData.name, formData.password, formData.role);
+    
+    if (result.success) {
+      setCurrentStep(3); // Move to OTP verification step
+      startResendTimer();
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!formData.otp || formData.otp.length !== 6) {
+      setError('Please enter a valid 6-digit OTP');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    const result = await verifyOtp(formData.email, formData.otp);
+    
+    if (result.success) {
+      // OTP verified, now complete signup
+      const { confirmPassword, otp, ...submitData } = formData;
+      const signupResult = await signup(submitData);
+      
+      if (signupResult.success) {
+        const dashboardRoute = getDashboardRoute();
+        navigate(dashboardRoute || '/');
+      } else {
+        setError(signupResult.error);
+      }
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
+  };
+
+  const handleResendOtp = async () => {
+    if (resendDisabled) return;
+    setLoading(true);
+    setError('');
+    
+    const result = await sendOtp(formData.email, formData.name, formData.password, formData.role);
+    
+    if (result.success) {
+      startResendTimer();
+      // Clear OTP inputs on resend
+      setOtpDigits(['', '', '', '', '', '']);
+      setFormData(prev => ({ ...prev, otp: '' }));
+      otpInputRefs.current[0]?.focus();
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
+  };
+
+  const handleNextStep = async (e) => {
     e.preventDefault();
     setError('');
     
@@ -142,12 +282,20 @@ const Signup = () => {
       return;
     }
 
+    // Move to password step (Step 2)
     setCurrentStep(2);
   };
 
   const handlePrevStep = () => {
-    setCurrentStep(1);
     setError('');
+    if (currentStep === 2) {
+      setCurrentStep(1);
+      setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+    } else if (currentStep === 3) {
+      setCurrentStep(2);
+      setFormData(prev => ({ ...prev, otp: '' }));
+      setOtpDigits(['', '', '', '', '', '']);
+    }
     // Clear field errors when going back
     setFieldErrors({
       name: '',
@@ -203,18 +351,8 @@ const Signup = () => {
       return;
     }
 
-    const { confirmPassword, ...submitData } = formData;
-    const result = await signup(submitData);
-    
-    if (result.success) {
-      // Navigate to the appropriate dashboard based on user role
-      const dashboardRoute = getDashboardRoute();
-      navigate(dashboardRoute || '/');
-    } else {
-      setError(result.error);
-    }
-    
-    setLoading(false);
+    // Send OTP after password validation - moves to Step 3
+    await handleSendOtp();
   };
 
   return (
@@ -227,7 +365,7 @@ const Signup = () => {
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-1 bg-gradient-to-r from-navy-50 to-navy-100 px-4 py-2 rounded-full text-sm font-medium text-gray-600 border border-gray-200">
                 <span className="text-navy-700 font-bold">{currentStep}</span>
-                <span className="text-gray-500">of 2</span>
+                <span className="text-gray-500">of 3</span>
               </div>
             </div>
 
@@ -322,9 +460,18 @@ const Signup = () => {
                     )}
                   </div>
 
-                  <button type="submit" className="px-6 py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-base inline-flex items-center justify-center gap-2 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white w-full hover:from-navy-900 hover:via-navy-800 hover:to-navy-700 hover:shadow-lg hover:-translate-y-0.5">
-                    <span>Continue</span>
-                    <i className="fas fa-arrow-right"></i>
+                  <button type="submit" disabled={loading} className="px-6 py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-base inline-flex items-center justify-center gap-2 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white w-full hover:from-navy-900 hover:via-navy-800 hover:to-navy-700 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed">
+                    {loading ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin"></i>
+                        <span>Sending OTP...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Continue</span>
+                        <i className="fas fa-arrow-right"></i>
+                      </>
+                    )}
                   </button>
                 </form>
 
@@ -354,9 +501,6 @@ const Signup = () => {
                       <div className="text-xs text-navy-700 font-medium bg-navy-50 py-0.5 rounded-xl inline-block">{formData.role}</div>
                     </div>
                   </div>
-                  <button onClick={handlePrevStep} className="bg-transparent border-none text-gray-500 cursor-pointer p-2 rounded-md transition-all hover:bg-navy-50 hover:text-navy-700">
-                    <i className="fas fa-edit"></i>
-                  </button>
                 </div>
                 
                 {error && (
@@ -451,17 +595,103 @@ const Signup = () => {
                       {loading ? (
                         <>
                           <i className="fas fa-spinner fa-spin"></i>
-                          <span>Creating Account...</span>
+                          <span>Sending OTP...</span>
                         </>
                       ) : (
                         <>
-                          <span>Create Account</span>
-                          <i className="fas fa-check"></i>
+                          <span>Continue</span>
+                          <i className="fas fa-arrow-right"></i>
                         </>
                       )}
                     </button>
                   </div>
                 </form>
+              </>
+            )}
+
+            {/* Step 3: OTP Verification */}
+            {currentStep === 3 && (
+              <>
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold text-gray-900 mb-2">Verify Your Email</h2>
+                  <p className="text-base text-gray-600">We've sent a 6-digit OTP to <strong>{formData.email}</strong></p>
+                </div>
+                
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-5 flex items-center gap-2 text-sm font-medium">
+                    <i className="fas fa-exclamation-circle"></i>
+                    {error}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-5">
+                  <div className="flex flex-col gap-3">
+                    <label className="text-sm font-medium text-gray-700 text-center">Enter OTP</label>
+                    <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
+                      {otpDigits.map((digit, index) => (
+                        <input
+                          key={index}
+                          ref={(el) => (otpInputRefs.current[index] = el)}
+                          type="text"
+                          inputMode="numeric"
+                          value={digit}
+                          onChange={(e) => handleOtpDigitChange(index, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                          autoFocus={index === 0}
+                          maxLength={1}
+                          className={`w-12 h-14 border-2 rounded-lg text-xl bg-white transition-all outline-none text-gray-900 text-center font-bold ${
+                            digit 
+                              ? 'border-navy-500 bg-navy-50' 
+                              : 'border-gray-300'
+                          } focus:border-navy-600 focus:ring-4 focus:ring-navy-100`}
+                        />
+                      ))}
+                    </div>
+                    <div className="text-xs text-gray-500 text-center">
+                      OTP is valid for 10 minutes
+                    </div>
+                  </div>
+
+                  <button 
+                    type="button" 
+                    onClick={handleVerifyOtp} 
+                    disabled={loading || formData.otp.length !== 6}
+                    className="px-6 py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-base inline-flex items-center justify-center gap-2 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white w-full hover:from-navy-900 hover:via-navy-800 hover:to-navy-700 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin"></i>
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Verify & Create Account</span>
+                        <i className="fas fa-check"></i>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="text-center">
+                    <span className="text-gray-600">Didn't receive the OTP? </span>
+                    <button 
+                      type="button" 
+                      onClick={handleResendOtp} 
+                      disabled={resendDisabled || loading}
+                      className={`font-semibold bg-transparent border-none cursor-pointer ${resendDisabled ? 'text-gray-400 cursor-not-allowed' : 'text-blue-500 hover:underline'}`}
+                    >
+                      {resendDisabled ? `Resend in ${resendTimer}s` : 'Resend OTP'}
+                    </button>
+                  </div>
+
+                  <button 
+                    type="button" 
+                    onClick={handlePrevStep} 
+                    className="px-6 py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-base inline-flex items-center justify-center gap-2 bg-transparent border-2 border-navy-700 text-navy-700 hover:bg-navy-700 hover:text-white hover:-translate-y-0.5"
+                  >
+                    <i className="fas fa-arrow-left"></i>
+                    <span>Back to Password</span>
+                  </button>
+                </div>
               </>
             )}
           </div>
