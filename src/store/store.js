@@ -1,22 +1,23 @@
 import { configureStore } from '@reduxjs/toolkit';
+import authReducer from './slices/authSlice';
+import badgesReducer from './slices/badgesSlice';
+import blogReducer from './slices/blogSlice';
 import complaintsReducer from './slices/complaintsSlice';
-import authReducer from '../store/slices/authSlice';
-import badgesReducer from '../store/slices/badgesSlice';
-import jobsReducer from '../store/slices/jobsSlice';
-import feedbackReducer from '../store/slices/feedbackSlice';
+import feedbackReducer from './slices/feedbackSlice';
+import jobsReducer from './slices/jobsSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     badges: badgesReducer,
-    jobs: jobsReducer,
-    feedback: feedbackReducer,
+    blog: blogReducer,
     complaints: complaintsReducer,
+    feedback: feedbackReducer,
+    jobs: jobsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        // Ignore these action types
         ignoredActions: ['complaints/fetchComplaints/fulfilled', 'persist/PERSIST'],
       },
     }),
