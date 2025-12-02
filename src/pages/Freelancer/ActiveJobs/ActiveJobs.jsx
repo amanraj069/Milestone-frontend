@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import DashboardLayout from '../../../components/DashboardLayout';
+import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from './JobDetailsModal';
 import { useChatContext } from '../../../context/ChatContext';
 import './ActiveJobs.css';
@@ -70,15 +70,6 @@ const FreelancerActiveJobs = () => {
 
   const content = (
     <div className="active-jobs-container">
-      {/* Page Header */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Active Jobs</h1>
-          <p className="page-subtitle">Manage your ongoing projects and track progress</p>
-        </div>
-        
-      </div>
-
       {/* Loading State */}
       {loading && (
         <div className="loading-container">
@@ -210,7 +201,7 @@ const FreelancerActiveJobs = () => {
     </div>
   );
 
-  return <DashboardLayout>{content}</DashboardLayout>;
+  return <DashboardPage title="Active Jobs">{content}</DashboardPage>;
 };
 
 export default FreelancerActiveJobs;

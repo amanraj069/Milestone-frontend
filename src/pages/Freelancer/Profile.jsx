@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardPage from '../../components/DashboardPage';
 import BadgesList from '../Profile/BadgesList';
 import ResumePreviewModal from '../../components/jobApplication/ResumePreviewModal';
 import PublicFeedbackSection from '../../components/PublicFeedbackSection';
@@ -121,35 +121,33 @@ const FreelancerProfile = () => {
 
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <DashboardPage title="Profile">
+        <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading profile...</p>
           </div>
         </div>
-      </DashboardLayout>
+      </DashboardPage>
     );
   }
 
   if (!profileData) {
     return (
-      <DashboardLayout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <DashboardPage title="Profile">
+        <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <p className="text-gray-600">No profile data available.</p>
           </div>
         </div>
-      </DashboardLayout>
+      </DashboardPage>
     );
   }
 
-  return (
-    <DashboardLayout>
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-navy-900">Freelancer Profile</h1>
+  const content = (
+    <>
+      {/* Header */}
+      <div className="flex justify-end items-center mb-8">
           <button 
             onClick={() => navigate('/freelancer/profile/edit')}
             className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center gap-2"
@@ -421,10 +419,10 @@ const FreelancerProfile = () => {
             <BadgesList userId={user?.id} />
           </div>
 
-          {/* Reviews & Feedback Section */}
-          <PublicFeedbackSection userId={user?.id} userRole="Freelancer" />
-        </div>
+        {/* Reviews & Feedback Section */}
+        <PublicFeedbackSection userId={user?.id} userRole="Freelancer" />
       </div>
+
       {/* Resume Preview Modal */}
       {showResumeModal && selectedResume && (
         <ResumePreviewModal
@@ -435,8 +433,10 @@ const FreelancerProfile = () => {
           }}
         />
       )}
-    </DashboardLayout>
+    </>
   );
+
+  return <DashboardPage title="Profile">{content}</DashboardPage>;
 };
 
 export default FreelancerProfile;

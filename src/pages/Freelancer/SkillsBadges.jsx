@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardPage from '../../components/DashboardPage';
 import BadgesList from '../Profile/BadgesList';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
@@ -73,15 +73,9 @@ const FreelancerSkillsBadges = () => {
   const acquiredSkills = badges.length;
   const progress = availableSkills > 0 ? Math.round((acquiredSkills / availableSkills) * 100) : 0;
 
-  return (
-    <DashboardLayout>
-      <div className="p-6">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Skills & Badges</h2>
-          <p className="text-sm text-gray-500 mt-1">Earn badges by completing tasks and showcasing your expertise. Take quizzes to add new skills to your profile.</p>
-        </div>
-
-        {/* Error Display */}
+  const content = (
+    <>
+      {/* Error Display */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6">
             <div className="font-semibold">Error loading data</div>
@@ -262,12 +256,10 @@ const FreelancerSkillsBadges = () => {
             </div>
           )}
         </div>
-
-        
-
-      </div>
-    </DashboardLayout>
+    </>
   );
+
+  return <DashboardPage title="Skills & Badges">{content}</DashboardPage>;
 };
 
 export default FreelancerSkillsBadges;
