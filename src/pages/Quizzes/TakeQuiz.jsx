@@ -372,7 +372,6 @@ export default function TakeQuiz() {
             {!cooldownInfo.isPremium && (
               <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-300 rounded-lg p-4 mb-6">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="text-2xl">💡</span>
                   <div>
                     <h3 className="font-bold text-gray-800 mb-2">Upgrade to Premium to get:</h3>
                     <ul className="text-sm text-gray-700 space-y-1">
@@ -553,7 +552,7 @@ export default function TakeQuiz() {
             </span>
             {violations.length > 0 && (
               <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded font-medium">
-                ⚠️ {violations.length} violation{violations.length !== 1 ? 's' : ''}
+                {violations.length} violation{violations.length !== 1 ? 's' : ''}
               </span>
             )}
           </div>
