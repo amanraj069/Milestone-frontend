@@ -1,75 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../context/AuthContext';
+import { fetchBlogById, fetchRecentBlogs, fetchFeaturedBlog, clearCurrentBlog } from '../../store/slices/blogSlice';
 import Footer from './Footer';
 
 const BlogDetail = () => {
   const { blogId } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { user, getDashboardRoute } = useAuth();
+  const { currentBlog: blog, recentBlogs, featuredBlog, fetchingCurrent: loading } = useSelector((state) => state.blog);
   const [theme, setTheme] = useState('light');
-  const [blog, setBlog] = useState(null);
-  const [recentBlogs, setRecentBlogs] = useState([]);
-  const [featuredBlog, setFeaturedBlog] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState({
     name: '',
     email: '',
     message: ''
   });
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
   useEffect(() => {
-    fetchBlogDetails();
-  }, [blogId]);
+    dispatch(fetchBlogById(blogId));
+    dispatch(fetchRecentBlogs(blogId));
+    dispatch(fetchFeaturedBlog());
 
-  const fetchBlogDetails = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch blog details
-      const blogResponse = await fetch(`${apiBaseUrl}/api/blogs/${blogId}`);
-      if (blogResponse.ok) {
-        const data = await blogResponse.json();
-        if (data.success && data.blog) {
-          setBlog(data.blog);
-        } else {
-          navigate('/blogs');
-          return;
-        }
-      } else {
-        navigate('/blogs');
-        return;
-      }
+    return () => {
+      dispatch(clearCurrentBlog());
+    };
+  }, [dispatch, blogId]);
 
-      // Fetch recent blogs
-      const recentResponse = await fetch(`${apiBaseUrl}/api/blogs/latest`);
-      if (recentResponse.ok) {
-        const recentData = await recentResponse.json();
-        // Filter out current blog
-        if (recentData.success && recentData.blogs) {
-          setRecentBlogs(recentData.blogs.filter(b => b.blogId !== blogId).slice(0, 3));
-        }
-      }
-
-      // Fetch featured blog
-      const featuredResponse = await fetch(`${apiBaseUrl}/api/blogs/featured`);
-      if (featuredResponse.ok) {
-        const featuredData = await featuredResponse.json();
-        if (featuredData.success && featuredData.blog && featuredData.blog.blogId !== blogId) {
-          setFeaturedBlog(featuredData.blog);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching blog details:', error);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (blog === null && !loading) {
+      navigate('/blogs');
     }
-  };
+  }, [blog, loading, navigate]);
 
   const handleCommentChange = (e) => {
     setComment({

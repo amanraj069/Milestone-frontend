@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchComplaints, selectComplaint, updateComplaintStatus } from '../../redux/slices/complaintsSlice';
+import { fetchComplaints, selectComplaint, updateComplaintStatus } from '../../store/slices/complaintsSlice';
 import DashboardPage from '../../components/DashboardPage';
 import { useChatContext } from '../../context/ChatContext';
 import '../Freelancer/ComplaintForm.css';
