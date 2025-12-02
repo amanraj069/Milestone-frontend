@@ -159,6 +159,87 @@ function AuthProvider({ children }) {
     }
   };
 
+  // Forgot password - send OTP
+  const forgotPasswordSendOtp = async (email) => {
+    const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+    
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/auth/forgot-password/send-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Failed to send OTP' };
+      }
+
+      return { success: true, message: data.message };
+    } catch (error) {
+      console.error('Forgot password send OTP error:', error);
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+  };
+
+  // Forgot password - verify OTP
+  const forgotPasswordVerifyOtp = async (email, otp) => {
+    const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+    
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/auth/forgot-password/verify-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email, otp }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Failed to verify OTP' };
+      }
+
+      return { success: true, message: data.message };
+    } catch (error) {
+      console.error('Forgot password verify OTP error:', error);
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+  };
+
+  // Reset password
+  const resetPassword = async (email, otp, newPassword) => {
+    const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+    
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/auth/forgot-password/reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email, otp, newPassword }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Failed to reset password' };
+      }
+
+      return { success: true, message: data.message };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -167,6 +248,9 @@ function AuthProvider({ children }) {
     logout,
     sendOtp,
     verifyOtp,
+    forgotPasswordSendOtp,
+    forgotPasswordVerifyOtp,
+    resetPassword,
     getDashboardRoute,
     checkAuthStatus,
   };
