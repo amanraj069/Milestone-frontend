@@ -130,7 +130,7 @@ const DashboardLayout = ({ children }) => {
             <div>
               <h2 className="text-base font-semibold leading-tight">Welcome, {getRoleDisplay()} {user?.name ? user.name.split(' ')[0] : 'User'}!</h2>
               {isPremium && (
-                <p className="text-xs text-yellow-300 font-medium mt-0.5">Premium Member ⭐</p>
+                <p className="text-xs text-yellow-300 font-medium mt-0.5">Premium Member</p>
               )}
             </div>
           </div>

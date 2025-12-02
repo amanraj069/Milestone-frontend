@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { loadFeedbacksForUser, selectFeedbacksForUser, selectFeedbackLoading } from '../../../store/slices/feedbackSlice';
 import './ApplicationDetailsModal.css';
 
 const ApplicationDetailsModal = ({ application, onClose }) => {
   const navigate = useNavigate();
-
-  const handleViewProfile = () => {
-    // Navigate to freelancer's public profile
-    navigate(`/freelancer/${application.freelancerId}`);
-  };
-
-  const handleViewJob = () => {
-    // Navigate to job description page
-    navigate(`/jobs/${application.jobId}`);
-  };
-
+  const dispatch = useDispatch();
   const [closing, setClosing] = useState(false);
+
+  // Feedback state
+  const freelancerFeedbacks = useSelector((state) => selectFeedbacksForUser(state, application.freelancerUserId));
+  const feedbackLoading = useSelector(selectFeedbackLoading);
 
   useEffect(() => {
     // disable scrolling on body while modal open
@@ -25,12 +21,30 @@ const ApplicationDetailsModal = ({ application, onClose }) => {
     };
   }, []);
 
+  useEffect(() => {
+    // Load freelancer's feedback when modal opens
+    if (application.freelancerUserId) {
+      dispatch(loadFeedbacksForUser({ userId: application.freelancerUserId, limit: 10 }));
+    }
+  }, [application.freelancerUserId, dispatch]);
+
   const startClose = () => {
     setClosing(true);
     // match CSS animation durations (overlay out 180ms, panel out 180ms)
     setTimeout(() => {
       onClose && onClose();
     }, 200);
+  };
+
+  const handleViewProfile = () => {
+    // Navigate to freelancer's public profile
+    const profileId = application.freelancerUserId || application.freelancerId;
+    navigate(`/freelancer/${profileId}`);
+  };
+
+  const handleViewJob = () => {
+    // Navigate to job description page
+    navigate(`/jobs/${application.jobId}`);
   };
 
   return (
@@ -162,6 +176,84 @@ const ApplicationDetailsModal = ({ application, onClose }) => {
                 })}
               </span>
             </div>
+          </div>
+
+          {/* Freelancer Feedback */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <label className="text-sm font-semibold text-gray-600 mb-4 block">
+              <i className="fas fa-comments mr-2 text-blue-600"></i>
+              Freelancer Feedback & Reviews
+            </label>
+            {feedbackLoading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-gray-600 text-sm">Loading feedback...</p>
+              </div>
+            ) : freelancerFeedbacks.feedbacks && freelancerFeedbacks.feedbacks.length > 0 ? (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {freelancerFeedbacks.feedbacks.slice(0, 5).map((feedback, index) => (
+                  <div key={feedback._id || index} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-xs">
+                          {feedback.fromUser?.name ? feedback.fromUser.name.charAt(0).toUpperCase() : 'A'}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-800 text-sm">
+                            {feedback.fromUser?.name || 'Anonymous'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(feedback.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <i
+                            key={star}
+                            className={`fas fa-star text-sm ${
+                              star <= feedback.rating ? 'text-yellow-400' : 'text-gray-300'
+                            }`}
+                          ></i>
+                        ))}
+                        <span className="text-xs text-gray-600 ml-1">({feedback.rating}/5)</span>
+                      </div>
+                    </div>
+                    {feedback.comment && (
+                      <p className="text-gray-700 text-sm leading-relaxed mb-2">{feedback.comment}</p>
+                    )}
+                    {feedback.tags && feedback.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {feedback.tags.map((tag, i) => (
+                          <span
+                            key={i}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {freelancerFeedbacks.total > 5 && (
+                  <div className="text-center pt-2">
+                    <p className="text-sm text-gray-600">
+                      Showing 5 of {freelancerFeedbacks.total} reviews
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <i className="fas fa-comments text-3xl text-gray-300 mb-2"></i>
+                <p className="text-gray-500 text-sm">No feedback available yet</p>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
