@@ -1,47 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import DashboardLayout from '../../../components/DashboardLayout';
+import DashboardLayout from '../../components/DashboardLayout';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
-const TransactionDetails = () => {
+const PaymentDetails = () => {
   const { jobId } = useParams();
   const navigate = useNavigate();
-  const [transaction, setTransaction] = useState(null);
+  const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [payingMilestone, setPayingMilestone] = useState(null);
+  const [requestingMilestone, setRequestingMilestone] = useState(null);
 
   useEffect(() => {
-    fetchTransactionDetails();
+    fetchPaymentDetails();
   }, [jobId]);
 
-  const fetchTransactionDetails = async () => {
+  const fetchPaymentDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/employer/transactions/${jobId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/freelancer/payments/${jobId}`, {
         credentials: 'include'
       });
       const data = await response.json();
       
       if (data.success) {
-        setTransaction(data.data);
+        setPayment(data.data);
       } else {
-        setError(data.error || 'Failed to fetch transaction details');
+        setError(data.error || 'Failed to fetch payment details');
       }
     } catch (err) {
-      setError('Failed to fetch transaction details');
-      console.error('Error fetching transaction details:', err);
+      setError('Failed to fetch payment details');
+      console.error('Error fetching payment details:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePayMilestone = async (milestoneId) => {
+  const handleRequestPayment = async (milestoneId) => {
     try {
-      setPayingMilestone(milestoneId);
+      setRequestingMilestone(milestoneId);
       const response = await fetch(
-        `${API_BASE_URL}/api/employer/transactions/${jobId}/milestones/${milestoneId}/pay`,
+        `${API_BASE_URL}/api/freelancer/payments/${jobId}/milestones/${milestoneId}/request`,
         {
           method: 'POST',
           credentials: 'include',
@@ -53,15 +53,15 @@ const TransactionDetails = () => {
       const data = await response.json();
       
       if (data.success) {
-        await fetchTransactionDetails();
+        await fetchPaymentDetails();
       } else {
-        alert(data.error || 'Failed to process payment');
+        alert(data.error || 'Failed to request payment');
       }
     } catch (err) {
-      console.error('Error paying milestone:', err);
-      alert('Failed to process payment');
+      console.error('Error requesting payment:', err);
+      alert('Failed to request payment');
     } finally {
-      setPayingMilestone(null);
+      setRequestingMilestone(null);
     }
   };
 
@@ -86,7 +86,7 @@ const TransactionDetails = () => {
             <div className="bg-white rounded-2xl shadow-lg p-8">
               <div className="flex flex-col justify-center items-center h-64">
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
-                <p className="text-gray-500">Loading transaction details...</p>
+                <p className="text-gray-500">Loading payment details...</p>
               </div>
           </div>
         </div>
@@ -109,7 +109,7 @@ const TransactionDetails = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load</h3>
                 <p className="text-gray-500 mb-6">{error}</p>
                 <button 
-                  onClick={fetchTransactionDetails}
+                  onClick={fetchPaymentDetails}
                   className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
                   Try Again
@@ -122,13 +122,13 @@ const TransactionDetails = () => {
     );
   }
 
-  if (!transaction) {
+  if (!payment) {
     return (
       <DashboardLayout>
         <div className="p-12">
             <div className="bg-white rounded-2xl shadow-lg p-8">
               <div className="text-center py-12">
-                <p className="text-gray-500">Transaction not found</p>
+                <p className="text-gray-500">Payment details not found</p>
               </div>
           </div>
         </div>
@@ -142,43 +142,47 @@ const TransactionDetails = () => {
           {/* Header with Back Button */}
           <div className="mb-8">
             <button
-              onClick={() => navigate('/employer/transactions')}
+              onClick={() => navigate('/freelancer/payments')}
               className="flex items-center text-gray-500 hover:text-blue-600 mb-4 transition-colors text-sm"
             >
-              ← Back to Transactions
+              ← Back to Payments
             </button>
             <h1 className="text-4xl font-bold text-gray-800 mb-2">Payments & Milestones</h1>
             <div className="h-1 w-32 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full"></div>
           </div>
 
-        {/* Job and Freelancer Info Card */}
+        {/* Job and Employer Info Card */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">{transaction.jobTitle}</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">{payment.jobTitle}</h2>
               <div className="flex items-center gap-3">
-                {transaction.freelancerPicture ? (
+                {payment.employerPicture ? (
                   <img 
-                    src={transaction.freelancerPicture} 
-                    alt={transaction.freelancerName}
+                    src={payment.employerPicture} 
+                    alt={payment.employerName}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
-                    {transaction.freelancerName?.charAt(0)?.toUpperCase() || 'F'}
+                    {payment.employerName?.charAt(0)?.toUpperCase() || 'E'}
                   </div>
                 )}
                 <div>
-                  <span className="font-medium text-gray-800">{transaction.freelancerName}</span>
-                  <span className="text-gray-400 mx-2">•</span>
-                  <span className="text-gray-500 text-sm">Freelancer</span>
-                  <span className="ml-3">{getStatusBadge(transaction.status)}</span>
+                  <span className="font-medium text-gray-800">{payment.employerName}</span>
+                  {payment.companyName && (
+                    <>
+                      <span className="text-gray-400 mx-2">•</span>
+                      <span className="text-gray-500 text-sm">{payment.companyName}</span>
+                    </>
+                  )}
+                  <span className="ml-3">{getStatusBadge(payment.status)}</span>
                 </div>
               </div>
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-500 mb-1">Total Budget</p>
-              <p className="text-3xl font-bold text-gray-900">₹{transaction.totalBudget.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-gray-900">₹{payment.totalBudget.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -189,12 +193,12 @@ const TransactionDetails = () => {
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-gray-800">Project Completion</h3>
-              <span className="text-2xl font-bold text-blue-600">{transaction.projectCompletion}%</span>
+              <span className="text-2xl font-bold text-blue-600">{payment.projectCompletion}%</span>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-3 mb-3">
               <div 
                 className="bg-blue-600 h-3 rounded-full transition-all duration-500" 
-                style={{ width: `${transaction.projectCompletion}%` }}
+                style={{ width: `${payment.projectCompletion}%` }}
               ></div>
             </div>
             <div className="flex justify-between text-xs text-gray-400">
@@ -208,17 +212,17 @@ const TransactionDetails = () => {
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-gray-800">Payment Progress</h3>
-              <span className="text-2xl font-bold text-green-600">{transaction.paymentPercentage}%</span>
+              <span className="text-2xl font-bold text-green-600">{payment.paymentPercentage}%</span>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-3 mb-3">
               <div 
                 className="bg-green-500 h-3 rounded-full transition-all duration-500" 
-                style={{ width: `${transaction.paymentPercentage}%` }}
+                style={{ width: `${payment.paymentPercentage}%` }}
               ></div>
             </div>
             <div className="flex justify-between text-xs text-gray-500">
-              <span>Paid: ₹{transaction.paidAmount.toLocaleString()}</span>
-              <span>Remaining: ₹{(transaction.totalBudget - transaction.paidAmount).toLocaleString()}</span>
+              <span>Received: ₹{payment.paidAmount.toLocaleString()}</span>
+              <span>Pending: ₹{(payment.totalBudget - payment.paidAmount).toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -227,7 +231,7 @@ const TransactionDetails = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-800">
-              Milestones <span className="text-gray-400 font-normal">({transaction.milestones.length})</span>
+              Milestones <span className="text-gray-400 font-normal">({payment.milestones.length})</span>
             </h3>
           </div>
           
@@ -243,7 +247,7 @@ const TransactionDetails = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {transaction.milestones.map((milestone, index) => (
+                {payment.milestones.map((milestone, index) => (
                   <tr 
                     key={milestone.milestoneId} 
                     className={`hover:bg-gray-50 ${
@@ -290,28 +294,20 @@ const TransactionDetails = () => {
                           ✓ Paid
                         </span>
                       ) : milestone.requested ? (
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">
+                          ⏳ Requested
+                        </span>
+                      ) : (
                         <button
-                          onClick={() => handlePayMilestone(milestone.milestoneId)}
-                          disabled={payingMilestone === milestone.milestoneId}
+                          onClick={() => handleRequestPayment(milestone.milestoneId)}
+                          disabled={requestingMilestone === milestone.milestoneId}
                           className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors ${
-                            payingMilestone === milestone.milestoneId
+                            requestingMilestone === milestone.milestoneId
                               ? 'bg-gray-400 cursor-not-allowed'
                               : 'bg-amber-500 hover:bg-amber-600'
                           }`}
                         >
-                          {payingMilestone === milestone.milestoneId ? 'Processing...' : 'Pay Requested'}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handlePayMilestone(milestone.milestoneId)}
-                          disabled={payingMilestone === milestone.milestoneId}
-                          className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors ${
-                            payingMilestone === milestone.milestoneId
-                              ? 'bg-gray-400 cursor-not-allowed'
-                              : 'bg-green-600 hover:bg-green-700'
-                          }`}
-                        >
-                          {payingMilestone === milestone.milestoneId ? 'Processing...' : 'Pay Now'}
+                          {requestingMilestone === milestone.milestoneId ? 'Requesting...' : 'Request Payment'}
                         </button>
                       )}
                     </td>
@@ -321,7 +317,7 @@ const TransactionDetails = () => {
             </table>
           </div>
 
-          {transaction.milestones.length === 0 && (
+          {payment.milestones.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-500">No milestones have been defined for this job yet.</p>
             </div>
@@ -332,18 +328,18 @@ const TransactionDetails = () => {
         <div className="mt-6 bg-gray-900 rounded-xl p-6 text-white">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold">Payment Summary</h3>
-              <p className="text-gray-400 text-sm">Track your project payments at a glance</p>
+              <h3 className="text-lg font-semibold">Earnings Summary</h3>
+              <p className="text-gray-400 text-sm">Track your earnings at a glance</p>
             </div>
             <div className="flex gap-8">
               <div>
-                <p className="text-3xl font-bold text-green-400">₹{transaction.paidAmount.toLocaleString()}</p>
-                <p className="text-gray-400 text-sm">Total Paid</p>
+                <p className="text-3xl font-bold text-green-400">₹{payment.paidAmount.toLocaleString()}</p>
+                <p className="text-gray-400 text-sm">Received</p>
               </div>
               <div className="w-px bg-gray-700"></div>
               <div>
-                <p className="text-3xl font-bold">₹{(transaction.totalBudget - transaction.paidAmount).toLocaleString()}</p>
-                <p className="text-gray-400 text-sm">Remaining</p>
+                <p className="text-3xl font-bold text-amber-400">₹{(payment.totalBudget - payment.paidAmount).toLocaleString()}</p>
+                <p className="text-gray-400 text-sm">Pending</p>
               </div>
             </div>
           </div>
@@ -353,4 +349,4 @@ const TransactionDetails = () => {
   );
 };
 
-export default TransactionDetails;
+export default PaymentDetails;

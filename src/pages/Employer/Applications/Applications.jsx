@@ -122,10 +122,7 @@ const EmployerApplications = () => {
     <DashboardPage title="Applications">
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
-          {/* <h1 className="text-2xl font-bold text-gray-800 mb-2">Job Applications</h1> */}
           <p className="text-gray-600">Review and manage applications for your job listings</p>
-        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

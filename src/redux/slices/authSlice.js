@@ -1,20 +1,23 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+
+const API_BASE_URL =
+  import.meta.env.VITE_BACKEND_URL || "http://localhost:9000";
 
 // Thunk to fetch current authenticated user
 export const fetchCurrentUser = createAsyncThunk(
-  'auth/fetchCurrentUser',
+  "auth/fetchCurrentUser",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch('http://localhost:9000/api/auth/me', {
-        method: 'GET',
-        credentials: 'include',
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        method: "GET",
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
       if (!response.ok) {
-        return rejectWithValue('Not authenticated');
+        return rejectWithValue("Not authenticated");
       }
 
       const data = await response.json();
@@ -27,14 +30,14 @@ export const fetchCurrentUser = createAsyncThunk(
 
 // Thunk to login user
 export const loginUser = createAsyncThunk(
-  'auth/loginUser',
+  "auth/loginUser",
   async (credentials, { rejectWithValue, dispatch }) => {
     try {
-      const response = await fetch('http://localhost:9000/api/auth/login', {
-        method: 'POST',
-        credentials: 'include',
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(credentials),
       });
@@ -42,7 +45,7 @@ export const loginUser = createAsyncThunk(
       const data = await response.json();
 
       if (!response.ok) {
-        return rejectWithValue(data.error || 'Login failed');
+        return rejectWithValue(data.error || "Login failed");
       }
 
       // Backend returns { success: true } and stores user in session
@@ -52,10 +55,10 @@ export const loginUser = createAsyncThunk(
         if (fetchCurrentUser.fulfilled.match(result)) {
           return result.payload;
         } else {
-          return rejectWithValue('Failed to fetch user data');
+          return rejectWithValue("Failed to fetch user data");
         }
       }
-      return rejectWithValue('Login failed');
+      return rejectWithValue("Login failed");
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -64,19 +67,19 @@ export const loginUser = createAsyncThunk(
 
 // Thunk to logout user
 export const logoutUser = createAsyncThunk(
-  'auth/logoutUser',
+  "auth/logoutUser",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch('http://localhost:9000/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
+      const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
       if (!response.ok) {
-        return rejectWithValue('Logout failed');
+        return rejectWithValue("Logout failed");
       }
 
       return true;
@@ -87,7 +90,7 @@ export const logoutUser = createAsyncThunk(
 );
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState: {
     user: null,
     isLoggedIn: false,

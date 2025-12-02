@@ -7,7 +7,7 @@ import PlanSelectionModal from './PlanSelectionModal';
 import UnsubscribeModal from './UnsubscribeModal';
 import PaymentProcessingModal from './PaymentProcessingModal';
 import { useAuth } from '../../../context/AuthContext';
-import { setSubscriptionPlan, resetSubscription } from '../../../store/slices/subscriptionSlice';
+import { setSubscriptionPlan, resetSubscription } from '../../../redux/slices/subscriptionSlice';
 import './Subscription.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';

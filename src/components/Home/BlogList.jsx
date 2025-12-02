@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../context/AuthContext';
+import { fetchAllBlogs, fetchFeaturedBlog } from '../../redux/slices/blogSlice';
 import Footer from './Footer';
 
 const BlogList = () => {
+  const dispatch = useDispatch();
   const { user, getDashboardRoute } = useAuth();
+  const { blogs: allBlogs, featuredBlog, loading } = useSelector((state) => state.blog);
   const [theme, setTheme] = useState('light');
-  const [featuredBlog, setFeaturedBlog] = useState(null);
-  const [recentBlogs, setRecentBlogs] = useState([]);
-  const [allBlogs, setAllBlogs] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('All');
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
@@ -29,42 +28,13 @@ const BlogList = () => {
   ];
 
   useEffect(() => {
-    fetchBlogs();
-  }, []);
+    dispatch(fetchFeaturedBlog());
+    dispatch(fetchAllBlogs());
+  }, [dispatch]);
 
-  const fetchBlogs = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch featured blog
-      const featuredResponse = await fetch(`${apiBaseUrl}/api/blogs/featured`);
-      if (featuredResponse.ok) {
-        const featuredData = await featuredResponse.json();
-        if (featuredData.success && featuredData.blog) {
-          setFeaturedBlog(featuredData.blog);
-        }
-      }
-
-      // Fetch all blogs
-      const blogsResponse = await fetch(`${apiBaseUrl}/api/blogs`);
-      if (blogsResponse.ok) {
-        const blogsData = await blogsResponse.json();
-        if (blogsData.success && blogsData.blogs) {
-          setAllBlogs(blogsData.blogs);
-          
-          // Get recent blogs (excluding featured)
-          const recent = blogsData.blogs
-            .filter(blog => blog.blogId !== featuredBlog?.blogId)
-            .slice(0, 6);
-          setRecentBlogs(recent);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching blogs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const recentBlogs = allBlogs
+    .filter(blog => blog.blogId !== featuredBlog?.blogId)
+    .slice(0, 6);
 
   const filteredBlogs = activeCategory === 'All'
     ? allBlogs
@@ -343,7 +313,7 @@ const BlogList = () => {
                 </button>
               ))}
             </div>
-
+            
             {/* All Posts Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredBlogs.map((blog) => (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Formik, Form, Field, FieldArray, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardPage from '../../components/DashboardPage';
 
 // Validation Schema
 const blogValidationSchema = Yup.object().shape({
@@ -54,13 +54,18 @@ const AdminBlogs = () => {
     readTime: 5,
     featured: false,
     status: 'published',
-    content: [
-      {
-        heading: '',
-        description: '',
-      },
-    ],
+    content: [{ heading: '', description: '' }],
   };
+
+  const categories = [
+    'Freelancing Tips',
+    'Career Advice',
+    'Productivity',
+    'Success Stories',
+    'Tools & Resources',
+    'Industry News',
+    'Other',
+  ];
 
   useEffect(() => {
     fetchBlogs();
@@ -76,7 +81,7 @@ const AdminBlogs = () => {
         setBlogs(data.blogs);
       }
     } catch (error) {
-      console.error('Error fetching blogs:', error);
+      // Error fetching blogs
     } finally {
       setLoading(false);
     }
@@ -92,9 +97,7 @@ const AdminBlogs = () => {
 
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(values),
       });
@@ -102,11 +105,7 @@ const AdminBlogs = () => {
       const data = await response.json();
 
       if (data.success) {
-        alert(
-          editingBlog
-            ? 'Blog updated successfully!'
-            : 'Blog created successfully!'
-        );
+        alert(editingBlog ? 'Blog updated successfully!' : 'Blog created successfully!');
         resetForm();
         setShowForm(false);
         setEditingBlog(null);
@@ -115,7 +114,6 @@ const AdminBlogs = () => {
         alert(data.message || 'Failed to save blog');
       }
     } catch (error) {
-      console.error('Error saving blog:', error);
       alert('An error occurred while saving the blog');
     } finally {
       setSubmitting(false);
@@ -128,16 +126,13 @@ const AdminBlogs = () => {
   };
 
   const handleDelete = async (blogId) => {
-    if (!window.confirm('Are you sure you want to delete this blog?')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to delete this blog?')) return;
 
     try {
       const response = await fetch(`${apiBaseUrl}/api/admin/blogs/${blogId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-
       const data = await response.json();
 
       if (data.success) {
@@ -147,169 +142,131 @@ const AdminBlogs = () => {
         alert(data.message || 'Failed to delete blog');
       }
     } catch (error) {
-      console.error('Error deleting blog:', error);
       alert('An error occurred while deleting the blog');
     }
   };
 
-  const categories = [
-    'Freelancing Tips',
-    'Career Advice',
-    'Productivity',
-    'Success Stories',
-    'Tools & Resources',
-    'Industry News',
-    'Other',
-  ];
+  // Stats calculations
+  const totalBlogs = blogs.length;
+  const publishedBlogs = blogs.filter(b => b.status === 'published').length;
+  const featuredBlogs = blogs.filter(b => b.featured).length;
+
+  const headerAction = (
+    <button
+      onClick={() => {
+        setShowForm(!showForm);
+        setEditingBlog(null);
+      }}
+      className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+    >
+      {showForm ? 'View Blogs' : 'Create New Blog'}
+    </button>
+  );
 
   return (
-    <DashboardLayout role="Admin">
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Blog Management</h1>
-          <button
-            onClick={() => {
-              setShowForm(!showForm);
-              setEditingBlog(null);
-            }}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            {showForm ? 'View Blogs' : 'Create New Blog'}
-          </button>
-        </div>
-
-        {showForm ? (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+    <DashboardPage title="Blogs" headerAction={headerAction}>
+      {showForm ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-base font-semibold text-gray-900">
               {editingBlog ? 'Edit Blog Post' : 'Create New Blog Post'}
             </h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {editingBlog ? 'Update your blog post details' : 'Fill in the details to create a new blog'}
+            </p>
+          </div>
 
+          <div className="p-6">
             <Formik
               initialValues={editingBlog || initialValues}
               validationSchema={blogValidationSchema}
               onSubmit={handleSubmit}
               enableReinitialize
             >
-              {({ values, isSubmitting, errors, touched }) => (
+              {({ values, isSubmitting }) => (
                 <Form className="space-y-6">
                   {/* Title */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Title *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
                     <Field
                       name="title"
                       type="text"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Enter blog title"
                     />
-                    <ErrorMessage
-                      name="title"
-                      component="div"
-                      className="text-red-500 text-sm mt-1"
-                    />
+                    <ErrorMessage name="title" component="div" className="text-red-500 text-xs mt-1" />
                   </div>
 
                   {/* Tagline */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tagline *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tagline *</label>
                     <Field
                       name="tagline"
                       as="textarea"
                       rows="2"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Enter a catchy tagline"
                     />
-                    <ErrorMessage
-                      name="tagline"
-                      component="div"
-                      className="text-red-500 text-sm mt-1"
-                    />
+                    <ErrorMessage name="tagline" component="div" className="text-red-500 text-xs mt-1" />
                   </div>
 
                   {/* Row: Category, Author, Read Time */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Category *
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
                       <Field
                         name="category"
                         as="select"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         {categories.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
+                          <option key={cat} value={cat}>{cat}</option>
                         ))}
                       </Field>
-                      <ErrorMessage
-                        name="category"
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
+                      <ErrorMessage name="category" component="div" className="text-red-500 text-xs mt-1" />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Author
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Author</label>
                       <Field
                         name="author"
                         type="text"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Read Time (min) *
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Read Time (min) *</label>
                       <Field
                         name="readTime"
                         type="number"
                         min="1"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
-                      <ErrorMessage
-                        name="readTime"
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
+                      <ErrorMessage name="readTime" component="div" className="text-red-500 text-xs mt-1" />
                     </div>
                   </div>
 
                   {/* Image URL */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Image URL *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Image URL *</label>
                     <Field
                       name="imageUrl"
                       type="text"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="https://example.com/image.jpg"
                     />
-                    <ErrorMessage
-                      name="imageUrl"
-                      component="div"
-                      className="text-red-500 text-sm mt-1"
-                    />
+                    <ErrorMessage name="imageUrl" component="div" className="text-red-500 text-xs mt-1" />
                   </div>
 
                   {/* Row: Status, Featured */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Status
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                       <Field
                         name="status"
                         as="select"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         <option value="draft">Draft</option>
                         <option value="published">Published</option>
@@ -317,40 +274,31 @@ const AdminBlogs = () => {
                       </Field>
                     </div>
 
-                    <div className="flex items-center pt-8">
+                    <div className="flex items-center pt-6">
                       <Field
                         name="featured"
                         type="checkbox"
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                       />
-                      <label className="ml-2 text-sm font-medium text-gray-700">
-                        Mark as Featured
-                      </label>
+                      <label className="ml-2 text-sm font-medium text-gray-700">Mark as Featured</label>
                     </div>
                   </div>
 
                   {/* Content Sections */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-4">
-                      Content Sections *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">Content Sections *</label>
                     <FieldArray name="content">
                       {({ push, remove }) => (
                         <div className="space-y-4">
                           {values.content.map((section, index) => (
-                            <div
-                              key={index}
-                              className="p-4 border border-gray-200 rounded-lg bg-gray-50"
-                            >
+                            <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
                               <div className="flex justify-between items-center mb-3">
-                                <h4 className="font-medium text-gray-900">
-                                  Section {index + 1}
-                                </h4>
+                                <span className="text-sm font-medium text-gray-700">Section {index + 1}</span>
                                 {values.content.length > 1 && (
                                   <button
                                     type="button"
                                     onClick={() => remove(index)}
-                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                    className="text-red-600 hover:text-red-800 text-xs font-medium"
                                   >
                                     Remove
                                   </button>
@@ -363,28 +311,20 @@ const AdminBlogs = () => {
                                     name={`content.${index}.heading`}
                                     type="text"
                                     placeholder="Section heading"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                   />
-                                  <ErrorMessage
-                                    name={`content.${index}.heading`}
-                                    component="div"
-                                    className="text-red-500 text-sm mt-1"
-                                  />
+                                  <ErrorMessage name={`content.${index}.heading`} component="div" className="text-red-500 text-xs mt-1" />
                                 </div>
 
                                 <div>
                                   <Field
                                     name={`content.${index}.description`}
                                     as="textarea"
-                                    rows="4"
+                                    rows="3"
                                     placeholder="Section description"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                   />
-                                  <ErrorMessage
-                                    name={`content.${index}.description`}
-                                    component="div"
-                                    className="text-red-500 text-sm mt-1"
-                                  />
+                                  <ErrorMessage name={`content.${index}.description`} component="div" className="text-red-500 text-xs mt-1" />
                                 </div>
                               </div>
                             </div>
@@ -392,10 +332,8 @@ const AdminBlogs = () => {
 
                           <button
                             type="button"
-                            onClick={() =>
-                              push({ heading: '', description: '' })
-                            }
-                            className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors font-medium"
+                            onClick={() => push({ heading: '', description: '' })}
+                            className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-500 hover:text-blue-600 transition-colors text-sm font-medium"
                           >
                             + Add Section
                           </button>
@@ -405,17 +343,13 @@ const AdminBlogs = () => {
                   </div>
 
                   {/* Submit Buttons */}
-                  <div className="flex gap-4 pt-4">
+                  <div className="flex gap-3 pt-4">
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
+                      className="flex-1 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-sm transition-colors"
                     >
-                      {isSubmitting
-                        ? 'Saving...'
-                        : editingBlog
-                        ? 'Update Blog'
-                        : 'Create Blog'}
+                      {isSubmitting ? 'Saving...' : editingBlog ? 'Update Blog' : 'Create Blog'}
                     </button>
                     <button
                       type="button"
@@ -423,7 +357,7 @@ const AdminBlogs = () => {
                         setShowForm(false);
                         setEditingBlog(null);
                       }}
-                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                      className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors"
                     >
                       Cancel
                     </button>
@@ -432,119 +366,109 @@ const AdminBlogs = () => {
               )}
             </Formik>
           </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            {loading ? (
-              <div className="p-12 text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Loading blogs...</p>
-              </div>
-            ) : blogs.length === 0 ? (
-              <div className="p-12 text-center">
-                <p className="text-gray-600 text-lg">
-                  No blogs created yet. Click "Create New Blog" to get started.
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Title
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Category
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Featured
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {blogs.map((blog) => (
-                      <tr key={blog.blogId} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <img
-                              src={blog.imageUrl}
-                              alt={blog.title}
-                              className="w-12 h-12 rounded object-cover mr-3"
-                              onError={(e) => {
-                                e.target.src = '/assets/blog-default.jpg';
-                              }}
-                            />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {blog.title}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {blog.readTimeDisplay}
-                              </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total Blogs</p>
+              <p className="text-2xl font-semibold text-gray-900">{totalBlogs}</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Published</p>
+              <p className="text-2xl font-semibold text-gray-900">{publishedBlogs}</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Featured</p>
+              <p className="text-2xl font-semibold text-gray-900">{featuredBlogs}</p>
+            </div>
+          </div>
+
+          {/* Blog List */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-base font-semibold text-gray-900">All Blogs</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Manage your blog posts</p>
+            </div>
+
+            <div className="p-6">
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600"></div>
+                  <p className="text-gray-500 mt-3">Loading blogs...</p>
+                </div>
+              ) : blogs.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-lg font-medium text-gray-700">No blogs found</p>
+                  <p className="text-gray-500 mt-1 mb-4">Create your first blog post to get started</p>
+                  <button
+                    onClick={() => setShowForm(true)}
+                    className="inline-block px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    Create Your First Blog
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {blogs.map((blog) => (
+                    <div key={blog.blogId} className="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+                      <div className="p-4 flex justify-between items-center">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <img
+                            src={blog.imageUrl}
+                            alt={blog.title}
+                            className="w-16 h-12 rounded object-cover flex-shrink-0"
+                            onError={(e) => { e.target.src = '/assets/blog-default.jpg'; }}
+                          />
+                          <div className="min-w-0">
+                            <h3 className="font-medium text-gray-900 truncate">{blog.title}</h3>
+                            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                                {blog.category}
+                              </span>
+                              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                                blog.status === 'published'
+                                  ? 'bg-green-100 text-green-700'
+                                  : blog.status === 'draft'
+                                  ? 'bg-yellow-100 text-yellow-700'
+                                  : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {blog.status}
+                              </span>
+                              {blog.featured && (
+                                <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
+                                  Featured
+                                </span>
+                              )}
+                              <span className="text-sm text-gray-500">{blog.readTimeDisplay}</span>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                            {blog.category}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              blog.status === 'published'
-                                ? 'bg-green-100 text-green-800'
-                                : blog.status === 'draft'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {blog.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {blog.featured ? (
-                            <span className="text-yellow-500">⭐</span>
-                          ) : (
-                            <span className="text-gray-300">☆</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {blog.formattedCreatedAt}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        </div>
+                        <div className="flex gap-2 flex-shrink-0 ml-4">
                           <button
                             onClick={() => handleEdit(blog)}
-                            className="text-blue-600 hover:text-blue-900 mr-4"
+                            className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-xs font-medium hover:bg-gray-800 transition-colors"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleDelete(blog.blogId)}
-                            className="text-red-600 hover:text-red-900"
+                            className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700 transition-colors"
                           >
                             Delete
                           </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
-    </DashboardLayout>
+        </div>
+      )}
+    </DashboardPage>
   );
 };
 

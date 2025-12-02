@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { loadFeedbacksForUser, selectFeedbacksForUser, selectFeedbackLoading } from '../../../store/slices/feedbackSlice';
+import { loadFeedbacksForUser, selectFeedbacksForUser, selectFeedbackLoading } from '../../../redux/slices/feedbackSlice';
 import './ApplicationDetailsModal.css';
 
 const ApplicationDetailsModal = ({ application, onClose }) => {

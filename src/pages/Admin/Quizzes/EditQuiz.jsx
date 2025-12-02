@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import DashboardLayout from '../../../components/DashboardLayout';
+import DashboardPage from '../../../components/DashboardPage';
 
 const emptyOption = () => ({ text: '', isCorrect: false });
 const emptyQuestion = () => ({ text: '', marks: 1, options: [emptyOption(), emptyOption()], correctOptionIndex: 0, hasCode: false, codeSnippet: '', codeLanguage: 'javascript' });
@@ -161,142 +161,151 @@ export default function EditQuiz() {
 
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="p-6 flex items-center justify-center">
-          <div className="text-gray-600">Loading quiz...</div>
+      <DashboardPage title="Edit Skill Quiz">
+        <div className="flex items-center justify-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600"></div>
+          <span className="ml-3 text-gray-500">Loading quiz...</span>
         </div>
-      </DashboardLayout>
+      </DashboardPage>
     );
   }
 
+  const headerAction = (
+    <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Quiz Statistics</p>
+      <div className="flex gap-6">
+        <div>
+          <p className="text-xs text-gray-500">Total Questions</p>
+          <p className="text-xl font-semibold text-gray-900">{stats().totalQ}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500">Total Marks</p>
+          <p className="text-xl font-semibold text-gray-900">{stats().totalMarks}</p>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <DashboardLayout>
-      <div className="p-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <div className="flex justify-between items-start mb-6">
+    <DashboardPage title="Edit Skill Quiz" headerAction={headerAction}>
+      <p className="text-gray-500 -mt-6 mb-6">Update quiz details and questions</p>
+      
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Quiz Title *</label>
+            <input 
+              className={`w-full border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.title ? 'border-red-400 bg-red-50' : 'border-gray-300'
+              }`}
+              placeholder="Enter quiz title" 
+              value={title} 
+              onChange={e=>{
+                setTitle(e.target.value);
+                const error = validateTitle(e.target.value);
+                setErrors(prev => ({...prev, title: error}));
+              }}
+            />
+            {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Skill Name *</label>
+            <input 
+              className={`w-full border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.skillName ? 'border-red-400 bg-red-50' : 'border-gray-300'
+              }`}
+              placeholder="Enter skill name" 
+              value={skillName} 
+              onChange={e=>{
+                setSkillName(e.target.value);
+                const error = validateSkillName(e.target.value);
+                setErrors(prev => ({...prev, skillName: error}));
+              }}
+            />
+            {errors.skillName && <p className="text-red-500 text-xs mt-1">{errors.skillName}</p>}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+            <textarea 
+              className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+              rows="3"
+              placeholder="Brief description of the quiz" 
+              value={description} 
+              onChange={e=>setDescription(e.target.value)} 
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">Edit Skill Quiz</h2>
-              <p className="text-sm text-gray-500 mt-1">Update quiz details and questions</p>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Time Limit (minutes)</label>
+              <input 
+                className={`w-full border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.timeLimit ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                }`}
+                type="number" 
+                min="1"
+                max="180"
+                placeholder="e.g., 20" 
+                value={timeLimit} 
+                onChange={e=>{
+                  setTimeLimit(e.target.value);
+                  const error = validateTimeLimit(e.target.value);
+                  setErrors(prev => ({...prev, timeLimit: error}));
+                }}
+              />
+              {errors.timeLimit && <p className="text-red-500 text-xs mt-1">{errors.timeLimit}</p>}
             </div>
-            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-              <div className="text-sm font-semibold text-blue-800 mb-2">Quiz Statistics</div>
-              <div className="flex gap-6">
-                <div>
-                  <div className="text-xs text-gray-600">Total Questions</div>
-                  <div className="text-2xl font-bold text-blue-600">{stats().totalQ}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-600">Total Marks</div>
-                  <div className="text-2xl font-bold text-blue-600">{stats().totalMarks}</div>
-                </div>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Passing Score (%)</label>
+              <input 
+                className={`w-full border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.passingScore ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                }`}
+                type="number" 
+                min="0"
+                max="100"
+                placeholder="e.g., 70" 
+                value={passingScore} 
+                onChange={e=>{
+                  setPassingScore(e.target.value);
+                  const error = validatePassingScore(e.target.value);
+                  setErrors(prev => ({...prev, passingScore: error}));
+                }}
+              />
+              {errors.passingScore && <p className="text-red-500 text-xs mt-1">{errors.passingScore}</p>}
             </div>
           </div>
 
-          <div className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Quiz Title *</label>
-              <input 
-                className={`w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.title ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
-                placeholder="Enter quiz title" 
-                value={title} 
-                onChange={e=>{
-                  setTitle(e.target.value);
-                  const error = validateTitle(e.target.value);
-                  setErrors(prev => ({...prev, title: error}));
-                }}
-              />
-              {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Skill Name *</label>
-              <input 
-                className={`w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.skillName ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
-                placeholder="Enter skill name" 
-                value={skillName} 
-                onChange={e=>{
-                  setSkillName(e.target.value);
-                  const error = validateSkillName(e.target.value);
-                  setErrors(prev => ({...prev, skillName: error}));
-                }}
-              />
-              {errors.skillName && <p className="text-red-500 text-xs mt-1">{errors.skillName}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
-              <textarea 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                rows="3"
-                placeholder="Brief description of the quiz" 
-                value={description} 
-                onChange={e=>setDescription(e.target.value)} 
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Time Limit (minutes)</label>
-                <input 
-                  className={`w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.timeLimit ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                  }`}
-                  type="number" 
-                  min="1"
-                  max="180"
-                  placeholder="e.g., 20" 
-                  value={timeLimit} 
-                  onChange={e=>{
-                    setTimeLimit(e.target.value);
-                    const error = validateTimeLimit(e.target.value);
-                    setErrors(prev => ({...prev, timeLimit: error}));
-                  }}
-                />
-                {errors.timeLimit && <p className="text-red-500 text-xs mt-1">{errors.timeLimit}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Passing Score (%)</label>
-                <input 
-                  className={`w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.passingScore ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                  }`}
-                  type="number" 
-                  min="0"
-                  max="100"
-                  placeholder="e.g., 70" 
-                  value={passingScore} 
-                  onChange={e=>{
-                    setPassingScore(e.target.value);
-                    const error = validatePassingScore(e.target.value);
-                    setErrors(prev => ({...prev, passingScore: error}));
-                  }}
-                />
-                {errors.passingScore && <p className="text-red-500 text-xs mt-1">{errors.passingScore}</p>}
-              </div>
-            </div>
-
+          {/* Questions Section */}
+          <div className="pt-4 border-t border-gray-200">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Questions</h3>
+            
             {questions.map((q, qi) => (
-              <div key={qi} className="border-2 border-gray-200 rounded-lg p-6 bg-gray-50 hover:border-blue-300 transition">
+              <div key={qi} className="border border-gray-200 rounded-lg p-5 mb-4 bg-gray-50">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">
+                    <span className="bg-gray-900 text-white rounded-md w-7 h-7 flex items-center justify-center text-sm font-medium">
                       {qi+1}
-                    </div>
+                    </span>
                     <div>
-                      <h4 className="font-semibold text-gray-800">Question {qi+1}</h4>
-                      <span className="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded mt-1">
-                        {q.correctOptionIndex !== undefined ? 'Complete' : 'Incomplete'}
+                      <h4 className="font-medium text-gray-900">Question {qi+1}</h4>
+                      <span className={`inline-block px-2 py-0.5 text-xs rounded mt-1 ${
+                        q.correctOptionIndex !== undefined && q.text.trim() 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {q.correctOptionIndex !== undefined && q.text.trim() ? 'Complete' : 'Incomplete'}
                       </span>
                     </div>
                   </div>
                   <div className="flex gap-3 items-center">
                     <div>
-                      <label className="text-xs text-gray-600 block mb-1">Marks:</label>
+                      <label className="text-xs text-gray-500 block mb-1">Marks:</label>
                       <input 
-                        className={`w-20 border rounded p-2 text-center font-semibold ${
-                          errors[`question_${qi}_marks`] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                        className={`w-16 border rounded-md px-2 py-1.5 text-sm text-center font-medium ${
+                          errors[`question_${qi}_marks`] ? 'border-red-400 bg-red-50' : 'border-gray-300'
                         }`}
                         type="number" 
                         min="1"
@@ -307,23 +316,23 @@ export default function EditQuiz() {
                           setErrors(prev => ({...prev, [`question_${qi}_marks`]: error}));
                         }}
                       />
-                      {errors[`question_${qi}_marks`] && (
-                        <p className="text-red-500 text-xs mt-1">Min 1</p>
-                      )}
                     </div>
-                    <button 
-                      className="mt-5 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm" 
-                      onClick={()=>removeQuestion(qi)}
-                    >
-                      ✕ Remove
-                    </button>
+                    {questions.length > 1 && (
+                      <button 
+                        className="mt-5 px-3 py-1.5 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 transition-colors" 
+                        onClick={()=>removeQuestion(qi)}
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
                 </div>
+                
                 <div className="mb-4">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Question Text *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Question Text *</label>
                   <textarea 
-                    className={`w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white ${
-                      errors[`question_${qi}_text`] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    className={`w-full border rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white ${
+                      errors[`question_${qi}_text`] ? 'border-red-400 bg-red-50' : 'border-gray-300'
                     }`}
                     rows="2"
                     value={q.text} 
@@ -345,22 +354,20 @@ export default function EditQuiz() {
                       type="checkbox"
                       checked={q.hasCode || false}
                       onChange={e => updateQuestion(qi, { hasCode: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 rounded"
+                      className="w-4 h-4 text-blue-600 rounded border-gray-300"
                     />
-                    <span className="text-sm font-semibold text-gray-700">
-                        Include code snippet with this question
-                    </span>
+                    <span className="text-sm text-gray-700">Include code snippet with this question</span>
                   </label>
                 </div>
 
                 {q.hasCode && (
-                  <div className="mb-4 bg-gray-900 rounded-lg p-4 border border-gray-700">
+                  <div className="mb-4 bg-gray-900 rounded-md p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <label className="text-sm font-semibold text-white">Code Snippet</label>
+                      <label className="text-sm font-medium text-gray-300">Code Snippet</label>
                       <select
                         value={q.codeLanguage || 'javascript'}
                         onChange={e => updateQuestion(qi, { codeLanguage: e.target.value })}
-                        className="bg-gray-800 text-white text-xs px-3 py-1 rounded border border-gray-600"
+                        className="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded border border-gray-700"
                       >
                         <option value="javascript">JavaScript</option>
                         <option value="python">Python</option>
@@ -380,25 +387,23 @@ export default function EditQuiz() {
                       value={q.codeSnippet || ''}
                       onChange={e => updateQuestion(qi, { codeSnippet: e.target.value })}
                       placeholder={`Enter ${q.codeLanguage || 'javascript'} code here...`}
-                      className="w-full bg-gray-800 text-green-400 font-mono text-sm p-4 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[150px]"
+                      className="w-full bg-gray-800 text-green-400 font-mono text-sm p-3 rounded border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[120px]"
                       style={{ tabSize: 2 }}
                     />
                   </div>
                 )}
 
-                <div className="mt-4">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Answer Options *</label>
-                  <div className="bg-white rounded-lg p-4 border border-gray-200">
-                    <div className="text-xs text-gray-500 mb-3 flex items-center gap-2">
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">Select correct answer</span>
-                    </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Answer Options *</label>
+                  <p className="text-xs text-gray-500 mb-3">Select the correct answer by clicking the radio button</p>
+                  <div className="space-y-2">
                     {q.options.map((opt, oi) => (
                       <div 
                         key={oi} 
-                        className={`flex items-center gap-3 p-3 mb-2 border-2 rounded-lg transition ${
+                        className={`flex items-center gap-3 p-3 border rounded-md bg-white transition-colors ${
                           oi === (q.correctOptionIndex || 0) 
-                            ? 'border-green-500 bg-green-50' 
-                            : 'border-gray-200 hover:border-blue-300'
+                            ? 'border-green-400 bg-green-50' 
+                            : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
                         <input 
@@ -409,14 +414,14 @@ export default function EditQuiz() {
                             const newOpts = q.options.map((o,i)=> ({...o, isCorrect: i===oi}));
                             updateQuestion(qi,{ options: newOpts, correctOptionIndex: oi });
                           }}
-                          className="w-5 h-5 text-green-600 cursor-pointer"
+                          className="w-4 h-4 text-green-600 cursor-pointer"
                         />
-                        <div className="bg-white rounded px-2 py-1 text-sm font-semibold text-gray-500 min-w-[24px] text-center">
-                          {String.fromCharCode(65 + oi)}
-                        </div>
+                        <span className="text-sm font-medium text-gray-500 w-6">
+                          {String.fromCharCode(65 + oi)}.
+                        </span>
                         <input 
-                          className={`flex-1 border-0 p-2 focus:outline-none focus:ring-0 bg-transparent ${
-                            errors[`question_${qi}_option_${oi}`] ? 'text-red-600' : ''
+                          className={`flex-1 border-0 p-0 text-sm focus:outline-none focus:ring-0 bg-transparent ${
+                            errors[`question_${qi}_option_${oi}`] ? 'text-red-600' : 'text-gray-900'
                           }`}
                           placeholder={`Option ${String.fromCharCode(65 + oi)}`} 
                           value={opt.text} 
@@ -427,22 +432,19 @@ export default function EditQuiz() {
                             setErrors(prev => ({...prev, [`question_${qi}_option_${oi}`]: error}));
                           }}
                         />
-                        {errors[`question_${qi}_option_${oi}`] && (
-                          <span className="text-red-500 text-xs">✕</span>
-                        )}
                         {q.options.length > 2 && (
                           <button 
-                            className="text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50" 
+                            className="text-gray-400 hover:text-red-600 text-sm transition-colors" 
                             onClick={()=>removeOption(qi, oi)}
                           >
-                            Delete
+                            Remove
                           </button>
                         )}
                       </div>
                     ))}
                     {q.options.length < 6 && (
                       <button 
-                        className="mt-2 w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition text-sm font-medium" 
+                        className="w-full py-2 border border-dashed border-gray-300 rounded-md text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors text-sm" 
                         onClick={()=>addOption(qi)}
                       >
                         + Add Option
@@ -453,30 +455,32 @@ export default function EditQuiz() {
               </div>
             ))}
 
-            <div className="flex gap-4 pt-6 border-t border-gray-200 mt-6">
-              <button 
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold shadow-sm" 
-                onClick={addQuestion}
-              >
-                + Add Question
-              </button>
-              <button 
-                className="px-6 py-3 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition font-semibold" 
-                onClick={() => navigate('/admin/quizzes/list')}
-              >
-                Cancel
-              </button>
-              <button 
-                className="flex-1 px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" 
-                onClick={submit} 
-                disabled={saving}
-              >
-                {saving ? 'Updating...' : 'Update Quiz'}
-              </button>
-            </div>
+            <button 
+              className="w-full py-3 border border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-colors text-sm font-medium mb-6" 
+              onClick={addQuestion}
+            >
+              + Add Question
+            </button>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <button 
+              className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors" 
+              onClick={() => navigate('/admin/quizzes/list')}
+            >
+              Cancel
+            </button>
+            <button 
+              className="flex-1 px-6 py-2.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+              onClick={submit} 
+              disabled={saving}
+            >
+              {saving ? 'Updating...' : 'Update Quiz'}
+            </button>
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardPage>
   );
 }

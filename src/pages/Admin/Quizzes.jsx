@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardPage from '../../components/DashboardPage';
 
 const AdminQuizzes = () => {
   const navigate = useNavigate();
@@ -138,71 +138,100 @@ const AdminQuizzes = () => {
     }, 250);
   };
 
+  // Stats calculations
+  const totalQuizzes = quizzes.length;
+  const totalQuestions = quizzes.reduce((sum, q) => sum + (q.questions?.length || 0), 0);
+  const avgPassingScore = quizzes.length > 0 
+    ? Math.round(quizzes.reduce((sum, q) => sum + (q.passingScore || 0), 0) / quizzes.length) 
+    : 0;
+
+  const headerAction = (
+    <Link 
+      to="/admin/quizzes/new" 
+      className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+    >
+      + Create Quiz
+    </Link>
+  );
+
   return (
-    <DashboardLayout>
-      <div className="p-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Quizzes</h1>
-          <div className="h-1 w-32 bg-blue-600 rounded"></div>
+    <DashboardPage title="Quizzes" headerAction={headerAction}>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total Quizzes</p>
+          <p className="text-2xl font-semibold text-gray-900">{totalQuizzes}</p>
         </div>
 
-        <div className="mb-8">
-          <Link 
-            to="/admin/quizzes/new" 
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition shadow-md inline-flex items-center gap-2"
-          >
-            <span className="text-xl">+</span>
-            Create Quiz
-          </Link>
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total Questions</p>
+          <p className="text-2xl font-semibold text-gray-900">{totalQuestions}</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Avg. Passing Score</p>
+          <p className="text-2xl font-semibold text-gray-900">{avgPassingScore}%</p>
+        </div>
+      </div>
+
+      {/* Quiz List */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-base font-semibold text-gray-900">All Quizzes</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Manage your skill assessment quizzes</p>
+        </div>
+
+        <div className="p-6">
           {loading ? (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p className="text-gray-600 mt-2">Loading quizzes...</p>
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600"></div>
+              <p className="text-gray-500 mt-3">Loading quizzes...</p>
             </div>
           ) : quizzes.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <svg className="w-20 h-20 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-lg font-medium">No quizzes found</p>
-              <p className="text-sm">Create your first skill quiz to get started</p>
+            <div className="text-center py-12">
+              <p className="text-lg font-medium text-gray-700">No quizzes found</p>
+              <p className="text-gray-500 mt-1 mb-4">Create your first skill quiz to get started</p>
+              <Link 
+                to="/admin/quizzes/new" 
+                className="inline-block px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Create Your First Quiz
+              </Link>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {quizzes.map(q => (
-                <div key={q._id} className="border-2 border-gray-200 rounded-lg overflow-hidden hover:border-blue-300 transition">
-                  <div className="p-4 flex justify-between items-center bg-gray-50">
+                <div key={q._id} className="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+                  <div className="p-4 flex justify-between items-center">
                     <div className="flex-1">
-                      <div className="font-semibold text-lg text-gray-800">{q.title}</div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium mr-2">
+                      <h3 className="font-medium text-gray-900">{q.title}</h3>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
                           {q.skillName}
                         </span>
-                        <span className="text-gray-500">
-                          {q.questions?.length || 0} Questions • {q.passingScore}% passing score
+                        <span className="text-sm text-gray-500">
+                          {q.questions?.length || 0} Questions
+                        </span>
+                        <span className="text-gray-300">•</span>
+                        <span className="text-sm text-gray-500">
+                          {q.passingScore}% to pass
                         </span>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <button 
                         onClick={() => toggleInfo(q._id)}
-                        className={`p-2 rounded-lg transition ${
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                           expandedQuiz === q._id 
                             ? 'bg-blue-600 text-white' 
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
-                        title="View attempt details"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        {expandedQuiz === q._id ? 'Hide Stats' : 'View Stats'}
                       </button>
                       <button 
                         onClick={() => navigate(`/admin/quizzes/${q._id}/edit`)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+                        className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
                       >
                         Edit
                       </button>
@@ -210,29 +239,29 @@ const AdminQuizzes = () => {
                   </div>
 
                   {expandedQuiz === q._id && (
-                    <div className="border-t-2 border-gray-200 bg-white p-6">
+                    <div className="border-t border-gray-200 bg-gray-50 p-5">
                       {loadingAttempts ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                          <p className="mt-2">Loading attempt details...</p>
+                        <div className="text-center py-8">
+                          <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-blue-600"></div>
+                          <p className="mt-3 text-gray-500 text-sm">Loading attempt details...</p>
                         </div>
                       ) : attemptDetails ? (
                         <div>
-                          <div className="flex justify-between items-start mb-6">
-                            <div>
-                              <h3 className="text-lg font-bold text-gray-800 mb-4">Attempt Statistics</h3>
-                              <div className="grid grid-cols-3 gap-4">
-                                <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-                                  <div className="text-xs text-gray-600 mb-1">Total Attempts</div>
-                                  <div className="text-2xl font-bold text-blue-600">{attemptDetails.totalAttempts}</div>
+                          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-6">
+                            <div className="flex-1">
+                              <h3 className="text-sm font-semibold text-gray-900 mb-3">Attempt Statistics</h3>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div className="bg-white p-4 rounded-md border border-gray-200">
+                                  <div className="text-xs text-gray-500 mb-1">Total Attempts</div>
+                                  <div className="text-xl font-semibold text-gray-900">{attemptDetails.totalAttempts}</div>
                                 </div>
-                                <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-                                  <div className="text-xs text-gray-600 mb-1">Passed</div>
-                                  <div className="text-2xl font-bold text-green-600">{attemptDetails.passedAttempts}</div>
+                                <div className="bg-white p-4 rounded-md border border-gray-200">
+                                  <div className="text-xs text-gray-500 mb-1">Passed</div>
+                                  <div className="text-xl font-semibold text-green-600">{attemptDetails.passedAttempts}</div>
                                 </div>
-                                <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
-                                  <div className="text-xs text-gray-600 mb-1">Pass Rate</div>
-                                  <div className="text-2xl font-bold text-purple-600">
+                                <div className="bg-white p-4 rounded-md border border-gray-200">
+                                  <div className="text-xs text-gray-500 mb-1">Pass Rate</div>
+                                  <div className="text-xl font-semibold text-gray-900">
                                     {attemptDetails.totalAttempts > 0 
                                       ? Math.round((attemptDetails.passedAttempts / attemptDetails.totalAttempts) * 100) 
                                       : 0}%
@@ -242,63 +271,64 @@ const AdminQuizzes = () => {
                             </div>
                             <button
                               onClick={() => exportToPDF(q._id)}
-                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium flex items-center gap-2"
+                              className="px-4 py-2 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
                             >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                              </svg>
                               Export PDF
                             </button>
                           </div>
 
                           {attemptDetails.attempts.length > 0 ? (
                             <div>
-                              <h4 className="font-semibold text-gray-800 mb-3">Detailed Attempts</h4>
-                              <div className="overflow-x-auto">
-                                <table className="w-full border-collapse">
+                              <h4 className="text-sm font-semibold text-gray-900 mb-3">Detailed Attempts</h4>
+                              <div className="overflow-x-auto bg-white rounded-md border border-gray-200">
+                                <table className="w-full text-sm">
                                   <thead>
-                                    <tr className="bg-gray-100">
-                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">#</th>
-                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Freelancer</th>
-                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Email</th>
-                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Marks</th>
-                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">%</th>
-                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Status</th>
-                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Badge</th>
-                                      <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Date</th>
+                                    <tr className="bg-gray-50 border-b border-gray-200">
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Freelancer</th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">%</th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Badge</th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                                     </tr>
                                   </thead>
-                                  <tbody>
+                                  <tbody className="divide-y divide-gray-200">
                                     {attemptDetails.attempts.map((attempt, idx) => (
                                       <tr key={attempt.attemptId} className="hover:bg-gray-50">
-                                        <td className="border border-gray-300 px-4 py-2 text-sm">{idx + 1}</td>
-                                        <td className="border border-gray-300 px-4 py-2 text-sm font-medium">{attempt.freelancerName}</td>
-                                        <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">{attempt.email}</td>
-                                        <td className="border border-gray-300 px-4 py-2 text-sm">
-                                          <span className="font-semibold">{attempt.marksObtained}</span>
+                                        <td className="px-4 py-3 text-gray-600">{idx + 1}</td>
+                                        <td className="px-4 py-3 font-medium text-gray-900">{attempt.freelancerName}</td>
+                                        <td className="px-4 py-3 text-gray-600">{attempt.email}</td>
+                                        <td className="px-4 py-3">
+                                          <span className="font-medium text-gray-900">{attempt.marksObtained}</span>
                                           <span className="text-gray-500">/{attempt.totalMarks}</span>
                                         </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-sm font-semibold">
-                                          {attempt.percentage.toFixed(2)}%
+                                        <td className="px-4 py-3 font-medium text-gray-900">
+                                          {attempt.percentage.toFixed(1)}%
                                         </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-sm">
-                                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                        <td className="px-4 py-3">
+                                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
                                             attempt.passed 
-                                              ? 'bg-green-100 text-green-800' 
-                                              : 'bg-red-100 text-red-800'
+                                              ? 'bg-green-100 text-green-700' 
+                                              : 'bg-red-100 text-red-700'
                                           }`}>
-                                            {attempt.passed ? 'PASSED' : 'FAILED'}
+                                            {attempt.passed ? 'Passed' : 'Failed'}
                                           </span>
                                         </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-sm">
+                                        <td className="px-4 py-3">
                                           {attempt.badgeAwarded ? (
-                                            <span className="text-yellow-600 font-semibold">Yes</span>
+                                            <span className="text-amber-600 font-medium">Yes</span>
                                           ) : (
                                             <span className="text-gray-400">No</span>
                                           )}
                                         </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                          {new Date(attempt.attemptedAt).toLocaleDateString()}
+                                        <td className="px-4 py-3 text-gray-600">
+                                          {new Date(attempt.attemptedAt).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                          })}
                                         </td>
                                       </tr>
                                     ))}
@@ -307,17 +337,16 @@ const AdminQuizzes = () => {
                               </div>
                             </div>
                           ) : (
-                            <div className="text-center py-8 text-gray-500">
-                              <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                              <p className="font-medium">No attempts yet</p>
-                              <p className="text-sm">This quiz hasn't been attempted by any freelancer</p>
+                            <div className="text-center py-8 bg-white rounded-md border border-gray-200">
+                              <p className="font-medium text-gray-700">No attempts yet</p>
+                              <p className="text-sm text-gray-500 mt-1">This quiz hasn't been attempted by any freelancer</p>
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="text-center py-8 text-red-500">Failed to load attempt details</div>
+                        <div className="text-center py-8 text-red-600">
+                          Failed to load attempt details
+                        </div>
                       )}
                     </div>
                   )}
@@ -327,7 +356,7 @@ const AdminQuizzes = () => {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardPage>
   );
 };
 

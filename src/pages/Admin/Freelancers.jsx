@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DashboardPage from '../../components/DashboardPage';
 import { useChatContext } from '../../context/ChatContext';
-import './Freelancers.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -65,15 +64,10 @@ const AdminFreelancers = () => {
   };
 
   const handleChat = (freelancer) => {
-    console.log('Chat clicked for freelancer:', freelancer);
-    console.log('Freelancer userId:', freelancer.userId);
-    
     if (!freelancer.userId) {
-      console.error('No userId found for freelancer:', freelancer);
       alert('Error: Unable to start chat. User ID not found.');
       return;
     }
-    
     openChatWith(freelancer.userId);
   };
 
@@ -84,120 +78,89 @@ const AdminFreelancers = () => {
   );
 
   const content = (
-    <div className="admin-freelancers-container">
-      {/* Page Header */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Freelancers Management</h1>
-          <p className="page-subtitle">View and manage all registered freelancers</p>
+    <div className="space-y-6">
+      <p className="text-gray-500 -mt-6">View and manage all registered freelancers</p>
+
+      {/* Search */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Search by name, email, or location..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="text-sm text-gray-500">Total: {filteredFreelancers.length}</div>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="search-section">
-        <div className="search-bar">
-          <i className="fas fa-search"></i>
-          <input
-            type="text"
-            placeholder="Search by name, email, or location..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="search-stats">
-          <span>Total: {filteredFreelancers.length}</span>
-        </div>
-      </div>
-
-      {/* Loading State */}
       {loading && (
-        <div className="loading-container">
-          <i className="fas fa-spinner fa-spin"></i>
-          <p>Loading freelancers...</p>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mb-3"></div>
+          <p className="text-gray-500">Loading freelancers...</p>
         </div>
       )}
 
-      {/* Error State */}
       {error && !loading && (
-        <div className="error-container">
-          <i className="fas fa-exclamation-triangle"></i>
-          <h3>Error loading freelancers</h3>
-          <p>{error}</p>
-          <button onClick={fetchFreelancers} className="retry-btn">
-            Retry
-          </button>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <p className="text-lg font-medium text-red-600 mb-2">Error loading freelancers</p>
+          <p className="text-gray-500 mb-4">{error}</p>
+          <button onClick={fetchFreelancers} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
         </div>
       )}
 
-      {/* No Freelancers State */}
       {!loading && !error && filteredFreelancers.length === 0 && (
-        <div className="no-freelancers-container">
-          <i className="fas fa-users"></i>
-          <h3>No freelancers found</h3>
-          <p>{searchTerm ? 'No freelancers match your search.' : 'There are no registered freelancers.'}</p>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <p className="text-lg font-medium text-gray-700 mb-1">No freelancers found</p>
+          <p className="text-gray-500">{searchTerm ? 'No freelancers match your search.' : 'There are no registered freelancers.'}</p>
         </div>
       )}
 
-      {/* Freelancers Table */}
       {!loading && !error && filteredFreelancers.length > 0 && (
-        <div className="freelancers-table-container">
-          <table className="freelancers-table">
-            <thead>
-              <tr>
-                <th>Photo</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Joined</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredFreelancers.map((freelancer) => (
-                <tr key={freelancer.freelancerId}>
-                  <td>
-                    <img
-                      src={freelancer.picture}
-                      alt={freelancer.name}
-                      className="profile-pic"
-                      onError={(e) => {
-                        e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png';
-                      }}
-                    />
-                  </td>
-                  <td className="name-cell">{freelancer.name}</td>
-                  <td>{freelancer.email}</td>
-                  <td>{freelancer.phone || 'N/A'}</td>
-                  <td>{new Date(freelancer.joinedDate).toLocaleDateString()}</td>
-                  <td>
-                    <div className="action-buttons">
-                      <button
-                        className="chat-btn"
-                        onClick={() => handleChat(freelancer)}
-                        title="Chat with freelancer"
-                      >
-                        <i className="fas fa-comment"></i> Chat
-                      </button>
-                      <button
-                        className="delete-btn"
-                        onClick={() => handleDeleteFreelancer(freelancer.freelancerId, freelancer.name)}
-                        disabled={deleting === freelancer.freelancerId}
-                        title="Delete freelancer"
-                      >
-                        {deleting === freelancer.freelancerId ? (
-                          <i className="fas fa-spinner fa-spin"></i>
-                        ) : (
-                          <>
-                            <i className="fas fa-trash"></i> Delete
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </td>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Photo</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredFreelancers.map((freelancer) => (
+                  <tr key={freelancer.freelancerId} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <img
+                        src={freelancer.picture}
+                        alt={freelancer.name}
+                        className="w-10 h-10 rounded-full object-cover"
+                        onError={(e) => { e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'; }}
+                      />
+                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{freelancer.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{freelancer.email}</td>
+                    <td className="px-4 py-3 text-gray-600">{freelancer.phone || 'N/A'}</td>
+                    <td className="px-4 py-3 text-gray-600">{new Date(freelancer.joinedDate).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <button className="px-3 py-1.5 bg-emerald-600 text-white rounded-md text-xs font-medium hover:bg-emerald-700" onClick={() => handleChat(freelancer)}>Chat</button>
+                        <button className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700" onClick={() => handleDeleteFreelancer(freelancer.freelancerId, freelancer.name)} disabled={deleting === freelancer.freelancerId}>
+                          {deleting === freelancer.freelancerId ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

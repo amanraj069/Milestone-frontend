@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DashboardPage from '../../components/DashboardPage';
 import { useChatContext } from '../../context/ChatContext';
-import './Employers.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -65,15 +64,10 @@ const AdminEmployers = () => {
   };
 
   const handleChat = (employer) => {
-    console.log('Chat clicked for employer:', employer);
-    console.log('Employer userId:', employer.userId);
-    
     if (!employer.userId) {
-      console.error('No userId found for employer:', employer);
       alert('Error: Unable to start chat. User ID not found.');
       return;
     }
-    
     openChatWith(employer.userId);
   };
 
@@ -84,122 +78,92 @@ const AdminEmployers = () => {
   );
 
   const content = (
-    <div className="admin-employers-container">
-      {/* Page Header */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Employers Management</h1>
-          <p className="page-subtitle">View and manage all registered employers</p>
+    <div className="space-y-6">
+      {/* subtitle */}
+      <p className="text-gray-500 -mt-6">View and manage all registered employers</p>
+
+      {/* Search */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Search by name, email, or company..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="text-sm text-gray-500 whitespace-nowrap">Total: {filteredEmployers.length}</div>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="search-section">
-        <div className="search-bar">
-          <i className="fas fa-search"></i>
-          <input
-            type="text"
-            placeholder="Search by name, email, or company..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="search-stats">
-          <span>Total: {filteredEmployers.length}</span>
-        </div>
-      </div>
-
-      {/* Loading State */}
       {loading && (
-        <div className="loading-container">
-          <i className="fas fa-spinner fa-spin"></i>
-          <p>Loading employers...</p>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mb-3"></div>
+          <p className="text-gray-500">Loading employers...</p>
         </div>
       )}
 
-      {/* Error State */}
       {error && !loading && (
-        <div className="error-container">
-          <i className="fas fa-exclamation-triangle"></i>
-          <h3>Error loading employers</h3>
-          <p>{error}</p>
-          <button onClick={fetchEmployers} className="retry-btn">
-            Retry
-          </button>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <p className="text-lg font-medium text-red-600 mb-2">Error loading employers</p>
+          <p className="text-gray-500 mb-4">{error}</p>
+          <button onClick={fetchEmployers} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
         </div>
       )}
 
-      {/* No Employers State */}
       {!loading && !error && filteredEmployers.length === 0 && (
-        <div className="no-employers-container">
-          <i className="fas fa-briefcase"></i>
-          <h3>No employers found</h3>
-          <p>{searchTerm ? 'No employers match your search.' : 'There are no registered employers.'}</p>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <p className="text-lg font-medium text-gray-700 mb-1">No employers found</p>
+          <p className="text-gray-500">{searchTerm ? 'No employers match your search.' : 'There are no registered employers.'}</p>
         </div>
       )}
 
-      {/* Employers Table */}
       {!loading && !error && filteredEmployers.length > 0 && (
-        <div className="employers-table-container">
-          <table className="employers-table">
-            <thead>
-              <tr>
-                <th>Photo</th>
-                <th>Name</th>
-                <th>Company</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Joined</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEmployers.map((employer) => (
-                <tr key={employer.employerId}>
-                  <td>
-                    <img
-                      src={employer.picture}
-                      alt={employer.name}
-                      className="profile-pic"
-                      onError={(e) => {
-                        e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png';
-                      }}
-                    />
-                  </td>
-                  <td className="name-cell">{employer.name}</td>
-                  <td>{employer.companyName || 'N/A'}</td>
-                  <td>{employer.email}</td>
-                  <td>{employer.phone || 'N/A'}</td>
-                  <td>{new Date(employer.joinedDate).toLocaleDateString()}</td>
-                  <td>
-                    <div className="action-buttons">
-                      <button
-                        className="chat-btn"
-                        onClick={() => handleChat(employer)}
-                        title="Chat with employer"
-                      >
-                        <i className="fas fa-comment"></i> Chat
-                      </button>
-                      <button
-                        className="delete-btn"
-                        onClick={() => handleDeleteEmployer(employer.employerId, employer.name)}
-                        disabled={deleting === employer.employerId}
-                        title="Delete employer"
-                      >
-                        {deleting === employer.employerId ? (
-                          <i className="fas fa-spinner fa-spin"></i>
-                        ) : (
-                          <>
-                            <i className="fas fa-trash"></i> Delete
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </td>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Photo</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredEmployers.map((employer) => (
+                  <tr key={employer.employerId} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <img
+                        src={employer.picture}
+                        alt={employer.name}
+                        className="w-10 h-10 rounded-full object-cover"
+                        onError={(e) => { e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'; }}
+                      />
+                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{employer.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{employer.companyName || 'N/A'}</td>
+                    <td className="px-4 py-3 text-gray-600">{employer.email}</td>
+                    <td className="px-4 py-3 text-gray-600">{employer.phone || 'N/A'}</td>
+                    <td className="px-4 py-3 text-gray-600">{new Date(employer.joinedDate).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <button className="px-3 py-1.5 bg-emerald-600 text-white rounded-md text-xs font-medium hover:bg-emerald-700" onClick={() => handleChat(employer)}>Chat</button>
+                        <button className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700" onClick={() => handleDeleteEmployer(employer.employerId, employer.name)} disabled={deleting === employer.employerId}>
+                          {deleting === employer.employerId ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

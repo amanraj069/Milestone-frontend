@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchCurrentUser, loginUser, logoutUser, selectUser, selectIsLoggedIn, selectAuthLoading } from '../store/slices/authSlice';
+import { fetchCurrentUser, loginUser, logoutUser, selectUser, selectIsLoggedIn, selectAuthLoading } from '../redux/slices/authSlice';
 
 const AuthContext = createContext();
 
@@ -21,7 +21,8 @@ function AuthProvider({ children }) {
   const isLoggedIn = useSelector(selectIsLoggedIn);
 
   useEffect(() => {
-    // Check auth status on mount
+    // Validate session with backend on mount
+    // This ensures the persisted state is still valid
     dispatch(fetchCurrentUser());
   }, [dispatch]);
 

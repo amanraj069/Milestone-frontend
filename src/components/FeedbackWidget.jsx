@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import RatingStars from './RatingStars';
-import { loadUserFeedbackStats, selectUserFeedbackStats, selectFeedbackLoading } from '../store/slices/feedbackSlice';
+import { loadUserFeedbackStats, selectUserFeedbackStats, selectFeedbackLoading } from '../redux/slices/feedbackSlice';
 
 // Props: userId, onViewAll (optional callback)
 export default function FeedbackWidget({ userId, onViewAll }) {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { selectFeedbackEligibility } from '../../../store/slices/feedbackSlice';
+import { selectFeedbackEligibility } from '../../../redux/slices/feedbackSlice';
 
 export default function FreelancerCard({ freelancer, onLeaveFeedback }) {
   const navigate = useNavigate();

@@ -104,10 +104,7 @@ const EmployerCurrentJobs = () => {
     <DashboardPage title="Current Jobs">
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
-          {/* <h1 className="text-2xl font-bold text-gray-800 mb-2">Current Jobs</h1> */}
           <p className="text-gray-600">Track freelancers currently working on your projects</p>
-        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -131,11 +128,11 @@ const EmployerCurrentJobs = () => {
 
         {/* Search Bar */}
         <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center gap-3 max-w-lg">
+          <div className="flex items-center gap-3">
             <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="Find specific skills..."
+                placeholder="Find current working freelancers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

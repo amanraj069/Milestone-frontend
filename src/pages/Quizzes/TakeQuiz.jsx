@@ -96,7 +96,7 @@ export default function TakeQuiz() {
 
   // Shuffle quiz options when quiz loads
   useEffect(() => {
-    if (quiz) {
+    if (quiz && !shuffledQuiz) {
       const shuffled = {
         ...quiz,
         questions: quiz.questions.map(q => {
@@ -191,7 +191,6 @@ export default function TakeQuiz() {
         navigate('/freelancer/skills-badges');
       }
     } catch (err) {
-      console.error('Submit failed:', err);
       navigate('/freelancer/skills-badges');
     } finally {
       setSubmitting(false);
@@ -205,26 +204,6 @@ export default function TakeQuiz() {
       selectedOptionIndex: answers[q._id] ?? null 
     }));
     
-    console.log('=== QUIZ SUBMISSION DEBUG ===');
-    console.log('Submitting quiz attempt:', { quizId: id, payload });
-    
-    // Debug: Show what user selected vs what's being sent
-    shuffledQuiz.questions.forEach((q, idx) => {
-      const selectedOriginalIndex = answers[q._id];
-      const selectedOption = q.options.find(opt => opt.originalIndex === selectedOriginalIndex);
-      console.log(`Question ${idx + 1}:`, {
-        questionId: q._id,
-        userSelectedOriginalIndex: selectedOriginalIndex,
-        selectedOptionText: selectedOption?.text?.substring(0, 50),
-        allOptions: q.options.map((opt, i) => ({
-          displayIndex: i,
-          originalIndex: opt.originalIndex,
-          text: opt.text.substring(0, 30)
-        }))
-      });
-    });
-    console.log('=== END DEBUG ===');
-    
     try {
       setSubmitting(true);
       const response = await axios.post(
@@ -234,8 +213,6 @@ export default function TakeQuiz() {
       );
       
       if (response.data.success) {
-        console.log('Submission successful:', response.data);
-        console.log('Navigating with result:', response.data.data);
         navigate('/quizzes/' + id + '/result', { 
           state: { 
             attempt: response.data.data.attempt,
@@ -246,7 +223,6 @@ export default function TakeQuiz() {
         alert('Submit failed: ' + (response.data.error?.message || 'Unknown error'));
       }
     } catch (err) {
-      console.error('Submit failed:', err);
       alert('Submit failed: ' + (err.response?.data?.error?.message || err.message));
     } finally {
       setSubmitting(false);
@@ -256,10 +232,10 @@ export default function TakeQuiz() {
   if (loading || !shuffledQuiz) {
     return (
       <DashboardLayout>
-        <div className="p-6 flex items-center justify-center min-h-screen">
+        <div className="p-6 flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading quiz...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mb-3"></div>
+            <p className="text-gray-500">Loading quiz...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -270,8 +246,94 @@ export default function TakeQuiz() {
     return (
       <DashboardLayout>
         <div className="p-6">
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
-            Error loading quiz: {error}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+            <p className="text-lg font-medium text-red-600 mb-2">Error loading quiz</p>
+            <p className="text-gray-500 mb-4">{error}</p>
+            <button 
+              onClick={() => navigate('/freelancer/skills-badges')} 
+              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Back to Skills
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Cooldown modal
+  if (showCooldownModal && cooldownInfo) {
+    return (
+      <DashboardLayout>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-[slideUp_0.3s_ease]">
+            <div className="flex justify-center mb-6">
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            
+            <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">
+              Maximum Attempts Reached
+            </h2>
+            
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <p className="text-center text-red-800 font-semibold mb-3">
+                You have used all {cooldownInfo.maxAttempts} attempts for this quiz.
+              </p>
+              <div className="text-center text-gray-700">
+                <p className="mb-2">You can take your next attempt after <strong>{cooldownInfo.cooldownDays} days</strong>.</p>
+                <p className="text-lg font-bold text-red-600">
+                  Time remaining: {cooldownInfo.daysRemaining} day(s)
+                </p>
+                <p className="text-sm text-gray-600">
+                  (approximately {cooldownInfo.hoursRemaining} hours)
+                </p>
+              </div>
+            </div>
+
+            {!cooldownInfo.isPremium && (
+              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-300 rounded-lg p-4 mb-6">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="text-2xl">💡</span>
+                  <div>
+                    <h3 className="font-bold text-gray-800 mb-2">Upgrade to Premium to get:</h3>
+                    <ul className="text-sm text-gray-700 space-y-1">
+                      <li className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <strong>3 attempts</strong> instead of 2
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <strong>{cooldownInfo.cooldownDays === 10 ? '5-day' : '4-day'} cooldown</strong> instead of {cooldownInfo.cooldownDays} days
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Priority support and more!
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                setShowCooldownModal(false);
+                navigate('/freelancer/skills-badges');
+              }}
+              className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+            >
+              OK
+            </button>
           </div>
         </div>
       </DashboardLayout>
@@ -363,92 +425,87 @@ export default function TakeQuiz() {
   // Show instructions dialog before starting quiz
   if (showInstructions) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
         <div className="w-full max-w-2xl">
-          <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 shadow-2xl">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-800">Quiz Instructions</h2>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+              <h2 className="text-xl font-semibold text-gray-900">Quiz Instructions</h2>
             </div>
             
-            <div className="space-y-4 mb-6">
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                <h3 className="font-semibold text-blue-900 mb-2">{shuffledQuiz.title}</h3>
-                <p className="text-sm text-blue-800">Skill: {shuffledQuiz.skillName}</p>
+            <div className="p-6 space-y-6">
+              {/* Quiz Info Card */}
+              <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+                <h3 className="font-semibold text-gray-900 mb-1">{shuffledQuiz.title}</h3>
+                <p className="text-sm text-gray-600">Skill: {shuffledQuiz.skillName}</p>
               </div>
 
+              {/* Stats Grid */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600">Questions</div>
-                  <div className="text-2xl font-bold text-gray-800">{shuffledQuiz.questions.length}</div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <p className="text-2xl font-semibold text-gray-900">{shuffledQuiz.questions.length}</p>
+                  <p className="text-xs text-gray-500 mt-1">Questions</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600">Time Limit</div>
-                  <div className="text-2xl font-bold text-gray-800">{shuffledQuiz.timeLimitMinutes ? `${shuffledQuiz.timeLimitMinutes} min` : 'No limit'}</div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <p className="text-2xl font-semibold text-gray-900">{shuffledQuiz.timeLimitMinutes ? `${shuffledQuiz.timeLimitMinutes} min` : 'No limit'}</p>
+                  <p className="text-xs text-gray-500 mt-1">Time Limit</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600">Passing Score</div>
-                  <div className="text-2xl font-bold text-gray-800">{shuffledQuiz.passingScore}%</div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <p className="text-2xl font-semibold text-gray-900">{shuffledQuiz.passingScore}%</p>
+                  <p className="text-xs text-gray-500 mt-1">Passing Score</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600">Your Attempt</div>
-                  <div className="text-2xl font-bold text-gray-800">{(eligibility?.attemptsUsed || 0) + 1} of {maxAttempts}</div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <p className="text-2xl font-semibold text-gray-900">{(eligibility?.attemptsUsed || 0) + 1} of {eligibility?.maxAttempts || 2}</p>
+                  <p className="text-xs text-gray-500 mt-1">Your Attempt</p>
                 </div>
               </div>
 
-              <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded">
-                <h4 className="font-semibold text-orange-900 mb-3 flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  Important Rules
-                </h4>
-                <ul className="text-sm text-orange-800 space-y-2">
+              {/* Important Rules */}
+              <div className="bg-orange-50 rounded-lg border border-orange-200 p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Important Rules</h4>
+                <ul className="text-sm text-gray-700 space-y-2">
                   <li className="flex items-start gap-2">
                     <span className="text-orange-600 font-bold">•</span>
                     <span><strong>Maximum {maxAttempts} attempts allowed</strong> - This is attempt {(eligibility?.attemptsUsed || 0) + 1}</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-orange-600 font-bold">•</span>
-                    <span><strong>Browser navigation blocked</strong> - Back button will not work during quiz</span>
+                    <span className="text-orange-500 mt-0.5">•</span>
+                    <span><strong>Browser navigation blocked</strong> — Back button will not work during quiz</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-orange-600 font-bold">•</span>
-                    <span><strong>Auto-submit on timeout</strong> - Quiz submits automatically when time runs out</span>
+                    <span className="text-orange-500 mt-0.5">•</span>
+                    <span><strong>Auto-submit on timeout</strong> — Quiz submits automatically when time runs out</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-orange-600 font-bold">•</span>
-                    <span><strong>Randomized options</strong> - Answer choices are shuffled for each attempt</span>
+                    <span className="text-orange-500 mt-0.5">•</span>
+                    <span><strong>Randomized options</strong> — Answer choices are shuffled for each attempt</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-orange-600 font-bold">•</span>
-                    <span><strong>Leave Quiz option</strong> - Use "Leave Quiz" button if you need to exit (counts as attempt)</span>
+                    <span className="text-orange-500 mt-0.5">•</span>
+                    <span><strong>Leave Quiz option</strong> — Use "Leave Quiz" button if you need to exit (counts as attempt)</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-orange-600 font-bold">•</span>
-                    <span><strong>No pausing</strong> - Timer cannot be paused once started</span>
+                    <span className="text-orange-500 mt-0.5">•</span>
+                    <span><strong>No pausing</strong> — Timer cannot be paused once started</span>
                   </li>
                 </ul>
               </div>
-            </div>
 
-            <div className="flex gap-3">
-              <button 
-                onClick={() => navigate('/freelancer/skills-badges')}
-                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={startQuiz}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition shadow-lg"
-              >
-                Start Quiz
-              </button>
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button 
+                  onClick={() => navigate('/freelancer/skills-badges')}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors border border-gray-300"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={startQuiz}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Start Quiz
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -458,14 +515,14 @@ export default function TakeQuiz() {
 
   // Active quiz - full screen without sidebar
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
       {/* Fixed Header with Timer */}
-      <div className="sticky top-0 z-50 bg-white border-b-2 border-blue-600 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-800">{shuffledQuiz.title}</h2>
-              <div className="text-xs text-gray-600">{shuffledQuiz.skillName}</div>
+              <h2 className="font-semibold text-gray-900">{shuffledQuiz.title}</h2>
+              <div className="text-xs text-gray-500">{shuffledQuiz.skillName}</div>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded font-semibold">
@@ -479,15 +536,15 @@ export default function TakeQuiz() {
             </div>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             {/* Timer */}
             {timeLeft !== null && (
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-2xl font-bold ${
-                timeLeft < 60 ? 'bg-red-100 text-red-700 animate-pulse' : 
-                timeLeft < 300 ? 'bg-orange-100 text-orange-700' : 
-                'bg-blue-100 text-blue-700'
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-mono text-lg font-semibold ${
+                timeLeft < 60 ? 'bg-red-100 text-red-700' : 
+                timeLeft < 300 ? 'bg-amber-100 text-amber-700' : 
+                'bg-gray-100 text-gray-700'
               }`}>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 {Math.floor(timeLeft/60)}:{('0'+(timeLeft%60)).slice(-2)}
@@ -495,15 +552,15 @@ export default function TakeQuiz() {
             )}
             
             {/* Progress */}
-            <div className="text-center">
-              <div className="text-sm text-gray-600">Progress</div>
-              <div className="text-lg font-bold text-gray-800">{answered}/{total}</div>
+            <div className="text-right">
+              <div className="text-xs text-gray-500 uppercase">Progress</div>
+              <div className="font-semibold text-gray-900">{answered}/{total}</div>
             </div>
             
             {/* Leave Quiz Button */}
             <button 
               onClick={() => setShowLeaveConfirm(true)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition text-sm"
+              className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700 transition-colors"
               disabled={submitting}
             >
               Leave Quiz
@@ -513,79 +570,101 @@ export default function TakeQuiz() {
       </div>
 
       {/* Quiz Content */}
-      <div className="max-w-4xl mx-auto py-6 px-4">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          {shuffledQuiz.description && (
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-              <p className="text-sm text-gray-700">{shuffledQuiz.description}</p>
-              <p className="text-xs text-gray-600 mt-2">Passing Score: {shuffledQuiz.passingScore}%</p>
+      <div className="max-w-5xl mx-auto py-6 px-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          {/* Quiz Header */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-700">{shuffledQuiz.description || 'Answer all questions below'}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Passing Score: {shuffledQuiz.passingScore}%</p>
+              </div>
             </div>
-          )}
-
-          <div className="space-y-6">{shuffledQuiz.questions.map((q, qi) => (
-    <div key={q._id} className="border rounded-lg p-4">
-      <div className="font-medium mb-3">
-        Question {qi+1} <span className="text-gray-600 text-sm">({q.marks} marks)</span>
-      </div>
-      <div className="mb-4 whitespace-pre-wrap">{q.text}</div>
-      
-      {/* Code Snippet Display - Fixed condition */}
-      {q.codeSnippet && q.codeSnippet.trim() !== '' && (
-        <div className="mb-4 bg-gray-900 rounded-lg p-4 border border-gray-700">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-gray-400 font-mono uppercase">{q.codeLanguage || 'code'}</span>
-            
           </div>
-          <pre className="text-green-400 font-mono text-sm overflow-x-auto whitespace-pre-wrap break-words">
-            <code>{q.codeSnippet}</code>
-          </pre>
-        </div>
-      )}
 
-      <div className="space-y-2">
-        {q.options.map((opt, oi) => {
-          const originalIdx = opt.originalIndex !== undefined ? opt.originalIndex : oi;
-          const isSelected = answers[q._id] === originalIdx;
-          return (
-            <div 
-              key={oi} 
-              className={`flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50 transition ${isSelected ? 'bg-blue-50 border-blue-500' : 'border-gray-300'}`}
-              onClick={()=>select(q._id, originalIdx)}
-            >
-              <input type="radio" name={q._id} checked={isSelected} onChange={()=>select(q._id, originalIdx)} className="w-4 h-4" />
-              <div>{opt.text}</div>
+          {/* Questions List */}
+          <div className="divide-y divide-gray-200">
+            {shuffledQuiz.questions.map((q, qi) => (
+              <div key={q._id} className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <span className="font-medium text-gray-900">Question {qi+1}</span>
+                  <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">{q.marks} marks</span>
+                </div>
+                <div className="mb-4 text-gray-700">{q.text}</div>
+                
+                {/* Code Snippet Display */}
+                {q.codeSnippet && q.codeSnippet.trim() !== '' && (
+                  <div className="mb-4 bg-gray-900 rounded-md p-4">
+                    <div className="text-xs text-gray-400 font-mono uppercase mb-2">{q.codeLanguage || 'code'}</div>
+                    <pre className="text-green-400 font-mono text-sm overflow-x-auto whitespace-pre-wrap break-words">
+                      <code>{q.codeSnippet}</code>
+                    </pre>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {q.options.map((opt, oi) => {
+                    const originalIdx = opt.originalIndex !== undefined ? opt.originalIndex : oi;
+                    const isSelected = answers[q._id] === originalIdx;
+                    return (
+                      <div 
+                        key={oi} 
+                        className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors ${
+                          isSelected 
+                            ? 'bg-blue-50 border border-blue-500' 
+                            : 'bg-gray-50 border border-gray-200 hover:border-gray-300 hover:bg-gray-100'
+                        }`}
+                        onClick={()=>select(q._id, originalIdx)}
+                      >
+                        <input 
+                          type="radio" 
+                          name={q._id} 
+                          checked={isSelected} 
+                          onChange={()=>select(q._id, originalIdx)} 
+                          className="w-4 h-4 text-blue-600" 
+                        />
+                        <span className="text-sm text-gray-700">{opt.text}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Submit Button */}
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <div className="flex justify-center">
+              <button 
+                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors" 
+                onClick={()=>setShowConfirm(true)} 
+                disabled={submitting}
+              >
+                {submitting ? 'Submitting...' : 'Submit Quiz'}
+              </button>
             </div>
-          );
-        })}
-      </div>
-    </div>
-  ))}
-</div>
-
-          {/* Submit Button - Fixed at bottom */}
-          <div className="mt-8 flex justify-center">
-            <button 
-              className="px-12 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-bold hover:from-green-700 hover:to-green-800 disabled:opacity-50 transition shadow-xl text-lg" 
-              onClick={()=>setShowConfirm(true)} 
-              disabled={submitting}
-            >
-              {submitting ? 'Submitting...' : 'Submit Quiz'}
-            </button>
           </div>
         </div>
 
+        {/* Leave Confirm Modal */}
         {showLeaveConfirm && (
-          <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-5 max-w-sm w-full mx-4">
-              <h3 className="text-lg font-bold mb-2 text-red-600">Leave Quiz?</h3>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-sm w-full mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Leave Quiz?</h3>
               <p className="text-sm text-gray-600 mb-4">
                 Leaving the quiz will submit your current answers and <strong>count as one attempt</strong>. You cannot resume this quiz session.
               </p>
               <div className="flex gap-3">
-                <button className="flex-1 px-4 py-2 border rounded hover:bg-gray-50" onClick={()=>setShowLeaveConfirm(false)}>
+                <button 
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors border border-gray-300" 
+                  onClick={()=>setShowLeaveConfirm(false)}
+                >
                   Stay
                 </button>
-                <button className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700" onClick={leaveQuiz}>
+                <button 
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 transition-colors" 
+                  onClick={leaveQuiz}
+                >
                   Leave & Submit
                 </button>
               </div>
@@ -593,18 +672,25 @@ export default function TakeQuiz() {
           </div>
         )}
 
+        {/* Submit Confirm Modal */}
         {showConfirm && (
-          <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-              <h3 className="text-lg font-bold mb-2">Confirm Submission</h3>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-sm w-full mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Submission</h3>
               <p className="text-sm text-gray-600 mb-4">
                 You have answered {answered} out of {total} questions. Are you sure you want to submit?
               </p>
               <div className="flex gap-3">
-                <button className="flex-1 px-4 py-2 border rounded hover:bg-gray-50" onClick={()=>setShowConfirm(false)}>
+                <button 
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors border border-gray-300" 
+                  onClick={()=>setShowConfirm(false)}
+                >
                   Cancel
                 </button>
-                <button className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onClick={onSubmit}>
+                <button 
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors" 
+                  onClick={onSubmit}
+                >
                   Submit
                 </button>
               </div>
