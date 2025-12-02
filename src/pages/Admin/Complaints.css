@@ -14,6 +14,111 @@
   margin-bottom: 2rem;
 }
 
+/* Statistics Cards */
+.stats-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card i {
+  font-size: 2.5rem;
+  opacity: 0.8;
+}
+
+.stat-content h3 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+}
+
+.stat-content p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.stat-total {
+  border-left: 4px solid #6c757d;
+}
+
+.stat-total i {
+  color: #6c757d;
+}
+
+.stat-pending {
+  border-left: 4px solid #ffc107;
+}
+
+.stat-pending i {
+  color: #ffc107;
+}
+
+.stat-review {
+  border-left: 4px solid #17a2b8;
+}
+
+.stat-review i {
+  color: #17a2b8;
+}
+
+.stat-resolved {
+  border-left: 4px solid #28a745;
+}
+
+.stat-resolved i {
+  color: #28a745;
+}
+
+.stat-rejected {
+  border-left: 4px solid #dc3545;
+}
+
+.stat-rejected i {
+  color: #dc3545;
+}
+
+/* Sort Order Button */
+.sort-order-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background 0.3s ease;
+}
+
+.sort-order-btn:hover {
+  background: #0056b3;
+}
+
+.sort-order-btn i {
+  font-size: 1rem;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;
