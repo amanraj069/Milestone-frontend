@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardPage from '../../components/DashboardPage';
 import BadgesList from '../Profile/BadgesList';
 import ResumePreviewModal from '../../components/jobApplication/ResumePreviewModal';
 import PublicFeedbackSection from '../../components/PublicFeedbackSection';
@@ -121,57 +121,55 @@ const FreelancerProfile = () => {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <DashboardPage title="Profile">
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading profile...</p>
           </div>
         </div>
-      </DashboardLayout>
+      </DashboardPage>
     );
   }
 
   if (!profileData) {
     return (
-      <DashboardLayout>
+      <DashboardPage title="Profile">
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <p className="text-gray-600">No profile data available.</p>
           </div>
         </div>
-      </DashboardLayout>
+      </DashboardPage>
     );
   }
 
-  return (
-    <DashboardLayout>
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-navy-900">Freelancer Profile</h1>
-          <button 
-            onClick={() => navigate('/freelancer/profile/edit')}
-            className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center gap-2"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-            Edit Profile
-          </button>
-        </div>
+  const editProfileButton = (
+    <button 
+      onClick={() => navigate('/freelancer/profile/edit')}
+      className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center gap-2"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+      </svg>
+      Edit Profile
+    </button>
+  );
 
+  return (
+    <DashboardPage title="Profile" headerAction={editProfileButton}>
+      <div className="max-w-7xl mx-auto">
         {/* Profile Header Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
           <div className="flex items-start gap-8">
@@ -435,7 +433,7 @@ const FreelancerProfile = () => {
           }}
         />
       )}
-    </DashboardLayout>
+    </DashboardPage>
   );
 };
 

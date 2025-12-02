@@ -21,7 +21,8 @@ function AuthProvider({ children }) {
   const isLoggedIn = useSelector(selectIsLoggedIn);
 
   useEffect(() => {
-    // Check auth status on mount
+    // Validate session with backend on mount
+    // This ensures the persisted state is still valid
     dispatch(fetchCurrentUser());
   }, [dispatch]);
 

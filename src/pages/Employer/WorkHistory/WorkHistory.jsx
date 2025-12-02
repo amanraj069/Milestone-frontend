@@ -117,10 +117,7 @@ const EmployerWorkHistory = () => {
     <DashboardPage title="Work History">
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
-          {/* <h1 className="text-2xl font-bold text-gray-800 mb-2">Work History</h1> */}
           <p className="text-gray-600">View freelancers who have previously worked on your projects</p>
-        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

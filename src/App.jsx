@@ -51,6 +51,7 @@ import FreelancerEditProfile from './pages/Freelancer/EditProfile';
 import FreelancerActiveJobs from './pages/Freelancer/ActiveJobs/ActiveJobs';
 import FreelancerJobHistory from './pages/Freelancer/JobHistory';
 import FreelancerPayments from './pages/Freelancer/Payments';
+import FreelancerPaymentDetails from './pages/Freelancer/PaymentDetails';
 import FreelancerSkillsBadges from './pages/Freelancer/SkillsBadges';
 import FreelancerSubscription from './pages/Freelancer/Subscription/Subscription';
 import FreelancerComplaintForm from './pages/Freelancer/ComplaintForm';
@@ -117,6 +118,7 @@ function App() {
               <Route path="/freelancer/active-jobs" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerActiveJobs /></ProtectedRoute>} />
               <Route path="/freelancer/job-history" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerJobHistory /></ProtectedRoute>} />
               <Route path="/freelancer/payments" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerPayments /></ProtectedRoute>} />
+              <Route path="/freelancer/payments/:jobId" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerPaymentDetails /></ProtectedRoute>} />
               <Route path="/freelancer/skills-badges" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerSkillsBadges /></ProtectedRoute>} />
               <Route path="/freelancer/subscription" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerSubscription /></ProtectedRoute>} />
               <Route path="/freelancer/chat" element={<ProtectedRoute requiredRole="Freelancer"><Chat /></ProtectedRoute>} />

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardPage from '../../components/DashboardPage';
 import FeedbackForm from '../../components/FeedbackForm';
 import './ActiveJobs/ActiveJobs.css';
 import { loadJobHistory, selectJobHistory, selectJobsLoading, selectJobsError } from '../../store/slices/jobsSlice';
@@ -79,7 +79,7 @@ export default function FreelancerJobHistory() {
     return (
       <div
         key={jobId}
-        className="bg-white rounded-xl shadow-sm p-6 mb-6 flex gap-6 hover:shadow-md transition-shadow"
+        className="bg-white rounded-xl shadow-sm mb-6 flex gap-6 hover:shadow-md transition-shadow"
       >
         {/* Logo */}
         <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 border-gray-100">
@@ -182,16 +182,10 @@ export default function FreelancerJobHistory() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="p-6 max-w-6xl mx-auto">
-        {/* Page Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8 border-l-4 border-blue-600">
-          <h1 className="text-2xl font-bold text-gray-900">Job History</h1>
-          <p className="text-gray-600 mt-1">View your completed and cancelled projects</p>
-        </div>
-
+    <DashboardPage title="Job History">
+      <div className="mx-auto">
         {/* Content */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-sm">
           {loading && (
             <div className="text-center py-16">
               <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
@@ -245,6 +239,6 @@ export default function FreelancerJobHistory() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </DashboardPage>
   );
 }

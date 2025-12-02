@@ -1,8 +1,413 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+
 const FreelancerPayments = () => {
-  return <DashboardPage title="Payments" />;
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/freelancer/payments`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setPayments(data.data);
+      } else {
+        setError(data.error || 'Failed to fetch payments');
+      }
+    } catch (err) {
+      setError('Failed to fetch payments');
+      console.error('Error fetching payments:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewDetails = (jobId) => {
+    navigate(`/freelancer/payments/${jobId}`);
+  };
+
+  const getStatusBadge = (status) => {
+    const config = {
+      working: { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500', label: 'In Progress' },
+      finished: { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500', label: 'Completed' },
+      left: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500', label: 'Left' }
+    };
+    const { bg, text, dot, label } = config[status] || { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500', label: status };
+    return (
+      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${bg} ${text}`}>
+        <span className={`w-2 h-2 rounded-full ${dot} mr-2`}></span>
+        {label}
+      </span>
+    );
+  };
+
+  // Calculate summary stats
+  const totalEarnings = payments.reduce((sum, p) => sum + p.paidAmount, 0);
+  const pendingPayments = payments.reduce((sum, p) => sum + (p.totalBudget - p.paidAmount), 0);
+  const activeProjects = payments.filter(p => p.status === 'working').length;
+  const completedProjects = payments.filter(p => p.status === 'finished').length;
+
+  if (loading) {
+    return (
+      <DashboardPage title="Payments">
+        <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className="flex flex-col justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
+            <p className="text-gray-500">Loading payments...</p>
+          </div>
+        </div>
+      </DashboardPage>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardPage title="Payments">
+        <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Payments</h3>
+            <p className="text-gray-500 mb-6">{error}</p>
+            <button 
+              onClick={fetchPayments}
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </DashboardPage>
+    );
+  }
+
+  return (
+    <DashboardPage title="Payments">
+      <p className="text-gray-500 mb-8 -mt-4">Track your earnings and manage milestone payments</p>
+
+      {/* Stats Cards */}
+      {payments.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+            <div className="flex items-center">
+              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mr-4">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Total Earned</p>
+                <p className="text-2xl font-bold text-gray-900">₹{totalEarnings.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+            <div className="flex items-center">
+              <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center mr-4">
+                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Pending Payments</p>
+                <p className="text-2xl font-bold text-gray-900">₹{pendingPayments.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+            <div className="flex items-center">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mr-4">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Active Projects</p>
+                <p className="text-2xl font-bold text-gray-900">{activeProjects}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+            <div className="flex items-center">
+              <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mr-4">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Completed</p>
+                <p className="text-2xl font-bold text-gray-900">{completedProjects}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Active Jobs Section */}
+      {payments.filter(p => p.status === 'working').length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Active Projects</h2>
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Employer
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Job Details
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Payment Progress
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Budget
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {payments.filter(p => p.status === 'working').map((payment) => (
+                    <tr 
+                      key={payment.jobId} 
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-5">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0">
+                            {payment.employerPicture ? (
+                              <img 
+                                className="h-12 w-12 rounded-full object-cover border-2 border-white shadow-md" 
+                                src={payment.employerPicture} 
+                                alt={payment.employerName} 
+                              />
+                            ) : (
+                              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-lg shadow-md">
+                                {payment.employerName?.charAt(0)?.toUpperCase() || 'E'}
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-semibold text-gray-900">
+                              {payment.employerName}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {payment.companyName || 'Company'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="text-sm font-semibold text-gray-900 mb-1">{payment.jobTitle}</div>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <svg className="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                          </svg>
+                          {payment.completedMilestones}/{payment.milestonesCount} milestones
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        {getStatusBadge(payment.status)}
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col items-center">
+                          <div className="w-full max-w-[120px] bg-gray-100 rounded-full h-2.5 mb-2">
+                            <div 
+                              className={`h-2.5 rounded-full transition-all duration-500 ${
+                                payment.paymentPercentage === 100 
+                                  ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+                                  : 'bg-gradient-to-r from-blue-500 to-indigo-500'
+                              }`}
+                              style={{ width: `${payment.paymentPercentage}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-700">{payment.paymentPercentage}%</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <div className="text-sm font-bold text-gray-900">₹{payment.totalBudget.toLocaleString()}</div>
+                        <div className="text-xs text-green-600 font-medium">
+                          ₹{payment.paidAmount.toLocaleString()} received
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <button
+                          onClick={() => handleViewDetails(payment.jobId)}
+                          className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        >
+                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Completed Jobs Section */}
+      {payments.filter(p => p.status === 'finished').length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Completed Projects</h2>
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="bg-gradient-to-r from-slate-50 to-green-50 border-b border-gray-100">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Employer
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Job Details
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Total Earned
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {payments.filter(p => p.status === 'finished').map((payment) => (
+                    <tr 
+                      key={payment.jobId} 
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-5">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0">
+                            {payment.employerPicture ? (
+                              <img 
+                                className="h-12 w-12 rounded-full object-cover border-2 border-white shadow-md" 
+                                src={payment.employerPicture} 
+                                alt={payment.employerName} 
+                              />
+                            ) : (
+                              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-semibold text-lg shadow-md">
+                                {payment.employerName?.charAt(0)?.toUpperCase() || 'E'}
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-semibold text-gray-900">
+                              {payment.employerName}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {payment.companyName || 'Company'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="text-sm font-semibold text-gray-900 mb-1">{payment.jobTitle}</div>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <svg className="w-4 h-4 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {payment.milestonesCount} milestones completed
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        {getStatusBadge(payment.status)}
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <div className="text-lg font-bold text-green-600">₹{payment.paidAmount.toLocaleString()}</div>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <button
+                          onClick={() => handleViewDetails(payment.jobId)}
+                          className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-gray-600 to-gray-700 text-white text-sm font-semibold rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-200 shadow-md hover:shadow-lg"
+                        >
+                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No Payments */}
+      {payments.length === 0 && (
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Payments Yet</h3>
+            <p className="text-gray-500 max-w-md mx-auto">Once you start working on jobs, your payment details will appear here.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Earnings Summary */}
+      {payments.length > 0 && (
+        <div className="mt-6 bg-gray-900 rounded-xl p-6 text-white">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold">Earnings Summary</h3>
+              <p className="text-gray-400 text-sm">Track your earnings at a glance</p>
+            </div>
+            <div className="flex gap-8">
+              <div>
+                <p className="text-3xl font-bold text-green-400">₹{totalEarnings.toLocaleString()}</p>
+                <p className="text-gray-400 text-sm">Total Earned</p>
+              </div>
+              <div className="w-px bg-gray-700"></div>
+              <div>
+                <p className="text-3xl font-bold text-amber-400">₹{pendingPayments.toLocaleString()}</p>
+                <p className="text-gray-400 text-sm">Pending</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </DashboardPage>
+  );
 };
 
 export default FreelancerPayments;

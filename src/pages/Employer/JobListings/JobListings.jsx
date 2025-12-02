@@ -77,7 +77,6 @@ const EmployerJobListings = () => {
     const matchesFilter = (() => {
       switch (activeFilter) {
         case 'All Jobs': return true;
-        case 'Recent': return getDaysAgo(job.postedDate).includes('days') && parseInt(getDaysAgo(job.postedDate)) <= 7;
         case 'Remote': return job.remote;
         case 'Full-time': return job.jobType === 'full-time';
         case 'Part-time': return job.jobType === 'part-time';
@@ -89,10 +88,9 @@ const EmployerJobListings = () => {
   });
 
   return (
-    <DashboardPage title="Job Listings">
-      {/* Header with description and action button */}
-      <div className="flex justify-between items-center mb-6 -mt-4">
-        <p className="text-gray-600">Browse and manage your posted job opportunities</p>
+    <DashboardPage 
+      title="Job Listings"
+      headerAction={
         <Link
           to="/employer/job-listings/new"
           className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
@@ -100,6 +98,10 @@ const EmployerJobListings = () => {
           <i className="fas fa-plus"></i>
           <span>Post New Job</span>
         </Link>
+      }
+    >
+      <div className="mb-6 mt-8">
+        <p className="text-gray-600">Browse and manage your posted job opportunities</p>
       </div>
 
           {/* Search and Filters */}
@@ -113,11 +115,11 @@ const EmployerJobListings = () => {
                 className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 transition-all"
               />
               <div className="flex gap-2 flex-wrap">
-                {['All Jobs', 'Recent', 'Remote', 'Full-time', 'Part-time'].map(filter => (
+                {['All Jobs', 'Remote', 'Full-time', 'Part-time'].map(filter => (
                   <button
                     key={filter}
                     onClick={() => setActiveFilter(filter)}
-                    className={`px-4 py-2 rounded-full font-medium transition-all ${
+                    className={`px-4 py-2 rounded-full font-medium transition-all hover:cursor-pointer ${
                       activeFilter === filter
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
