@@ -4,8 +4,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import DashboardPage from '../../components/DashboardPage';
 import FeedbackForm from '../../components/FeedbackForm';
 import './ActiveJobs/ActiveJobs.css';
-import { loadJobHistory, selectJobHistory, selectJobsLoading, selectJobsError } from '../../store/slices/jobsSlice';
-import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../store/slices/feedbackSlice';
+import { loadJobHistory, selectJobHistory, selectJobsLoading, selectJobsError } from '../../redux/slices/jobsSlice';
+import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../redux/slices/feedbackSlice';
 
 function Stars({ rating = 0 }) {
   const full = Math.floor(rating);

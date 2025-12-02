@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchCurrentUser, loginUser, logoutUser, selectUser, selectIsLoggedIn, selectAuthLoading } from '../store/slices/authSlice';
+import { fetchCurrentUser, loginUser, logoutUser, selectUser, selectIsLoggedIn, selectAuthLoading } from '../redux/slices/authSlice';
 
 const AuthContext = createContext();
 

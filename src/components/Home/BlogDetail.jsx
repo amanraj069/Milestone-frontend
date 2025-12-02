@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../context/AuthContext';
-import { fetchBlogById, fetchRecentBlogs, fetchFeaturedBlog, clearCurrentBlog } from '../../store/slices/blogSlice';
+import { fetchBlogById, fetchRecentBlogs, fetchFeaturedBlog, clearCurrentBlog } from '../../redux/slices/blogSlice';
 import Footer from './Footer';
 
 const BlogDetail = () => {

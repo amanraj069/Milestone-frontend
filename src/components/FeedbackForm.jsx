@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import RatingStars from './RatingStars';
-import { submitFeedback, clearFeedbackError, selectFeedbackLoading, selectFeedbackError } from '../store/slices/feedbackSlice';
+import { submitFeedback, clearFeedbackError, selectFeedbackLoading, selectFeedbackError } from '../redux/slices/feedbackSlice';
 
 // Props: jobId, toUserId, toRole, onSuccess, onCancel
 export default function FeedbackForm({ jobId, toUserId, toRole, counterpartyName, onSuccess, onCancel }) {

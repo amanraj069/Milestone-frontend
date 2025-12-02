@@ -5,7 +5,7 @@ import DashboardPage from '../../../components/DashboardPage';
 import FeedbackForm from '../../../components/FeedbackForm';
 import FreelancerCard from './FreelancerCard';
 import axios from 'axios';
-import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../../store/slices/feedbackSlice';
+import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../../redux/slices/feedbackSlice';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 

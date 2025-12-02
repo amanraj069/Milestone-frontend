@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../context/AuthContext';
-import { fetchAllBlogs, fetchFeaturedBlog } from '../../store/slices/blogSlice';
+import { fetchAllBlogs, fetchFeaturedBlog } from '../../redux/slices/blogSlice';
 import Footer from './Footer';
 
 const BlogList = () => {
