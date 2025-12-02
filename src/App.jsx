@@ -41,6 +41,7 @@ import EmployerApplications from './pages/Employer/Applications/Applications';
 import EmployerWorkHistory from './pages/Employer/WorkHistory/WorkHistory';
 import EmployerSubscription from './pages/Employer/Subscription/Subscription';
 import EmployerTransactions from './pages/Employer/Transactions/Transactions';
+import TransactionDetails from './pages/Employer/Transactions/TransactionDetails';
 import EmployerComplaintForm from './pages/Employer/ComplaintForm/ComplaintForm';
 
 // Freelancer Pages
@@ -102,6 +103,7 @@ function App() {
               <Route path="/employer/work-history" element={<ProtectedRoute requiredRole="Employer"><EmployerWorkHistory /></ProtectedRoute>} />
               <Route path="/employer/subscription" element={<ProtectedRoute requiredRole="Employer"><EmployerSubscription /></ProtectedRoute>} />
               <Route path="/employer/transactions" element={<ProtectedRoute requiredRole="Employer"><EmployerTransactions /></ProtectedRoute>} />
+              <Route path="/employer/transactions/:jobId" element={<ProtectedRoute requiredRole="Employer"><TransactionDetails /></ProtectedRoute>} />
               <Route path="/employer/chat" element={<ProtectedRoute requiredRole="Employer"><Chat /></ProtectedRoute>} />
               <Route path="/employer/complaint" element={<ProtectedRoute requiredRole="Employer"><EmployerComplaintForm /></ProtectedRoute>} />
 

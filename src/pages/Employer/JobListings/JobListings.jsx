@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import DashboardLayout from '../../../components/DashboardLayout';
+import DashboardPage from '../../../components/DashboardPage';
 
 const EmployerJobListings = () => {
   const [jobListings, setJobListings] = useState([]);
@@ -89,23 +89,18 @@ const EmployerJobListings = () => {
   });
 
   return (
-    <DashboardLayout>
-      <div className="p-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-l-4 border-blue-600 flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">Job Listings</h1>
-              <p className="text-gray-600">Browse and manage your posted job opportunities</p>
-            </div>
-            <Link
-              to="/employer/job-listings/new"
-              className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
-            >
-              <i className="fas fa-plus"></i>
-              <span>Post New Job</span>
-            </Link>
-          </div>
+    <DashboardPage title="Job Listings">
+      {/* Header with description and action button */}
+      <div className="flex justify-between items-center mb-6 -mt-4">
+        <p className="text-gray-600">Browse and manage your posted job opportunities</p>
+        <Link
+          to="/employer/job-listings/new"
+          className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
+        >
+          <i className="fas fa-plus"></i>
+          <span>Post New Job</span>
+        </Link>
+      </div>
 
           {/* Search and Filters */}
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
@@ -248,8 +243,6 @@ const EmployerJobListings = () => {
               </div>
             )}
           </div>
-        </div>
-      </div>
 
       {/* Delete Confirmation Modal */}
       {deleteModal.show && (
@@ -283,7 +276,7 @@ const EmployerJobListings = () => {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </DashboardPage>
   );
 };
 
