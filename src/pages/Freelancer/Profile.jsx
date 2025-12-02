@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import DashboardPage from '../../components/DashboardPage';
 import BadgesList from '../Profile/BadgesList';
-import ResumePreviewModal from '../../components/jobApplication/ResumePreviewModal';
 import PublicFeedbackSection from '../../components/PublicFeedbackSection';
 
 const FreelancerProfile = () => {
@@ -12,8 +11,6 @@ const FreelancerProfile = () => {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedResume, setSelectedResume] = useState(null);
-  const [showResumeModal, setShowResumeModal] = useState(false);
 
   useEffect(() => {
     // Load user data from auth context or API
@@ -385,8 +382,10 @@ const FreelancerProfile = () => {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => {
-                    setSelectedResume(profileData.resume);
-                    setShowResumeModal(true);
+                    const resumeUrl = profileData.resume.startsWith('/uploads') 
+                      ? `http://localhost:9000${profileData.resume}` 
+                      : profileData.resume;
+                    window.open(resumeUrl, '_blank');
                   }}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors"
                 >
@@ -404,7 +403,7 @@ const FreelancerProfile = () => {
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                   </svg>
-                  Preview Resume
+                  View Resume
                 </button>
                
               </div>
@@ -422,17 +421,6 @@ const FreelancerProfile = () => {
         {/* Reviews & Feedback Section */}
         <PublicFeedbackSection userId={user?.id} userRole="Freelancer" />
       </div>
-
-      {/* Resume Preview Modal */}
-      {showResumeModal && selectedResume && (
-        <ResumePreviewModal
-          resumeUrl={selectedResume}
-          onClose={() => {
-            setShowResumeModal(false);
-            setSelectedResume(null);
-          }}
-        />
-      )}
     </>
   );
 

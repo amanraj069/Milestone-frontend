@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import ResumePreviewModal from './ResumePreviewModal';
 
 const PersonalInfoStep = ({ profileData, onUpdate, onNext }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -7,7 +6,6 @@ const PersonalInfoStep = ({ profileData, onUpdate, onNext }) => {
     email: profileData.email,
     phone: profileData.phone,
   });
-  const [showResumeModal, setShowResumeModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -266,10 +264,15 @@ const PersonalInfoStep = ({ profileData, onUpdate, onNext }) => {
               <button
                 type="button"
                 className="btn-icon"
-                onClick={() => setShowResumeModal(true)}
-                title="Preview Resume"
+                onClick={() => {
+                  const resumeUrl = profileData.resume.startsWith('/uploads') 
+                    ? `http://localhost:9000${profileData.resume}` 
+                    : profileData.resume;
+                  window.open(resumeUrl, '_blank');
+                }}
+                title="View Resume"
               >
-                <i className="fas fa-eye"></i> Preview
+                <i className="fas fa-eye"></i> View
               </button>
               <label className="btn-icon" title="Change Resume">
                 <i className="fas fa-upload"></i> Change
@@ -314,14 +317,6 @@ const PersonalInfoStep = ({ profileData, onUpdate, onNext }) => {
           <i className="fas fa-arrow-right"></i>
         </button>
       </div>
-
-      {/* Resume Preview Modal */}
-      {showResumeModal && (
-        <ResumePreviewModal
-          resumeUrl={profileData.resume}
-          onClose={() => setShowResumeModal(false)}
-        />
-      )}
     </div>
   );
 };

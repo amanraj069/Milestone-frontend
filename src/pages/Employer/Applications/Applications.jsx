@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import DashboardPage from '../../../components/DashboardPage';
-import ResumePreviewModal from '../../../components/jobApplication/ResumePreviewModal';
 import ApplicationDetailsModal from './ApplicationDetailsModal';
 import axios from 'axios';
 import './Applications.css';
@@ -17,9 +16,7 @@ const EmployerApplications = () => {
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedResume, setSelectedResume] = useState(null);
   const [selectedApplication, setSelectedApplication] = useState(null);
-  const [showResumeModal, setShowResumeModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
@@ -82,8 +79,12 @@ const EmployerApplications = () => {
   };
 
   const handleViewResume = (resumeUrl) => {
-    setSelectedResume(resumeUrl);
-    setShowResumeModal(true);
+    // Convert relative path to full URL if needed
+    let fullUrl = resumeUrl;
+    if (resumeUrl.startsWith('/uploads')) {
+      fullUrl = `${API_BASE_URL}${resumeUrl}`;
+    }
+    window.open(fullUrl, '_blank');
   };
 
   const handleViewDetails = (application) => {
@@ -259,17 +260,6 @@ const EmployerApplications = () => {
           )}
         </div>
       </div>
-
-      {/* Resume Preview Modal */}
-      {showResumeModal && selectedResume && (
-        <ResumePreviewModal
-          resumeUrl={selectedResume}
-          onClose={() => {
-            setShowResumeModal(false);
-            setSelectedResume(null);
-          }}
-        />
-      )}
 
       {/* Application Details Modal */}
       {showDetailsModal && selectedApplication && (
