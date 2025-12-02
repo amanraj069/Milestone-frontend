@@ -65,7 +65,7 @@ function App() {
         <ChatProvider>
           <SocketProvider>
             <div className="App">
-            <Routes>
+              <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
@@ -128,11 +128,11 @@ function App() {
             
               {/* Catch all other routes */}
               <Route path="*" element={<Home />} />
-            </Routes>
-          </div>
+              </Routes>
+            </div>
           </SocketProvider>
         </ChatProvider>
-    </Router>
+      </Router>
     </AuthProvider>
   );
 }

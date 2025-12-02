@@ -7,7 +7,7 @@ import {
   setSearchTerm, 
   setSortBy, 
   toggleSortOrder 
-} from '../../redux/slices/complaintsSlice';
+} from '../../store/slices/complaintsSlice';
 import DashboardPage from '../../components/DashboardPage';
 
 const AdminComplaints = () => {

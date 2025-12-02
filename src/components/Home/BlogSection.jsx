@@ -1,31 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchLatestBlogs } from '../../store/slices/blogSlice';
 
 const BlogSection = () => {
-  const [blogs, setBlogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const { latestBlogs: blogs, fetchingLatest: loading } = useSelector((state) => state.blog);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
   useEffect(() => {
-    fetchLatestBlogs();
-  }, []);
-
-  const fetchLatestBlogs = async () => {
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/blogs/latest`, {
-        credentials: 'include',
-      });
-      const data = await response.json();
-      if (data.success) {
-        setBlogs(data.blogs);
-      }
-    } catch (error) {
-      console.error('Error fetching latest blogs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    dispatch(fetchLatestBlogs());
+  }, [dispatch]);
 
   const handleNext = () => {
     if (currentIndex + 3 < blogs.length) {

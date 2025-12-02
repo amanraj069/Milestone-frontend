@@ -12,8 +12,10 @@ import {
 import storage from "redux-persist/lib/storage";
 import authReducer from "./slices/authSlice";
 import badgesReducer from "./slices/badgesSlice";
-import jobsReducer from "./slices/jobsSlice";
+import blogReducer from "./slices/blogSlice";
+import complaintsReducer from "./slices/complaintsSlice";
 import feedbackReducer from "./slices/feedbackSlice";
+import jobsReducer from "./slices/jobsSlice";
 
 // Persist configuration - only persist auth state
 const persistConfig = {
@@ -26,8 +28,10 @@ const persistConfig = {
 const rootReducer = combineReducers({
   auth: authReducer,
   badges: badgesReducer,
-  jobs: jobsReducer,
+  blog: blogReducer,
+  complaints: complaintsReducer,
   feedback: feedbackReducer,
+  jobs: jobsReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -37,8 +41,16 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        // Ignore redux-persist actions
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+        // Ignore redux-persist actions and complaints action
+        ignoredActions: [
+          FLUSH,
+          REHYDRATE,
+          PAUSE,
+          PERSIST,
+          PURGE,
+          REGISTER,
+          "complaints/fetchComplaints/fulfilled",
+        ],
       },
     }),
 });
