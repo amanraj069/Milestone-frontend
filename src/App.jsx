@@ -60,8 +60,8 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <SocketProvider>
-          <ChatProvider>
+        <ChatProvider>
+          <SocketProvider>
             <div className="App">
             <Routes>
               <Route path="/" element={<Home />} />
@@ -126,8 +126,8 @@ function App() {
               <Route path="*" element={<Home />} />
             </Routes>
           </div>
+          </SocketProvider>
         </ChatProvider>
-      </SocketProvider>
     </Router>
     </AuthProvider>
   );
