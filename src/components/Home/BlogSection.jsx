@@ -59,8 +59,14 @@ const BlogSection = () => {
         </div>
 
         {/* Blog Grid */}
-        <div className="relative">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+        <div className="flex justify-center mb-8">
+          <div className={`grid gap-8 w-full ${
+            visibleBlogs.length === 1 
+              ? 'grid-cols-1 max-w-md' 
+              : visibleBlogs.length === 2 
+                ? 'grid-cols-1 md:grid-cols-2 max-w-3xl' 
+                : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+          }`}>
             {visibleBlogs.map((blog) => (
               <Link
                 key={blog.blogId}
@@ -103,7 +109,7 @@ const BlogSection = () => {
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 hover:text-blue-600 transition-colors">
+                  <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 ">
                     {blog.title}
                   </h3>
 
@@ -133,10 +139,11 @@ const BlogSection = () => {
               </Link>
             ))}
           </div>
+        </div>
 
-          {/* Navigation Arrows */}
-          {(showPrev || showNext) && (
-            <div className="flex justify-center items-center gap-4">
+        {/* Navigation Arrows */}
+        {(showPrev || showNext) && (
+          <div className="flex justify-center items-center gap-4 mb-8">
               {showPrev && (
                 <button
                   onClick={handlePrev}
@@ -201,28 +208,27 @@ const BlogSection = () => {
             </div>
           )}
 
-          {/* View All Blogs Link */}
-          <div className="text-center mt-8">
-            <Link
-              to="/blogs"
-              className="inline-flex items-center px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
+        {/* View All Blogs Link */}
+        <div className="text-center mt-8">
+          <Link
+            to="/blogs"
+            className="inline-flex items-center px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
+          >
+            View All Blog Posts
+            <svg
+              className="w-5 h-5 ml-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              View All Blog Posts
-              <svg
-                className="w-5 h-5 ml-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 8l4 4m0 0l-4 4m4-4H3"
-                />
-              </svg>
-            </Link>
-          </div>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 8l4 4m0 0l-4 4m4-4H3"
+              />
+            </svg>
+          </Link>
         </div>
       </div>
     </section>

@@ -17,6 +17,7 @@ const BlogDetail = () => {
     email: '',
     message: ''
   });
+  const [comments, setComments] = useState([]);
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
@@ -47,8 +48,13 @@ const BlogDetail = () => {
 
   const handleCommentSubmit = (e) => {
     e.preventDefault();
-    console.log('Comment submitted:', comment);
-    // TODO: Implement comment submission API
+    const newComment = {
+      ...comment,
+      id: Date.now(),
+      date: new Date().toISOString(),
+      blogId: blogId
+    };
+    setComments([newComment, ...comments]);
     setComment({ name: '', email: '', message: '' });
   };
 
@@ -151,20 +157,7 @@ const BlogDetail = () => {
       {/* Content with padding-top for fixed header */}
       <div className="pt-20">
 
-      {/* Breadcrumb */}
-      <div className="bg-gray-50 py-4">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <nav className="flex items-center gap-2 text-sm text-gray-600">
-              <Link to="/" className="hover:text-indigo-600">Home</Link>
-              <span>/</span>
-              <Link to="/blogs" className="hover:text-indigo-600">Blog</Link>
-              <span>/</span>
-              <span className="text-gray-900">{blog.category}</span>
-            </nav>
-          </div>
-        </div>
-      </div>
+     
 
       {/* Hero Section */}
       <article className="py-12 bg-white">
@@ -349,10 +342,39 @@ const BlogDetail = () => {
               </button>
             </form>
 
-            {/* Sample Comment (for UI demonstration) */}
+            {/* Comments Display */}
             <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">Comments (0)</h3>
-              <p className="text-gray-600">No comments yet. Be the first to comment!</p>
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Comments ({comments.length})</h3>
+              {comments.length === 0 ? (
+                <p className="text-gray-600">No comments yet. Be the first to comment!</p>
+              ) : (
+                <div className="space-y-6">
+                  {comments.map((c) => (
+                    <div key={c.id} className="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
+                          {c.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h4 className="font-semibold text-gray-900">{c.name}</h4>
+                            <span className="text-sm text-gray-500">
+                              {new Date(c.date).toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-gray-700 leading-relaxed">{c.message}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -364,7 +386,7 @@ const BlogDetail = () => {
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
               <h2 className="text-3xl font-bold text-gray-900 mb-12">
-                {featuredBlog ? 'Featured & Related Posts' : 'Related Posts'}
+                {featuredBlog ? 'Blog Posts' : 'Related Posts'}
               </h2>
               
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -498,9 +520,9 @@ const BlogDetail = () => {
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 px-6 py-4 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
+                className="px-8 py-4 bg-white text-gray-900 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-white placeholder:text-gray-500 w-[200px]"
               />
-              <button className="bg-white text-indigo-600 px-8 py-4 rounded-full font-semibold hover:bg-gray-100 transition-colors whitespace-nowrap">
+              <button className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-lg font-semibold transition-all hover:bg-white hover:text-indigo-600 whitespace-nowrap w-[150px]">
                 Subscribe
               </button>
             </div>
