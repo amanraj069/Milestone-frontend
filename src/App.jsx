@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { ChatProvider } from './context/ChatContext';
+import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './components/Home';
 import Login from './components/Login';
@@ -58,14 +59,18 @@ import FreelancerComplaintForm from './pages/Freelancer/ComplaintForm';
 import TakeQuiz from './pages/Quizzes/TakeQuiz';
 import QuizResult from './pages/Quizzes/QuizResult';
 
+// Notifications Page
+import Notifications from './pages/Notifications/Notifications';
+
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <ChatProvider>
-          <SocketProvider>
-            <div className="App">
-              <Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <ChatProvider>
+            <SocketProvider>
+              <div className="App">
+                <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
@@ -109,6 +114,7 @@ function App() {
               <Route path="/employer/transactions/:jobId" element={<ProtectedRoute requiredRole="Employer"><TransactionDetails /></ProtectedRoute>} />
               <Route path="/employer/chat" element={<ProtectedRoute requiredRole="Employer"><Chat /></ProtectedRoute>} />
               <Route path="/employer/complaint" element={<ProtectedRoute requiredRole="Employer"><EmployerComplaintForm /></ProtectedRoute>} />
+              <Route path="/employer/notifications" element={<ProtectedRoute requiredRole="Employer"><Notifications /></ProtectedRoute>} />
 
               {/* Freelancer Routes */}
               <Route path="/freelancer/dashboard" element={<Navigate to="/freelancer/active-jobs" replace />} />
@@ -123,17 +129,19 @@ function App() {
               <Route path="/freelancer/subscription" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerSubscription /></ProtectedRoute>} />
               <Route path="/freelancer/chat" element={<ProtectedRoute requiredRole="Freelancer"><Chat /></ProtectedRoute>} />
               <Route path="/freelancer/complaint" element={<ProtectedRoute requiredRole="Freelancer"><FreelancerComplaintForm /></ProtectedRoute>} />
+              <Route path="/freelancer/notifications" element={<ProtectedRoute requiredRole="Freelancer"><Notifications /></ProtectedRoute>} />
             <Route path="/quizzes/:id" element={<ProtectedRoute><TakeQuiz /></ProtectedRoute>} />
             <Route path="/quizzes/:id/result" element={<ProtectedRoute><QuizResult /></ProtectedRoute>} />
             
               {/* Catch all other routes */}
               <Route path="*" element={<Home />} />
-              </Routes>
-            </div>
-          </SocketProvider>
-        </ChatProvider>
-      </Router>
-    </AuthProvider>
+                </Routes>
+              </div>
+            </SocketProvider>
+          </ChatProvider>
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

@@ -222,7 +222,7 @@ const EmployerJobListings = () => {
 
                     <div className="flex-shrink-0 flex flex-col gap-2">
                       <button
-                        onClick={() => navigate(`/employer/job-listings/${job.jobId}`)}
+                        onClick={() => navigate(`/jobs/${job.jobId}`)}
                         className="border-2 border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium"
                       >
                         View Details
