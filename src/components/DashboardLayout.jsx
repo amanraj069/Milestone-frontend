@@ -6,9 +6,11 @@ import {
   fetchUnreadCount,
   selectUnreadCount,
 } from '../redux/slices/notificationsSlice';
+import { useChatNotifications } from '../context/ChatNotificationContext';
 
 const DashboardLayout = ({ children }) => {
   const { user, logout, checkAuthStatus } = useAuth();
+  const { totalUnreadCount } = useChatNotifications();
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -164,11 +166,13 @@ const DashboardLayout = ({ children }) => {
         <nav className="flex-1 py-4">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const showChatBadge = item.name === 'Chat' && totalUnreadCount > 0;
+            const showNotificationBadge = item.showBadge && unreadCount > 0;
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`relative flex items-center gap-3 px-6 py-3 text-base font-medium transition-all ${
+                className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all relative ${
                   isActive
                     ? 'bg-white/20 border-l-4 border-white text-white'
                     : 'text-white/90 hover:bg-white/10 border-l-4 border-transparent hover:border-white/50'
@@ -176,9 +180,14 @@ const DashboardLayout = ({ children }) => {
               >
                 <i className={`${item.icon} text-lg w-5`}></i>
                 <span>{item.name}</span>
-                {item.showBadge && unreadCount > 0 && (
-                  <span className="absolute left-7 top-1.5 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
+                {showNotificationBadge && (
+                  <span className="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+                {showChatBadge && (
+                  <span className="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                    {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
                   </span>
                 )}
               </Link>
