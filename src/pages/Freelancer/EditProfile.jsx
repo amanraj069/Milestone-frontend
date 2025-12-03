@@ -1,3 +1,4 @@
+// EditProfile.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -158,10 +159,18 @@ const EditProfile = () => {
 
     // Phone (re-run validation)
     const phone = formData.phone ? String(formData.phone).trim() : '';
-    const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/;
-    if (phone && !phoneRegex.test(phone)) {
-      setPhoneError('Enter a valid phone number (digits, +, spaces, -).');
-      valid = false;
+    if (phone) {
+      const cleanPhone = phone.replace(/[\s\-()]/g, '');
+      if (!cleanPhone.startsWith('+91')) {
+        setPhoneError('Phone number must start with +91 followed by 10 digits');
+        valid = false;
+      } else {
+        const digitsAfter91 = cleanPhone.slice(3);
+        if (!/^\d{10}$/.test(digitsAfter91)) {
+          setPhoneError(`Phone must be +91 followed by exactly 10 digits (currently ${digitsAfter91.length} digits)`);
+          valid = false;
+        }
+      }
     }
 
     // Existing reactive error objects
@@ -192,7 +201,7 @@ const EditProfile = () => {
     return valid;
   };
 
-  // Real-time phone validation
+  // Real-time phone validation - +91 with 10 digits
   useEffect(() => {
     const phone = formData.phone ? String(formData.phone).trim() : '';
     if (!phone) {
@@ -200,12 +209,19 @@ const EditProfile = () => {
       return;
     }
 
-    // Accept digits, spaces, dashes, parentheses and leading +, length 7-20
-    const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/;
-    if (!phoneRegex.test(phone)) {
-      setPhoneError('Enter a valid phone number (digits, +, spaces, -).');
+    // Remove all spaces and special characters except +
+    const cleanPhone = phone.replace(/[\s\-()]/g, '');
+    
+    // Check if it starts with +91 and has exactly 10 digits after
+    if (cleanPhone.startsWith('+91')) {
+      const digitsAfter91 = cleanPhone.slice(3);
+      if (!/^\d{10}$/.test(digitsAfter91)) {
+        setPhoneError(`Phone must be +91 followed by exactly 10 digits (currently ${digitsAfter91.length} digits)`);
+      } else {
+        setPhoneError('');
+      }
     } else {
-      setPhoneError('');
+      setPhoneError('Phone number must start with +91 followed by 10 digits');
     }
   }, [formData.phone]);
 
@@ -363,13 +379,8 @@ const EditProfile = () => {
       return;
     }
 
-    if (!resume.match(/^https?:\/\/.+/)) {
-      setResumeError('Resume link must be a valid URL (start with http:// or https://)');
-    } else if (!resume.match(/\.(pdf|doc|docx)$/i)) {
-      setResumeError('Resume link should point to a PDF or DOC file');
-    } else {
-      setResumeError('');
-    }
+    
+    setResumeError('');
   }, [formData.resumeLink, resumeFile]);
 
   // Real-time current skill validation
@@ -729,7 +740,7 @@ const EditProfile = () => {
           )}
           {/* Profile Picture Upload */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-6">Profile Picture</h3>
+             <h3 className="text-xl font-bold text-gray-800 mb-4">Profile Picture</h3>
             
             <div className="flex flex-col md:flex-row items-start gap-6">
               {/* Current/Preview Image */}
@@ -773,7 +784,7 @@ const EditProfile = () => {
 
           {/* Basic Information */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-6">Basic Information</h3>
+             <h3 className="text-xl font-bold text-gray-800 mb-4">Basic Information</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -810,7 +821,7 @@ const EditProfile = () => {
 
           {/* Contact Information */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-6">Contact Information</h3>
+             <h3 className="text-xl font-bold text-gray-800 mb-4">Contact Information</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -825,13 +836,14 @@ const EditProfile = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Phone (+91 with 10 digits)</label>
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${phoneError ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'}`}
+                  placeholder="+91 1234567890"
+                  className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${phoneError ? 'border-2 border-red-500' : 'border border-gray-300 focus:border-blue-500'}`}
                 />
                 {phoneError && (
                   <p className="text-sm text-red-600 mt-1">{phoneError}</p>
@@ -842,7 +854,7 @@ const EditProfile = () => {
 
           {/* About Me */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-6">About Me</h3>
+             <h3 className="text-xl font-bold text-gray-800 mb-4">About Me</h3>
             <textarea
               name="about"
               value={formData.about}
@@ -863,7 +875,7 @@ const EditProfile = () => {
 
           {/* Skills */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-6">Skills *</h3>
+             <h3 className="text-xl font-bold text-gray-800 mb-4">Skills *</h3>
             
             {/* Skill Input */}
             <div className="mb-4">
@@ -943,7 +955,7 @@ const EditProfile = () => {
           {/* Experience */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-blue-600">Experience</h3>
+               <h3 className="text-xl font-bold text-gray-800 mb-4">Experience</h3>
               <button
                 type="button"
                 onClick={handleAddExperience}
@@ -1020,7 +1032,7 @@ const EditProfile = () => {
           {/* Education */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-blue-600">Education</h3>
+               <h3 className="text-xl font-bold text-gray-800 mb-4">Education</h3>
               <button
                 type="button"
                 onClick={handleAddEducation}
@@ -1097,7 +1109,7 @@ const EditProfile = () => {
           {/* Portfolio */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-blue-600">Portfolio</h3>
+               <h3 className="text-xl font-bold text-gray-800 mb-4">Portfolio</h3>
               <button
                 type="button"
                 onClick={handleAddPortfolio}
@@ -1221,7 +1233,7 @@ const EditProfile = () => {
 
           {/* Resume */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-6">Resume</h3>
+             <h3 className="text-xl font-bold text-gray-800 mb-4">Resume</h3>
             <div>
               {formData.resumeLink ? (
                 <div className="flex items-center gap-4 mb-4">

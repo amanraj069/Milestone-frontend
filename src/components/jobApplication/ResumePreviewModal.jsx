@@ -1,14 +1,40 @@
 import React from 'react';
 
 const ResumePreviewModal = ({ resumeUrl, onClose }) => {
-  // For Cloudinary PDFs, we need to use Google Docs Viewer or direct link
+  // Handle both local and Cloudinary URLs
   const getPreviewUrl = (url) => {
-    if (url && url.includes('cloudinary.com')) {
-      // Use Google Docs Viewer for better PDF preview
-      return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+    if (!url) return '';
+    
+    // If it's a local path (starts with /uploads), prepend backend URL
+    if (url.startsWith('/uploads')) {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+      return `${backendUrl}${url}`;
     }
+    
+    // If it's a Cloudinary URL, return as-is
+    if (url.includes('cloudinary.com')) {
+      return url;
+    }
+    
+    // For any other URL, return as-is
     return url;
   };
+
+  const getDirectUrl = (url) => {
+    if (!url) return '';
+    
+    // If it's a local path, prepend backend URL
+    if (url.startsWith('/uploads')) {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+      return `${backendUrl}${url}`;
+    }
+    
+    // Return URL as-is for external URLs
+    return url;
+  };
+
+  const isLocalPdf = resumeUrl && resumeUrl.startsWith('/uploads');
+  const pdfUrl = getPreviewUrl(resumeUrl);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -20,15 +46,36 @@ const ResumePreviewModal = ({ resumeUrl, onClose }) => {
           </button>
         </div>
         <div className="modal-body modal-body-resume">
-          <iframe
-            src={getPreviewUrl(resumeUrl)}
-            title="Resume Preview"
-            className="resume-preview-iframe"
-          />
+          {isLocalPdf ? (
+            <object
+              data={pdfUrl}
+              type="application/pdf"
+              className="resume-preview-iframe"
+            >
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                <p>Unable to display PDF in this browser.</p>
+                <a
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary"
+                  style={{ display: 'inline-block', marginTop: '10px' }}
+                >
+                  <i className="fas fa-external-link-alt"></i> Open PDF in New Tab
+                </a>
+              </div>
+            </object>
+          ) : (
+            <iframe
+              src={pdfUrl}
+              title="Resume Preview"
+              className="resume-preview-iframe"
+            />
+          )}
         </div>
         <div className="modal-footer">
           <a
-            href={resumeUrl}
+            href={getDirectUrl(resumeUrl)}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"

@@ -1,17 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../context/AuthContext';
+import {
+  fetchUnreadCount,
+  selectUnreadCount,
+} from '../redux/slices/notificationsSlice';
+import { useChatNotifications } from '../context/ChatNotificationContext';
 
 const DashboardLayout = ({ children }) => {
   const { user, logout, checkAuthStatus } = useAuth();
+  const { totalUnreadCount } = useChatNotifications();
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [isPremium, setIsPremium] = useState(false);
+  
+  const unreadCount = useSelector(selectUnreadCount);
 
   useEffect(() => {
     // Update premium status whenever user changes
     setIsPremium(user?.subscription === 'Premium');
   }, [user]);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    if (user && (user.role === 'Employer' || user.role === 'Freelancer')) {
+      dispatch(fetchUnreadCount());
+      
+      // Poll for updates every 30 seconds
+      const interval = setInterval(() => {
+        dispatch(fetchUnreadCount());
+      }, 30000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [dispatch, user]);
 
   // Listen for profile updates from other pages (EditProfile)
   useEffect(() => {
@@ -65,6 +89,7 @@ const DashboardLayout = ({ children }) => {
         return [
           { name: 'Home', path: '/', icon: 'fas fa-home' },
           { name: 'Profile', path: '/employer/profile', icon: 'fas fa-user' },
+          { name: 'Notifications', path: '/employer/notifications', icon: 'fas fa-bell', showBadge: true },
           { name: 'Job Listings', path: '/employer/job-listings', icon: 'fas fa-briefcase' },
           { name: 'Current Jobs', path: '/employer/current-jobs', icon: 'fas fa-tasks' },
           { name: 'Applications', path: '/employer/applications', icon: 'fas fa-file-alt' },
@@ -77,6 +102,7 @@ const DashboardLayout = ({ children }) => {
         return [
           { name: 'Home', path: '/', icon: 'fas fa-home' },
           { name: 'Profile', path: '/freelancer/profile', icon: 'fas fa-user' },
+          { name: 'Notifications', path: '/freelancer/notifications', icon: 'fas fa-bell', showBadge: true },
           { name: 'Active Jobs', path: '/freelancer/active-jobs', icon: 'fas fa-briefcase' },
           { name: 'Job History', path: '/freelancer/job-history', icon: 'fas fa-history' },
           { name: 'Payments', path: '/freelancer/payments', icon: 'fas fa-credit-card' },
@@ -104,14 +130,14 @@ const DashboardLayout = ({ children }) => {
         <div className="p-6 border-b border-blue-600/30">
           <div className="flex items-center gap-2 mb-4">
             <h1 className="text-3xl font-bold">Dashboard</h1>
-            {isPremium && (
+            {/* {isPremium && (
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center shadow-lg">
                   <i className="fas fa-star text-white text-sm"></i>
                 </div>
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-blue-900 animate-pulse"></div>
               </div>
-            )}
+            )} */}
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-3">
@@ -140,11 +166,13 @@ const DashboardLayout = ({ children }) => {
         <nav className="flex-1 py-4">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const showChatBadge = item.name === 'Chat' && totalUnreadCount > 0;
+            const showNotificationBadge = item.showBadge && unreadCount > 0;
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all ${
+                className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all relative ${
                   isActive
                     ? 'bg-white/20 border-l-4 border-white text-white'
                     : 'text-white/90 hover:bg-white/10 border-l-4 border-transparent hover:border-white/50'
@@ -152,6 +180,16 @@ const DashboardLayout = ({ children }) => {
               >
                 <i className={`${item.icon} text-lg w-5`}></i>
                 <span>{item.name}</span>
+                {showNotificationBadge && (
+                  <span className="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+                {showChatBadge && (
+                  <span className="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                    {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}

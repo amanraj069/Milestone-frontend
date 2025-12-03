@@ -149,20 +149,6 @@ const FreelancerProfile = () => {
       onClick={() => navigate('/freelancer/profile/edit')}
       className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center gap-2"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-      </svg>
       Edit Profile
     </button>
   );
@@ -191,23 +177,7 @@ const FreelancerProfile = () => {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
                 <h2 className="text-3xl font-bold text-gray-900">{profileData.name}</h2>
-                <span className="px-4 py-1.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-sm font-semibold rounded-full flex items-center gap-1.5">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="12" cy="8" r="7"></circle>
-                    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-                  </svg>
-                  Top Freelancer
-                </span>
+                
               </div>
 
               <div className="text-lg text-gray-600 mb-4">{profileData.role}</div>
@@ -228,7 +198,7 @@ const FreelancerProfile = () => {
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                     <circle cx="12" cy="10" r="3"></circle>
                   </svg>
-                  <span>{profileData.location}</span>
+                  <span>{profileData.location || 'Not specified'}</span>
                 </div>
 
                 <div className="flex items-center gap-3 text-gray-600">
@@ -263,14 +233,16 @@ const FreelancerProfile = () => {
                   >
                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                   </svg>
-                  <span>{profileData.phone}</span>
+                  <span>{profileData.phone || 'Not specified'}</span>
                 </div>
               </div>
 
               {/* Rating */}
               <div className="flex items-center gap-2 text-amber-500 text-xl">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <span key={star}>★</span>
+                  <span key={star}>
+                    {star <= Math.floor(profileData.rating) ? '★' : star === Math.ceil(profileData.rating) && profileData.rating % 1 !== 0 ? '☆' : '☆'}
+                  </span>
                 ))}
                 <span className="text-gray-700 font-semibold ml-2">{profileData.rating}/5</span>
               </div>
@@ -282,7 +254,8 @@ const FreelancerProfile = () => {
         <div className="space-y-6">
           {/* About Me Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-4">About Me</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-4">About Me</h3>
+              
             <div className="text-gray-600 leading-relaxed">
               {profileData.aboutMe || 'No description provided.'}
             </div>
@@ -290,7 +263,7 @@ const FreelancerProfile = () => {
 
           {/* Skills Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-4">Skills</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Skills</h3>
             <div className="flex flex-wrap gap-2">
               {profileData.skills && profileData.skills.length > 0 ? (
                 profileData.skills.map((skill, index) => (
@@ -309,7 +282,7 @@ const FreelancerProfile = () => {
 
           {/* Experience Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-4">Experience</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Experience</h3>
             <div className="space-y-4">
               {profileData.experience && profileData.experience.length > 0 ? (
                 profileData.experience.map((exp, index) => (
@@ -327,7 +300,7 @@ const FreelancerProfile = () => {
 
           {/* Education Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-4">Education</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Education</h3>
             <div className="space-y-4">
               {profileData.education && profileData.education.length > 0 ? (
                 profileData.education.map((edu, index) => (
@@ -345,7 +318,7 @@ const FreelancerProfile = () => {
 
           {/* Portfolio Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-4">Portfolio</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Portfolio</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {profileData.portfolio && profileData.portfolio.length > 0 ? (
                 profileData.portfolio.map((item, index) => (
@@ -380,7 +353,7 @@ const FreelancerProfile = () => {
 
           {/* Resume Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-4">Resume</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Resume</h3>
             {profileData.resume ? (
               <div className="flex items-center gap-4">
                 <button
@@ -415,7 +388,8 @@ const FreelancerProfile = () => {
 
           {/* Badges Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 className="text-2xl font-bold text-blue-600 mb-4">Skill Badges</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Skill Badges</h3>
+              
             <BadgesList userId={user?.id} />
           </div>
 
