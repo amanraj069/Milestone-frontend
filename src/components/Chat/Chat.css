@@ -267,6 +267,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  margin-left: 8px;
 }
 
 .typing-dots span {
@@ -713,8 +714,8 @@
 
 .unread-badge {
   position: absolute;
-  right: 12px;
-  top: 12px;
+  right: 8px;
+  top: 8px;
   background: #ef4444;
   color: white;
   font-size: 11px;
@@ -838,19 +839,30 @@
 @media (max-width: 768px) {
   .chat-layout {
     flex-direction: column;
+    position: relative;
   }
 
   .conversations-sidebar {
-    width: 100%;
-    height: 200px;
+    width: 100% !important;
+    height: auto;
+    max-height: 50vh;
     order: 1;
     border-left: none;
     border-bottom: 1px solid #e5e7eb;
+    position: relative;
+    z-index: 10;
+  }
+
+  .conversations-sidebar.collapsed {
+    max-height: 80px;
+    overflow: hidden;
   }
 
   .chat-area {
     order: 2;
     flex: 1;
+    position: relative;
+    z-index: 1;
   }
 
   .message-content {
@@ -1036,17 +1048,17 @@
 
 .unread-badge {
   position: absolute;
-  right: 15px;
-  top: 15px;
+  right: 8px;
+  top: 8px;
   background: #ef4444;
   color: white;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 3px 6px;
+  padding: 3px 7px;
   border-radius: 10px;
-  min-width: 18px;
+  min-width: 20px;
   text-align: center;
-  line-height: 1.2;
+  z-index: 10;
 }
 
 .conversations-sidebar.collapsed .unread-badge {
@@ -1333,6 +1345,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  margin-left: 8px;
 }
 
 .typing-dots span {

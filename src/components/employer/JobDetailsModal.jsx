@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './JobDetailsModal.css';
 
 const JobDetailsModal = ({ job, freelancer, onClose }) => {
   const [closing, setClosing] = useState(false);
@@ -32,11 +31,22 @@ const JobDetailsModal = ({ job, freelancer, onClose }) => {
   };
 
   return (
-    <div className={`app-modal-backdrop ${closing ? 'closing' : ''}`} onClick={startClose}>
+    <div 
+      className={`fixed inset-0 flex items-center justify-center bg-black/35 backdrop-blur-sm z-[60] transition-opacity duration-220 ${
+        closing ? 'animate-[appOverlayOut_180ms_ease-in_forwards]' : 'animate-[appOverlayIn_220ms_ease-out_forwards]'
+      }`}
+      onClick={startClose}
+      style={{ opacity: closing ? undefined : 0 }}
+    >
       <div
-        className={`app-modal-panel ${closing ? 'closing' : ''}`}
+        className={`w-full max-w-[650px] max-h-[90vh] overflow-auto bg-white rounded-2xl shadow-2xl transition-all duration-260 ${
+          closing ? 'animate-[appPanelOut_180ms_ease-in_forwards]' : 'animate-[appPanelIn_260ms_ease-out_forwards]'
+        }`}
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '650px' }}
+        style={{
+          transform: closing ? undefined : 'translateY(10px) scale(0.995)',
+          opacity: closing ? undefined : 0,
+        }}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100 rounded-t-lg bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -44,7 +54,11 @@ const JobDetailsModal = ({ job, freelancer, onClose }) => {
             <h2 className="text-2xl font-bold text-gray-800">Job Details</h2>
             <p className="text-sm text-gray-600 mt-1">{freelancer?.name}'s Assignment</p>
           </div>
-          <button onClick={startClose} className="app-modal-close-btn" aria-label="Close">
+          <button 
+            onClick={startClose} 
+            className="bg-transparent border-none text-gray-600 cursor-pointer p-1.5 rounded-full transition-colors hover:bg-black/6"
+            aria-label="Close"
+          >
             <i className="fas fa-times text-xl"></i>
           </button>
         </div>
@@ -137,6 +151,38 @@ const JobDetailsModal = ({ job, freelancer, onClose }) => {
             </button>
           </div>
         </div>
+
+        {/* Keyframe animations for modal */}
+        <style>{`
+          @keyframes appOverlayIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes appOverlayOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+          }
+          @keyframes appPanelIn {
+            from {
+              transform: translateY(12px) scale(0.995);
+              opacity: 0;
+            }
+            to {
+              transform: translateY(0) scale(1);
+              opacity: 1;
+            }
+          }
+          @keyframes appPanelOut {
+            from {
+              transform: translateY(0) scale(1);
+              opacity: 1;
+            }
+            to {
+              transform: translateY(12px) scale(0.995);
+              opacity: 0;
+            }
+          }
+        `}</style>
       </div>
     </div>
   );

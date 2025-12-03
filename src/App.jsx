@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { ChatProvider } from './context/ChatContext';
+import { ChatNotificationProvider } from './context/ChatNotificationContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './components/Home';
 import Login from './components/Login';
@@ -13,6 +14,7 @@ import Chat from './components/Chat/Chat';
 // Public Pages
 import PublicJobListing from './pages/Public_JobListing/PublicJobListing';
 import JobDescription from './pages/Public_JobListing/JobDescription';
+import FreelancerPublicProfile from './pages/Public_JobListing/FreelancerProfile';
 import BlogList from './components/Home/BlogList';
 import BlogDetail from './components/Home/BlogDetail';
 import JobApplication from './components/jobApplication/JobApplication';
@@ -37,10 +39,10 @@ import EditEmployerProfile from './pages/Employer/Profile/EditProfile';
 import EmployerJobListings from './pages/Employer/JobListings/JobListings';
 import AddJob from './pages/Employer/JobListings/AddJob';
 import EditJob from './pages/Employer/JobListings/EditJob';
-import EmployerCurrentJobs from './pages/Employer/CurrentJobs/CurrentJobs';
-import EmployerApplications from './pages/Employer/Applications/Applications';
+import EmployerCurrentJobs from './pages/Employer/CurrentJobs/page';
+import EmployerApplications from './pages/Employer/Applications/page';
 import EmployerWorkHistory from './pages/Employer/WorkHistory/WorkHistory';
-import EmployerSubscription from './pages/Employer/Subscription/Subscription';
+import EmployerSubscription from './pages/Employer/Subscription/page';
 import EmployerTransactions from './pages/Employer/Transactions/Transactions';
 import TransactionDetails from './pages/Employer/Transactions/TransactionDetails';
 import EmployerComplaintForm from './pages/Employer/ComplaintForm/ComplaintForm';
@@ -48,12 +50,12 @@ import EmployerComplaintForm from './pages/Employer/ComplaintForm/ComplaintForm'
 // Freelancer Pages
 import FreelancerProfile from './pages/Freelancer/Profile';
 import FreelancerEditProfile from './pages/Freelancer/EditProfile';
-import FreelancerActiveJobs from './pages/Freelancer/ActiveJobs/ActiveJobs';
+import FreelancerActiveJobs from './pages/Freelancer/ActiveJobs/page';
 import FreelancerJobHistory from './pages/Freelancer/JobHistory';
 import FreelancerPayments from './pages/Freelancer/Payments';
 import FreelancerPaymentDetails from './pages/Freelancer/PaymentDetails';
 import FreelancerSkillsBadges from './pages/Freelancer/SkillsBadges';
-import FreelancerSubscription from './pages/Freelancer/Subscription/Subscription';
+import FreelancerSubscription from './pages/Freelancer/Subscription/page';
 import FreelancerComplaintForm from './pages/Freelancer/ComplaintForm';
 import TakeQuiz from './pages/Quizzes/TakeQuiz';
 import QuizResult from './pages/Quizzes/QuizResult';
@@ -62,10 +64,11 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <ChatProvider>
-          <SocketProvider>
-            <div className="App">
-              <Routes>
+        <ChatNotificationProvider>
+          <ChatProvider>
+            <SocketProvider>
+              <div className="App">
+                <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
@@ -73,6 +76,7 @@ function App() {
               <Route path="/jobs" element={<PublicJobListing />} />
               <Route path="/jobs/:jobId" element={<JobDescription />} />
               <Route path="/jobs/apply/:jobId" element={<ProtectedRoute requiredRole="Freelancer"><JobApplication /></ProtectedRoute>} />
+              <Route path="/freelancer/:freelancerId" element={<FreelancerPublicProfile />} />
               <Route path="/blogs" element={<BlogList />} />
               <Route path="/blogs/:blogId" element={<BlogDetail />} />
               
@@ -132,6 +136,7 @@ function App() {
             </div>
           </SocketProvider>
         </ChatProvider>
+      </ChatNotificationProvider>
       </Router>
     </AuthProvider>
   );
