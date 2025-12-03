@@ -4,7 +4,7 @@ import './JobDetailsModal.css';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
-const JobDetailsModal = ({ isOpen, onClose, job, onJobLeft }) => {
+const JobDetailsModal = ({ isOpen, onClose, job, onJobLeft, showLeaveButton = true }) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [closing, setClosing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -99,13 +99,15 @@ const JobDetailsModal = ({ isOpen, onClose, job, onJobLeft }) => {
             <h2>{job.title}</h2>
             <p className="company-name">{job.company}</p>
           </div>
-          <button
-            className="leave-job-btn"
-            onClick={handleLeaveJob}
-            disabled={loading}
-          >
-            {loading ? 'Leaving...' : 'Leave Job'}
-          </button>
+          {showLeaveButton && (
+            <button
+              className="leave-job-btn"
+              onClick={handleLeaveJob}
+              disabled={loading}
+            >
+              {loading ? 'Leaving...' : 'Leave Job'}
+            </button>
+          )}
         </div>
 
         {/* Modal Body */}
