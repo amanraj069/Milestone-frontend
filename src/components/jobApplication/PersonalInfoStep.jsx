@@ -1,16 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
 
 const PersonalInfoStep = ({ profileData, onUpdate, onNext }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedData, setEditedData] = useState({
-    email: profileData.email,
-    phone: profileData.phone,
-  });
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [resumeFileName, setResumeFileName] = useState('');
   const [resumeLastUpdated, setResumeLastUpdated] = useState('');
+
+  // Formik setup for email validation
+  const formik = useFormik({
+    initialValues: {
+      contactEmail: '',
+    },
+    validationSchema: Yup.object({
+      contactEmail: Yup.string()
+        .email('Invalid email format')
+        .nullable(),
+    }),
+    validateOnChange: true,
+    validateOnBlur: true,
+  });
 
   // Extract filename from resume URL
   useEffect(() => {
@@ -35,56 +46,6 @@ const PersonalInfoStep = ({ profileData, onUpdate, onNext }) => {
       }
     }
   }, [profileData.resume]);
-
-  const handleEditToggle = () => {
-    setIsEditing(!isEditing);
-    if (!isEditing) {
-      setEditedData({
-        email: profileData.email,
-        phone: profileData.phone,
-      });
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditedData({
-      ...editedData,
-      [name]: value,
-    });
-  };
-
-  const handleSaveProfile = async () => {
-    try {
-      setError('');
-      setSuccess('');
-
-      const response = await fetch('http://localhost:9000/api/freelancer/profile/update', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(editedData),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to update profile');
-      }
-
-      if (result.success) {
-        onUpdate(result.data);
-        setIsEditing(false);
-        setSuccess('Profile updated successfully!');
-        setTimeout(() => setSuccess(''), 3000);
-      }
-    } catch (err) {
-      console.error('Error updating profile:', err);
-      setError(err.message || 'Failed to update profile');
-    }
-  };
 
   const handleResumeUpload = async (e) => {
     const file = e.target.files[0];
@@ -135,170 +96,192 @@ const PersonalInfoStep = ({ profileData, onUpdate, onNext }) => {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!profileData.resume) {
       setError('Please upload your resume before proceeding');
       return;
     }
+
+    // Validate form
+    const errors = await formik.validateForm();
+    if (Object.keys(errors).length > 0) {
+      formik.setTouched({ contactEmail: true });
+      return;
+    }
+    
+    // Pass contactEmail to parent
+    onUpdate({ contactEmail: formik.values.contactEmail || profileData.email });
     onNext();
   };
 
   return (
-    <div className="personal-info-step">
-      <h2 className="step-title">Personal Information</h2>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-800">Personal Information</h2>
       
       {/* Success Message */}
       {success && (
-        <div className="success-alert">
-          <i className="fas fa-check-circle"></i>
-          <span>{success}</span>
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-3">
+          <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          <span className="text-green-800">{success}</span>
         </div>
       )}
 
       {/* Error Message */}
       {error && (
-        <div className="error-alert">
-          <i className="fas fa-exclamation-circle"></i>
-          <span>{error}</span>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+          <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+          <span className="text-red-800">{error}</span>
         </div>
       )}
 
       {/* Profile Info Card */}
-      <div className="profile-info-card">
-        <div className="profile-header">
-          <div className="profile-avatar">
+      <div className="bg-gray-50 rounded-lg p-6">
+        <div className="flex items-start space-x-4 mb-6">
+          <div className="flex-shrink-0">
             {profileData.picture ? (
-              <img src={profileData.picture} alt={profileData.name} />
+              <img 
+                src={profileData.picture} 
+                alt={profileData.name} 
+                className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+              />
             ) : (
-              <div className="avatar-placeholder">
-                <i className="fas fa-user"></i>
+              <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center">
+                <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
               </div>
             )}
           </div>
-          <div className="profile-header-info">
-            <h3>{profileData.name}</h3>
-            {!isEditing && (
-              <button
-                type="button"
-                className="btn-edit-small"
-                onClick={handleEditToggle}
-              >
-                <i className="fas fa-edit"></i> Edit personal details
-              </button>
-            )}
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-gray-800 mb-2">{profileData.name}</h3>
+            <div className="space-y-1 text-sm text-gray-600">
+              <p className="flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                </svg>
+                {profileData.email}
+              </p>
+              <p className="flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                </svg>
+                {profileData.phone}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="profile-fields">
-          <div className="form-group">
-            <label>Email</label>
-            {isEditing ? (
-              <input
-                type="email"
-                name="email"
-                value={editedData.email}
-                onChange={handleInputChange}
-                className="form-input"
-                required
-              />
-            ) : (
-              <div className="field-value">{profileData.email}</div>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label>Phone Number</label>
-            {isEditing ? (
-              <input
-                type="tel"
-                name="phone"
-                value={editedData.phone}
-                onChange={handleInputChange}
-                className="form-input"
-                required
-              />
-            ) : (
-              <div className="field-value">{profileData.phone}</div>
-            )}
-          </div>
-
-          {isEditing && (
-            <div className="edit-actions">
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={handleEditToggle}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={handleSaveProfile}
-              >
-                Save Changes
-              </button>
-            </div>
+        {/* Primary Contact Email */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Primary Email to Contact
+            <span className="text-gray-500 font-normal ml-2">(Optional - leave blank to use your account email)</span>
+          </label>
+          <input
+            type="email"
+            name="contactEmail"
+            value={formik.values.contactEmail}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            placeholder={profileData.email}
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none transition-colors ${
+              formik.touched.contactEmail && formik.errors.contactEmail
+                ? 'border-red-500 focus:ring-red-500 focus:border-red-500 bg-red-50'
+                : formik.touched.contactEmail && !formik.errors.contactEmail && formik.values.contactEmail
+                ? 'border-green-500 focus:ring-green-500 focus:border-green-500 bg-green-50'
+                : 'border-gray-300 focus:ring-blue-500 focus:border-transparent'
+            }`}
+          />
+          {formik.touched.contactEmail && formik.errors.contactEmail ? (
+            <p className="text-sm text-red-600 flex items-center space-x-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span>{formik.errors.contactEmail}</span>
+            </p>
+          ) : formik.touched.contactEmail && !formik.errors.contactEmail && formik.values.contactEmail ? (
+            <p className="text-sm text-green-600 flex items-center space-x-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>Valid email format</span>
+            </p>
+          ) : (
+            <p className="text-xs text-gray-500">
+              If you'd like to be contacted at a different email address for this application, enter it here.
+            </p>
           )}
         </div>
       </div>
 
       {/* Resume Section */}
-      <div className="resume-section">
-        <h3 className="section-title">Resume</h3>
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Resume</h3>
         
         {profileData.resume ? (
-          <div className="resume-card">
-            <div className="resume-info">
-              <div className="resume-icon">
-                <i className="fas fa-file-pdf"></i>
+          <div className="border border-gray-200 rounded-lg p-4 flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg className="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                  <path d="M14 2v6h6" />
+                  <path d="M10 12h4" />
+                  <path d="M10 15h4" />
+                  <path d="M10 18h2" />
+                </svg>
               </div>
-              <div className="resume-details">
-                <p className="resume-name">{resumeFileName || 'Your Resume'}</p>
-                <p className="resume-meta">
+              <div>
+                <p className="font-medium text-gray-800">{resumeFileName || 'Your Resume'}</p>
+                <p className="text-sm text-gray-500">
                   PDF Document{resumeLastUpdated ? ` • Last updated ${resumeLastUpdated}` : ''}
                 </p>
               </div>
             </div>
-            <div className="resume-actions">
+            <div className="flex items-center space-x-2">
               <button
                 type="button"
-                className="btn-icon"
                 onClick={() => {
                   const resumeUrl = profileData.resume.startsWith('/uploads') 
                     ? `http://localhost:9000${profileData.resume}` 
                     : profileData.resume;
                   window.open(resumeUrl, '_blank');
                 }}
-                title="View Resume"
+                className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
               >
-                <i className="fas fa-eye"></i> View
+                View
               </button>
-              <label className="btn-icon" title="Change Resume">
-                <i className="fas fa-upload"></i> Change
+              <label className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium cursor-pointer">
+                Change
                 <input
                   type="file"
                   accept="application/pdf"
                   onChange={handleResumeUpload}
-                  style={{ display: 'none' }}
+                  className="hidden"
                   disabled={uploading}
                 />
               </label>
             </div>
           </div>
         ) : (
-          <div className="resume-upload-card">
-            <div className="upload-icon">
-              <i className="fas fa-cloud-upload-alt"></i>
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
             </div>
-            <p className="upload-text">Upload your resume (PDF only, max 10MB)</p>
-            <label className="btn-primary">
+            <p className="text-gray-600 mb-4">Upload your resume (PDF only, max 10MB)</p>
+            <label className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition-colors cursor-pointer">
               {uploading ? 'Uploading...' : 'Choose File'}
               <input
                 type="file"
                 accept="application/pdf"
                 onChange={handleResumeUpload}
-                style={{ display: 'none' }}
+                className="hidden"
                 disabled={uploading}
               />
             </label>
@@ -307,14 +290,16 @@ const PersonalInfoStep = ({ profileData, onUpdate, onNext }) => {
       </div>
 
       {/* Next Button */}
-      <div className="step-actions">
+      <div className="flex justify-end pt-4">
         <button
           type="button"
-          className="btn-primary btn-large"
           onClick={handleNext}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 py-3 rounded-lg transition-colors flex items-center space-x-2"
         >
-          Continue to Application Details
-          <i className="fas fa-arrow-right"></i>
+          <span>Continue to Application Details</span>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
         </button>
       </div>
     </div>

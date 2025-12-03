@@ -3,6 +3,7 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { useChatContext } from "../../context/ChatContext";
+import { useChatNotifications } from "../../context/ChatNotificationContext";
 import DashboardLayout from "../DashboardLayout";
 import "./Chat.css";
 
@@ -12,6 +13,7 @@ const Chat = () => {
   const { user } = useAuth();
   const { socket, isConnected } = useSocket();
   const { selectedUserId, clearSelectedUser } = useChatContext();
+  const { updateUnreadCount } = useChatNotifications();
   
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -24,12 +26,28 @@ const Chat = () => {
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [replyTo, setReplyTo] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [isConversationsSidebarCollapsed, setIsConversationsSidebarCollapsed] = useState(false);
+  const [isConversationsSidebarCollapsed, setIsConversationsSidebarCollapsed] = useState(() => {
+    // Auto-collapse on screens below 1080px
+    return window.innerWidth < 1080;
+  });
   const [contextMenu, setContextMenu] = useState(null);
   
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const messageInputRef = useRef(null);
+
+  // Handle responsive sidebar collapse on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      // Only auto-collapse/expand if user hasn't manually toggled
+      if (window.innerWidth < 1080 && !isConversationsSidebarCollapsed) {
+        setIsConversationsSidebarCollapsed(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Fetch conversations
   useEffect(() => {
@@ -76,12 +94,25 @@ const Chat = () => {
   useEffect(() => {
     if (!socket || !isConnected) return;
 
+    // Handler for initial online users list
+    const handleInitialOnlineUsers = ({ userIds }) => {
+      console.log('📋 Chat received users:online event with:', userIds);
+      setOnlineUsers(new Set(userIds));
+    };
+
+    console.log('🔌 Setting up socket listeners for user:', user?.id, 'role:', user?.role);
+
     socket.on("message:new", handleNewMessage);
     socket.on("message:sent", handleMessageSent);
     socket.on("message:deleted", handleMessageDeleted);
     socket.on("typing:update", handleTypingUpdate);
     socket.on("user:status", handleUserStatus);
+    socket.on("users:online", handleInitialOnlineUsers);
     socket.on("message:read", handleMessageRead);
+
+    // Request current online users
+    console.log('📞 Requesting current online users from server');
+    socket.emit("request:online-users");
 
     return () => {
       socket.off("message:new", handleNewMessage);
@@ -89,9 +120,28 @@ const Chat = () => {
       socket.off("message:deleted", handleMessageDeleted);
       socket.off("typing:update", handleTypingUpdate);
       socket.off("user:status", handleUserStatus);
+      socket.off("users:online", handleInitialOnlineUsers);
       socket.off("message:read", handleMessageRead);
     };
   }, [socket, isConnected, selectedConversation]);
+
+  // Log conversations and online users for debugging
+  useEffect(() => {
+    if (conversations.length > 0) {
+      console.log('💬 Current conversations:', conversations.map(c => ({
+        name: c.participant.name,
+        userId: c.participant.userId,
+        role: c.participant.role
+      })));
+      console.log('🟢 Online users:', Array.from(onlineUsers));
+    }
+  }, [conversations, onlineUsers]);
+
+  // Update total unread count whenever conversations change
+  useEffect(() => {
+    const totalUnread = conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
+    updateUnreadCount(totalUnread);
+  }, [conversations, updateUnreadCount]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -115,6 +165,10 @@ const Chat = () => {
         withCredentials: true,
       });
       if (response.data.success) {
+        console.log('📋 Fetched conversations:', response.data.conversations.map(c => ({
+          name: c.participant.name,
+          userId: c.participant.userId
+        })));
         setConversations(response.data.conversations);
       }
     } catch (error) {
@@ -277,27 +331,38 @@ const Chat = () => {
   };
 
   const handleTypingUpdate = ({ userId, isTyping }) => {
+    console.log('⌨️  Received typing:update:', { userId, isTyping, selectedUserId: selectedConversation?.participant.userId });
     if (selectedConversation?.participant.userId === userId) {
+      console.log('   ✅ Updating typing state for current conversation');
       setTypingUsers(prev => {
         const newSet = new Set(prev);
         if (isTyping) {
           newSet.add(userId);
+          console.log('   Added to typing users:', userId);
         } else {
           newSet.delete(userId);
+          console.log('   Removed from typing users:', userId);
         }
+        console.log('   Typing users now:', Array.from(newSet));
         return newSet;
       });
+    } else {
+      console.log('   ⚠️  Typing update not for current conversation');
     }
   };
 
   const handleUserStatus = ({ userId, status }) => {
+    console.log('📡 User status update:', { userId, status, currentUser: user?.id });
     setOnlineUsers(prev => {
       const newSet = new Set(prev);
       if (status === "online") {
         newSet.add(userId);
+        console.log('✅ Added user to online:', userId, 'Total online:', newSet.size);
       } else {
         newSet.delete(userId);
+        console.log('❌ Removed user from online:', userId, 'Total online:', newSet.size);
       }
+      console.log('Online users now:', Array.from(newSet));
       return newSet;
     });
   };
@@ -512,7 +577,10 @@ const Chat = () => {
                   >
                     <div className="conversation-avatar">
                       <img src={conversation.participant.picture} alt={conversation.participant.name} />
-                      <span className={`online-indicator ${onlineUsers.has(conversation.participant.userId) ? '' : 'offline'}`}></span>
+                      <span 
+                        className={`online-indicator ${onlineUsers.has(conversation.participant.userId) ? '' : 'offline'}`}
+                        title={`${conversation.participant.name} - ${onlineUsers.has(conversation.participant.userId) ? 'Online' : 'Offline'}`}
+                      ></span>
                     </div>
                     {!isConversationsSidebarCollapsed && (
                       <div className="conversation-info">
@@ -556,11 +624,16 @@ const Chat = () => {
                     <div className="chat-header-details">
                       <h3>{selectedConversation.participant.name}</h3>
                       <div className="chat-header-status">
-                        {typingUsers.has(selectedConversation.participant.userId)
-                          ? "Typing..."
-                          : onlineUsers.has(selectedConversation.participant.userId)
-                          ? "Online"
-                          : "Offline"}
+                        {(() => {
+                          const isOnline = onlineUsers.has(selectedConversation.participant.userId);
+                          console.log('🔍 Online status check:', selectedConversation.participant.name, '- userId:', selectedConversation.participant.userId, '- Online:', isOnline);
+                          console.log('All online users:', Array.from(onlineUsers));
+                          return typingUsers.has(selectedConversation.participant.userId)
+                            ? "Typing..."
+                            : isOnline
+                            ? "Online"
+                            : "Offline";
+                        })()}
                       </div>
                     </div>
                   </div>
