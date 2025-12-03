@@ -1,13 +1,13 @@
+//take quiz
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useSelector } from 'react-redux';
 import DashboardLayout from '../../components/DashboardLayout';
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
-// Fisher-Yates shuffle algorithm
+
 function shuffleArray(array) {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -21,12 +21,6 @@ export default function TakeQuiz() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const subscription = useSelector((state) => state.subscription);
-  
-  // Calculate premium status (not in dependency array to avoid re-fetches)
-  const isPremium = user?.subscription === 'Premium' || subscription?.plan === 'Premium';
-  const maxAttempts = isPremium ? 3 : 2;
-  const cooldownDays = isPremium ? 5 : 10;
   
   // Local state
   const [quiz, setQuiz] = useState(null);
@@ -41,6 +35,8 @@ export default function TakeQuiz() {
   const [showInstructions, setShowInstructions] = useState(true);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [shuffledQuiz, setShuffledQuiz] = useState(null);
+  const [violations, setViolations] = useState([]);
+  const [showViolationWarning, setShowViolationWarning] = useState(false);
   const [showCooldownModal, setShowCooldownModal] = useState(false);
   const [cooldownInfo, setCooldownInfo] = useState(null);
 
@@ -50,17 +46,20 @@ export default function TakeQuiz() {
       try {
         setLoading(true);
         
-        // Check eligibility first
-        const eligibilityRes = await axios.get(`${API_BASE_URL}/api/quizzes/${id}/eligibility`, {
-          withCredentials: true
-        });
+        // Load both in parallel
+        const [eligibilityRes, quizRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/quizzes/${id}/eligibility`, { withCredentials: true }),
+          axios.get(`${API_BASE_URL}/api/quizzes/${id}`, { withCredentials: true })
+        ]);
+        
+        console.log('Eligibility check:', eligibilityRes.data);
         
         if (eligibilityRes.data.success) {
           setEligibility(eligibilityRes.data);
           
-          // If can't attempt, show cooldown modal
-          if (!eligibilityRes.data.canAttempt) {
-            // Use backend-provided values
+          // If can't attempt, show cooldown modal and don't proceed
+          if (eligibilityRes.data.canAttempt === false) {
+            console.log('Cannot attempt - showing cooldown modal');
             setCooldownInfo({
               maxAttempts: eligibilityRes.data.maxAttempts,
               cooldownDays: eligibilityRes.data.cooldownDays,
@@ -74,17 +73,29 @@ export default function TakeQuiz() {
           }
         }
         
-        // Load quiz data
-        const quizRes = await axios.get(`${API_BASE_URL}/api/quizzes/${id}`, {
-          withCredentials: true
-        });
+        console.log('Can attempt quiz - loading quiz data');
         
-        if (quizRes.data.success) {
-          setQuiz(quizRes.data.data);
+        if (quizRes.data.success && quizRes.data.data) {
+          const quizData = quizRes.data.data;
+          // Shuffle immediately
+          const shuffled = {
+            ...quizData,
+            questions: quizData.questions.map(q => {
+              const shuffledOptions = shuffleArray(q.options.map((opt, idx) => ({ ...opt, originalIndex: idx })));
+              return {
+                ...q,
+                options: shuffledOptions
+              };
+            })
+          };
+          setQuiz(quizData);
+          setShuffledQuiz(shuffled);
+          console.log('Quiz loaded and shuffled successfully');
         } else {
           setError('Failed to load quiz');
         }
       } catch (err) {
+        console.error('Error loading quiz:', err);
         setError(err.response?.data?.error?.message || 'Failed to load quiz');
       } finally {
         setLoading(false);
@@ -94,22 +105,7 @@ export default function TakeQuiz() {
     fetchQuizData();
   }, [id]);
 
-  // Shuffle quiz options when quiz loads
-  useEffect(() => {
-    if (quiz && !shuffledQuiz) {
-      const shuffled = {
-        ...quiz,
-        questions: quiz.questions.map(q => {
-          const shuffledOptions = shuffleArray(q.options.map((opt, idx) => ({ ...opt, originalIndex: idx })));
-          return {
-            ...q,
-            options: shuffledOptions
-          };
-        })
-      };
-      setShuffledQuiz(shuffled);
-    }
-  }, [quiz]);
+  // Remove the separate shuffle effect - now done inline above
 
   function startQuiz() {
     setShowInstructions(false);
@@ -117,7 +113,67 @@ export default function TakeQuiz() {
     if (shuffledQuiz?.timeLimitMinutes) {
       setTimeLeft(shuffledQuiz.timeLimitMinutes * 60);
     }
+    
+    // Request fullscreen
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen().catch(err => {
+        console.error('Failed to enter fullscreen:', err);
+      });
+    }
   }
+
+  // Fullscreen and violation detection
+  useEffect(() => {
+    if (!quizStarted || showInstructions) return;
+
+    const addViolation = (type) => {
+      setViolations(prev => [...prev, { type, timestamp: new Date() }]);
+      setShowViolationWarning(true);
+      setTimeout(() => setShowViolationWarning(false), 3000);
+    };
+
+    // Detect fullscreen exit
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && quizStarted && !showInstructions) {
+        addViolation('fullscreen_exit');
+      }
+    };
+
+    // Detect tab visibility change (tab switching)
+    const handleVisibilityChange = () => {
+      if (document.hidden && quizStarted && !showInstructions) {
+        addViolation('tab_switch');
+      }
+    };
+
+    // Detect blur (window/tab loses focus)
+    const handleBlur = () => {
+      if (quizStarted && !showInstructions) {
+        addViolation('window_blur');
+      }
+    };
+
+    // Handle ESC key - show leave confirmation
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && quizStarted && !showInstructions) {
+        e.preventDefault();
+        setShowLeaveConfirm(true);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [quizStarted, showInstructions]);
 
   useEffect(()=>{
     if (!timeLeft || timeLeft <= 0) return;
@@ -166,6 +222,12 @@ export default function TakeQuiz() {
 
   async function leaveQuiz() {
     setShowLeaveConfirm(false);
+    
+    // Exit fullscreen
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(err => console.error('Failed to exit fullscreen:', err));
+    }
+    
     // Submit current answers (even if incomplete) as the attempt
     const payload = shuffledQuiz.questions.map((q) => ({ 
       questionId: q._id, 
@@ -176,7 +238,10 @@ export default function TakeQuiz() {
       setSubmitting(true);
       const response = await axios.post(
         `${API_BASE_URL}/api/quizzes/${id}/attempt`,
-        { answers: payload },
+        { 
+          answers: payload,
+          violationsCount: violations.length // Send violations count
+        },
         { withCredentials: true }
       );
       
@@ -199,6 +264,12 @@ export default function TakeQuiz() {
 
   async function onSubmit() {
     setShowConfirm(false);
+    
+    // Exit fullscreen
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(err => console.error('Failed to exit fullscreen:', err));
+    }
+    
     const payload = shuffledQuiz.questions.map((q) => ({ 
       questionId: q._id, 
       selectedOptionIndex: answers[q._id] ?? null 
@@ -208,7 +279,10 @@ export default function TakeQuiz() {
       setSubmitting(true);
       const response = await axios.post(
         `${API_BASE_URL}/api/quizzes/${id}/attempt`,
-        { answers: payload },
+        { 
+          answers: payload,
+          violationsCount: violations.length // Send violations count
+        },
         { withCredentials: true }
       );
       
@@ -229,7 +303,8 @@ export default function TakeQuiz() {
     }
   }
 
-  if (loading || !shuffledQuiz) {
+  // Show loading only if truly loading
+  if (loading) {
     return (
       <DashboardLayout>
         <div className="p-6 flex items-center justify-center min-h-[60vh]">
@@ -260,7 +335,7 @@ export default function TakeQuiz() {
       </DashboardLayout>
     );
   }
-
+  
   // Cooldown modal
   if (showCooldownModal && cooldownInfo) {
     return (
@@ -297,7 +372,6 @@ export default function TakeQuiz() {
             {!cooldownInfo.isPremium && (
               <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-300 rounded-lg p-4 mb-6">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="text-2xl">💡</span>
                   <div>
                     <h3 className="font-bold text-gray-800 mb-2">Upgrade to Premium to get:</h3>
                     <ul className="text-sm text-gray-700 space-y-1">
@@ -340,79 +414,13 @@ export default function TakeQuiz() {
     );
   }
 
-  // Cooldown modal
-  if (showCooldownModal && cooldownInfo) {
+  // Must have shuffledQuiz to proceed
+  if (!shuffledQuiz) {
     return (
       <DashboardLayout>
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-[slideUp_0.3s_ease]">
-            <div className="flex justify-center mb-6">
-              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
-                <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            
-            <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">
-              Maximum Attempts Reached
-            </h2>
-            
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <p className="text-center text-red-800 font-semibold mb-3">
-                You have used all {cooldownInfo.maxAttempts} attempts for this quiz.
-              </p>
-              <div className="text-center text-gray-700">
-                <p className="mb-2">You can take your next attempt after <strong>{cooldownInfo.cooldownDays} days</strong>.</p>
-                <p className="text-lg font-bold text-red-600">
-                  Time remaining: {cooldownInfo.daysRemaining} day(s)
-                </p>
-                <p className="text-sm text-gray-600">
-                  (approximately {cooldownInfo.hoursRemaining} hours)
-                </p>
-              </div>
-            </div>
-
-            {!cooldownInfo.isPremium && (
-              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-300 rounded-lg p-4 mb-6">
-                <div className="flex items-start gap-3 mb-3">
-                  <span className="text-2xl">💡</span>
-                  <div>
-                    <h3 className="font-bold text-gray-800 mb-2">Upgrade to Premium to get:</h3>
-                    <ul className="text-sm text-gray-700 space-y-1">
-                      <li className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        <strong>3 attempts</strong> instead of 2
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        <strong>{cooldownInfo.cooldownDays === 10 ? '5-day' : '4-day'} cooldown</strong> instead of {cooldownInfo.cooldownDays} days
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        Priority support and more!
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={() => {
-                setShowCooldownModal(false);
-                navigate('/freelancer/skills-badges');
-              }}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
-            >
-              OK
-            </button>
+        <div className="p-6 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <p className="text-gray-500">Preparing quiz...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -465,8 +473,20 @@ export default function TakeQuiz() {
                 <h4 className="font-semibold text-gray-900 mb-3">Important Rules</h4>
                 <ul className="text-sm text-gray-700 space-y-2">
                   <li className="flex items-start gap-2">
-                    <span className="text-orange-600 font-bold">•</span>
-                    <span><strong>Maximum {maxAttempts} attempts allowed</strong> - This is attempt {(eligibility?.attemptsUsed || 0) + 1}</span>
+                    <span className="text-orange-500 mt-0.5">•</span>
+                    <span><strong>Maximum {eligibility?.maxAttempts || 2} attempts allowed</strong> — This is attempt {(eligibility?.attemptsUsed || 0) + 1}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-500 mt-0.5">•</span>
+                    <span><strong>Fullscreen mode required</strong> — Quiz will start in fullscreen; exiting triggers warnings</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-500 mt-0.5">•</span>
+                    <span><strong>No tab switching</strong> — Switching tabs or windows will be detected and logged</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-500 mt-0.5">•</span>
+                    <span><strong>Press ESC to leave</strong> — Pressing ESC will prompt you to leave the quiz</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-orange-500 mt-0.5">•</span>
@@ -479,10 +499,6 @@ export default function TakeQuiz() {
                   <li className="flex items-start gap-2">
                     <span className="text-orange-500 mt-0.5">•</span>
                     <span><strong>Randomized options</strong> — Answer choices are shuffled for each attempt</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-orange-500 mt-0.5">•</span>
-                    <span><strong>Leave Quiz option</strong> — Use "Leave Quiz" button if you need to exit (counts as attempt)</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-orange-500 mt-0.5">•</span>
@@ -516,6 +532,13 @@ export default function TakeQuiz() {
   // Active quiz - full screen without sidebar
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Violation Warning Banner */}
+      {showViolationWarning && (
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-red-600 text-white px-4 py-3 text-center font-medium shadow-lg animate-pulse">
+          Warning: Suspicious activity detected! Your actions are being monitored.
+        </div>
+      )}
+
       {/* Fixed Header with Timer */}
       <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -524,16 +547,14 @@ export default function TakeQuiz() {
               <h2 className="font-semibold text-gray-900">{shuffledQuiz.title}</h2>
               <div className="text-xs text-gray-500">{shuffledQuiz.skillName}</div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded font-semibold">
-                Attempt {(eligibility?.attemptsUsed || 0) + 1}/{maxAttempts}
+            <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
+              Attempt {(eligibility?.attemptsUsed || 0) + 1}/{eligibility?.maxAttempts || 2}
+            </span>
+            {violations.length > 0 && (
+              <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded font-medium">
+                {violations.length} violation{violations.length !== 1 ? 's' : ''}
               </span>
-              {(eligibility?.attemptsUsed || 0) >= maxAttempts - 1 && (
-                <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded font-semibold animate-pulse">
-                  Final Attempt!
-                </span>
-              )}
-            </div>
+            )}
           </div>
           
           <div className="flex items-center gap-4">

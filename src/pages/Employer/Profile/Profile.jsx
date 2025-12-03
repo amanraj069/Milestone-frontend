@@ -177,35 +177,21 @@ const EmployerProfile = () => {
         <p className="text-gray-600">Manage your company profile and information</p>
         <button 
           onClick={() => navigate('/employer/profile/edit')}
-          className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center gap-2"
+          className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-          </svg>
           Edit Profile
         </button>
       </div>
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 text-center">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
             <div className="text-4xl font-bold text-blue-600">
               {dashboardStats !== null ? dashboardStats.activeJobs : <span className="animate-pulse">0</span>}
             </div>
             <div className="text-sm text-gray-600 mt-2 font-medium">ACTIVE JOBS</div>
           </div>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 text-center">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
             <div className="text-4xl font-bold text-blue-600">
               {dashboardStats !== null ? dashboardStats.currentFreelancers : <span className="animate-pulse">0</span>}
             </div>
@@ -214,7 +200,7 @@ const EmployerProfile = () => {
         </div>
 
         {/* Profile Header Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-start gap-8">
             {/* Profile Image */}
             <div className="flex-shrink-0">
@@ -232,28 +218,9 @@ const EmployerProfile = () => {
 
             {/* Profile Info */}
             <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <h2 className="text-3xl font-bold text-gray-900">
-                  {profileData.name}
-                </h2>
-                <span className="px-4 py-1.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-sm font-semibold rounded-full flex items-center gap-1.5">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="12" cy="8" r="7"></circle>
-                    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-                  </svg>
-                  Top Employer
-                </span>
-              </div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-3">
+                {profileData.name}
+              </h2>
 
               <div className="text-lg text-gray-600 mb-4">{employerData?.companyName}</div>
 
@@ -412,10 +379,8 @@ const EmployerProfile = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* About Section - Takes 2/3 width */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-              <h3 className="text-2xl font-bold text-blue-600 mb-4">
-                About {employerData?.companyName}
-              </h3>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">About {employerData?.companyName}</h3>
               <div className="text-gray-600 leading-relaxed whitespace-pre-line">
                 {profileData.aboutMe || 'No description provided.'}
               </div>
@@ -424,9 +389,8 @@ const EmployerProfile = () => {
 
           {/* Subscription Section - Takes 1/3 width */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5.5">
-              {/* <h3 className="text-2xl font-bold text-blue-600 mb-4">Subscription</h3> */}
-              <div className="flex items-center gap-3">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+               <div className="flex items-center gap-3">
                 <span className="text-gray-600">Current Plan:</span>
                 <span className={`px-4 py-2 rounded-full font-semibold text-sm ${
                   profileData.subscription === 'Premium' 
@@ -439,7 +403,7 @@ const EmployerProfile = () => {
               {profileData.subscription !== 'Premium' && (
                 <button 
                   onClick={() => navigate('/employer/subscription')}
-                  className="mt-4 w-full px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors"
+                  className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                 >
                   Upgrade to Premium
                 </button>
@@ -447,13 +411,13 @@ const EmployerProfile = () => {
             </div>
           </div>
         </div>
-
+        <br></br>
         {/* Public Feedback Section */}
         <PublicFeedbackSection userId={user?.id} />
 
         {/* Social Media & Links Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mt-6">
-          <h3 className="text-2xl font-bold text-blue-600 mb-4">Social Media & Links</h3>
+          <h3 className="text-xl font-bold text-gray-800 mb-4">Social Media & Links</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {profileData.socialMedia?.linkedin ? (
                 <a

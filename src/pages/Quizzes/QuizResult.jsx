@@ -69,7 +69,7 @@ export default function QuizResult() {
       {awarded.length > 0 && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
           <div className="px-6 py-4 border-b border-gray-200 bg-green-50">
-            <h2 className="text-base font-semibold text-gray-900">🎉 Badges Earned!</h2>
+            <h2 className="text-base font-semibold text-gray-900">Badges Earned!</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

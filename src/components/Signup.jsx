@@ -49,16 +49,22 @@ const Signup = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
+    // Block numbers in name field
+    let processedValue = value;
+    if (name === 'name') {
+      processedValue = value.replace(/[0-9]/g, '');
+    }
+    
     setFormData({
       ...formData,
-      [name]: value
+      [name]: processedValue
     });
     
     // Real-time validation for name field
     if (name === 'name') {
-      if (value.trim() === '') {
+      if (processedValue.trim() === '') {
         setFieldErrors(prev => ({ ...prev, name: 'Full name is required' }));
-      } else if (value.trim().length < 2) {
+      } else if (processedValue.trim().length < 2) {
         setFieldErrors(prev => ({ ...prev, name: 'Name must be at least 2 characters' }));
       } else {
         setFieldErrors(prev => ({ ...prev, name: '' }));

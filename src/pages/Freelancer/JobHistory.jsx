@@ -1,8 +1,10 @@
+//job history.tsx
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import DashboardPage from '../../components/DashboardPage';
 import FeedbackForm from '../../components/FeedbackForm';
+import JobDetailsModal from './ActiveJobs/JobDetailsModal';
 import { loadJobHistory, selectJobHistory, selectJobsLoading, selectJobsError } from '../../redux/slices/jobsSlice';
 import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../redux/slices/feedbackSlice';
 
@@ -33,6 +35,8 @@ export default function FreelancerJobHistory() {
   const feedbackEligibilityMap = useSelector((state) => state.feedback.eligibilityByJob || {});
 
   const [feedbackModal, setFeedbackModal] = useState(null);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     console.log('JobHistory: Loading job history...');
@@ -72,109 +76,88 @@ export default function FreelancerJobHistory() {
     };
 
     const handleSeeMore = () => {
-      navigate(`/freelancer/jobs/${jobId}`);
+      setSelectedJob(job);
+      setIsModalOpen(true);
     };
 
     return (
-      <div
-        key={jobId}
-        className="bg-white rounded-xl shadow-sm mb-6 flex gap-6 hover:shadow-md transition-shadow"
-      >
-        {/* Logo */}
-        <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 border-gray-100">
-          <img
-            src={job.logo || '/assets/company_logo.jpg'}
-            alt="Company logo"
-            className="w-full h-full object-cover"
-            onError={(e) => (e.target.src = '/assets/company_logo.jpg')}
-          />
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start flex-wrap gap-4">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">{job.title}</h3>
-              <p className="text-gray-600 font-medium mt-1">{job.company}</p>
-            </div>
-
-            <span
-              className={`px-4 py-2 rounded-full text-sm font-bold ${
-                isCompleted
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : isLeft 
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-gray-100 text-gray-800'
-              }`}
-            >
-              {isCompleted ? 'Completed' : isLeft ? 'Left Job' : job.status}
-            </span>
+      <div key={jobId} className="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+        <div className="p-4 flex items-start gap-4">
+          {/* Logo */}
+          <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+            <img
+              src={job.logo || '/assets/company_logo.jpg'}
+              alt="Company logo"
+              className="w-full h-full object-cover"
+              onError={(e) => (e.target.src = '/assets/company_logo.jpg')}
+            />
           </div>
 
-          {/* Tech Stack */}
-          <div className="flex flex-wrap gap-2 mt-4">
-            {(job.tech || []).map((tech, i) => (
-              <span
-                key={i}
-                className="px-3 py-1 bg-sky-100 text-sky-700 text-xs font-semibold rounded-full border border-sky-200"
-              >
-                {tech}
-              </span>
-            ))}
-          </div>
-
-          {/* Date & Rating */}
-          <div className="flex flex-wrap items-center gap-6 mt-5 text-sm">
-            <div className="flex items-center gap-2 text-gray-600">
-              <span className="text-blue-600 font-bold">Date:</span>
-              <span>{job.date || 'N/A'}</span>
-            </div>
-
-            {isCompleted && job.rating && typeof job.rating === 'number' && (
-              <div className="ml-auto flex items-center gap-3">
-                <Stars rating={job.rating} />
-                <span className="font-semibold text-gray-700">
-                  {(job.rating).toFixed(1)} / 5
-                </span>
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-center gap-4">
+              <div>
+                <h3 className="font-medium text-gray-900">{job.title}</h3>
+                <p className="text-sm text-gray-600 mt-0.5">{job.company}</p>
               </div>
+            </div>
+
+            {/* Tech Stack */}
+            {job.tech && job.tech.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {job.tech.map((tech, i) => (
+                  <span key={i} className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                    {tech}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Date & Rating */}
+            <div className="flex flex-wrap items-center gap-4 mt-3">
+              <span className="text-sm text-gray-500">{job.date || 'N/A'}</span>
+              {isCompleted && job.rating && typeof job.rating === 'number' && (
+                <div className="flex items-center gap-2">
+                  <Stars rating={job.rating} />
+                  <span className="text-sm text-gray-600">{job.rating.toFixed(1)}/5</span>
+                </div>
+              )}
+              {isPaid ? (
+                <span className="text-sm font-medium text-green-600">{job.price}</span>
+              ) : (
+                <span className="text-sm font-medium text-red-600">{job.price || 'Not paid'}</span>
+              )}
+            </div>
+
+            {isLeft && job.cancelReason && (
+              <p className="text-sm text-red-600 mt-2">{job.cancelReason}</p>
             )}
           </div>
 
-          {isLeft && job.cancelReason && (
-            <p className="text-red-600 italic mt-3 text-sm">{job.cancelReason}</p>
-          )}
-        </div>
-
-        {/* Right Column — Perfectly Aligned Buttons */}
-        <div className="flex flex-col items-end gap-3 min-w-[140px]">
-          {/* See More Button */}
-          <button 
-            onClick={handleSeeMore}
-            className="w-full px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            See More
-          </button>
-
-          {/* Leave Feedback Button - Show for completed OR left jobs if eligible */}
-          {(isCompleted || isLeft) && eligibility?.canGiveFeedback && (
-            <button
-              onClick={handleLeaveFeedback}
-              className="w-full px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors"
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            {isLeft && (
+              <button 
+                className="px-3 py-1.5 bg-red-100 text-red-700 text-sm font-medium rounded-md hover:bg-red-200 transition-colors"
+              >
+                Left Job
+              </button>
+            )}
+            <button 
+              onClick={handleSeeMore}
+              className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
             >
-              Leave Feedback
+              See More
             </button>
-          )}
-
-          {/* Price or Not Paid */}
-          {isPaid ? (
-            <div className="w-full px-4 py-2 bg-emerald-100 text-emerald-800 text-sm font-bold rounded-lg text-center border border-emerald-300">
-              {job.price}
-            </div>
-          ) : (
-            <div className="w-full px-4 py-2 bg-red-100 text-red-800 text-sm font-bold rounded-lg text-center border border-red-300">
-              {job.price || 'Not paid'}
-            </div>
-          )}
+            {(isCompleted || isLeft) && eligibility?.canGiveFeedback && (
+              <button
+                onClick={handleLeaveFeedback}
+                className="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+              >
+                Leave Feedback
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -182,23 +165,29 @@ export default function FreelancerJobHistory() {
 
   return (
     <DashboardPage title="Job History">
-      <div className="mx-auto">
-        {/* Content */}
-        <div className="bg-white rounded-xl shadow-sm">
+      <p className="text-gray-500 -mt-6 mb-6">View your completed and past jobs</p>
+
+      {/* Content */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-base font-semibold text-gray-900">Your Job History</h2>
+          <p className="text-sm text-gray-500 mt-0.5">All completed and past jobs</p>
+        </div>
+        <div className="p-6">
           {loading && (
-            <div className="text-center py-16">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 text-lg">Loading job history...</p>
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mb-3"></div>
+              <p className="text-gray-500">Loading job history...</p>
             </div>
           )}
 
           {error && (
-            <div className="text-center py-12 text-red-600">
-              <p className="text-xl font-semibold mb-2">Error loading job history</p>
-              <p className="mb-4">{typeof error === 'string' ? error : error?.message || 'Unknown error'}</p>
+            <div className="text-center py-12">
+              <p className="text-lg font-medium text-red-600 mb-2">Error loading job history</p>
+              <p className="text-gray-500 mb-4">{typeof error === 'string' ? error : error?.message || 'Unknown error'}</p>
               <button
                 onClick={() => dispatch(loadJobHistory())}
-                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
               >
                 Retry
               </button>
@@ -206,38 +195,49 @@ export default function FreelancerJobHistory() {
           )}
 
           {!loading && !error && (!jobs || jobs.length === 0) && (
-            <div className="text-center py-20 text-gray-500">
-              <h3 className="text-2xl font-semibold text-gray-700">No job history found</h3>
-              <p className="mt-2">You haven't completed any jobs yet.</p>
+            <div className="text-center py-12">
+              <p className="text-lg font-medium text-gray-700 mb-1">No job history found</p>
+              <p className="text-gray-500">You haven't completed any jobs yet.</p>
             </div>
           )}
 
           {!loading && !error && jobs?.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {jobs.map(renderJobCard)}
             </div>
           )}
         </div>
-
-        {/* Feedback Modal */}
-        {feedbackModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <FeedbackForm
-                jobId={feedbackModal.jobId}
-                toUserId={feedbackModal.toUserId}
-                toRole={feedbackModal.toRole}
-                counterpartyName={feedbackModal.counterpartyName}
-                onSuccess={() => {
-                  setFeedbackModal(null);
-                  dispatch(checkCanGiveFeedback(feedbackModal.jobId));
-                }}
-                onCancel={() => setFeedbackModal(null)}
-              />
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Feedback Modal */}
+      {feedbackModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <FeedbackForm
+              jobId={feedbackModal.jobId}
+              toUserId={feedbackModal.toUserId}
+              toRole={feedbackModal.toRole}
+              counterpartyName={feedbackModal.counterpartyName}
+              onSuccess={() => {
+                setFeedbackModal(null);
+                dispatch(checkCanGiveFeedback(feedbackModal.jobId));
+              }}
+              onCancel={() => setFeedbackModal(null)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Job Details Modal */}
+      {selectedJob && (
+        <JobDetailsModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          job={selectedJob}
+          onJobLeft={() => dispatch(loadJobHistory())}
+          showLeaveButton={false}
+        />
+      )}
     </DashboardPage>
   );
 }

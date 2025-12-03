@@ -11,6 +11,8 @@ const EditEmployerProfile = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [phoneError, setPhoneError] = useState('');
   const [aboutError, setAboutError] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [companyNameError, setCompanyNameError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -111,7 +113,7 @@ const EditEmployerProfile = () => {
     fetchProfileData();
   }, [user]);
 
-  // Real-time phone validation
+  // Real-time phone validation - +91 with 10 digits
   useEffect(() => {
     const phone = formData.phone ? String(formData.phone).trim() : '';
     if (!phone) {
@@ -119,15 +121,23 @@ const EditEmployerProfile = () => {
       return;
     }
 
-    const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/;
-    if (!phoneRegex.test(phone)) {
-      setPhoneError('Enter a valid phone number (digits, +, spaces, -).');
+    // Remove all spaces and special characters except +
+    const cleanPhone = phone.replace(/[\s\-()]/g, '');
+    
+    // Check if it starts with +91 and has exactly 10 digits after
+    if (cleanPhone.startsWith('+91')) {
+      const digitsAfter91 = cleanPhone.slice(3);
+      if (!/^\d{10}$/.test(digitsAfter91)) {
+        setPhoneError(`Phone must be +91 followed by exactly 10 digits (currently ${digitsAfter91.length} digits)`);
+      } else {
+        setPhoneError('');
+      }
     } else {
-      setPhoneError('');
+      setPhoneError('Phone number must start with +91 followed by 10 digits');
     }
   }, [formData.phone]);
 
-  // Real-time about me validation
+  // Real-time about me validation - minimum 50 characters
   useEffect(() => {
     const about = formData.aboutMe ? String(formData.aboutMe).trim() : '';
     if (!about) {
@@ -141,6 +151,36 @@ const EditEmployerProfile = () => {
       setAboutError('');
     }
   }, [formData.aboutMe]);
+
+  // Real-time contact name validation - minimum 3 characters
+  useEffect(() => {
+    const name = formData.name ? String(formData.name).trim() : '';
+    if (!name) {
+      setNameError('Contact name is required');
+      return;
+    }
+
+    if (name.length < 3) {
+      setNameError(`Contact name must be at least 3 characters (${name.length}/3)`);
+    } else {
+      setNameError('');
+    }
+  }, [formData.name]);
+
+  // Real-time company name validation - minimum 3 characters
+  useEffect(() => {
+    const companyName = formData.companyName ? String(formData.companyName).trim() : '';
+    if (!companyName) {
+      setCompanyNameError('Company name is required');
+      return;
+    }
+
+    if (companyName.length < 3) {
+      setCompanyNameError(`Company name must be at least 3 characters (${companyName.length}/3)`);
+    } else {
+      setCompanyNameError('');
+    }
+  }, [formData.companyName]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -273,7 +313,7 @@ const EditEmployerProfile = () => {
           
           <button 
             onClick={() => navigate('/employer/profile')}
-            className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
           >
             Cancel
           </button>
@@ -322,7 +362,7 @@ const EditEmployerProfile = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contact Name *
+                  Contact Name * (min 3 characters)
                 </label>
                 <input
                   type="text"
@@ -330,14 +370,19 @@ const EditEmployerProfile = () => {
                   value={formData.name}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    nameError ? 'border-2 border-red-500' : 'border border-gray-300 focus:border-transparent'
+                  }`}
                   placeholder="Enter contact name"
                 />
+                {nameError && (
+                  <p className="text-sm text-red-600 mt-1">{nameError}</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company Name *
+                  Company Name * (min 3 characters)
                 </label>
                 <input
                   type="text"
@@ -345,37 +390,44 @@ const EditEmployerProfile = () => {
                   value={formData.companyName}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    companyNameError ? 'border-2 border-red-500' : 'border border-gray-300 focus:border-transparent'
+                  }`}
                   placeholder="Enter company name"
                 />
+                {companyNameError && (
+                  <p className="text-sm text-red-600 mt-1">{companyNameError}</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email *
+                  Email * (Cannot be changed)
                 </label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  readOnly
+                  disabled
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed text-gray-700"
                   placeholder="email@example.com"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone
+                  Phone (+91 with 10 digits)
                 </label>
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 ${phoneError ? 'border border-red-500' : 'border border-gray-300 focus:border-transparent'}`}
-                  placeholder="+1 (555) 123-4567"
+                  className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    phoneError ? 'border-2 border-red-500' : 'border border-gray-300 focus:border-transparent'
+                  }`}
+                  placeholder="+91 1234567890"
                 />
                 {phoneError && (
                   <p className="text-sm text-red-600 mt-1">{phoneError}</p>
@@ -417,19 +469,22 @@ const EditEmployerProfile = () => {
             <h3 className="text-xl font-bold text-gray-900 mb-6">About Company</h3>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Company Description
+                Company Description * (min 50 characters)
               </label>
               <textarea
                 name="aboutMe"
                 value={formData.aboutMe}
                 onChange={handleInputChange}
+                required
                 rows={6}
-                className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none ${aboutError ? 'border border-red-500' : 'border border-gray-300 focus:border-transparent'}`}
+                className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none ${
+                  aboutError ? 'border-2 border-red-500' : 'border border-gray-300 focus:border-transparent'
+                }`}
                 placeholder="Tell us about your company, mission, values, and what makes you unique... (minimum 50 characters)"
               />
               <div className="flex justify-between items-center mt-2">
                 <p className={`text-sm ${aboutError ? 'text-red-600' : 'text-gray-500'}`}>
-                  {formData.aboutMe.length} characters {formData.aboutMe.length < 50 ? `(${50 - formData.aboutMe.length} more needed)` : ''}
+                  {formData.aboutMe.length} characters {formData.aboutMe.length < 50 ? `(${50 - formData.aboutMe.length} more needed)` : '✓'}
                 </p>
                 {aboutError && (
                   <p className="text-sm text-red-600">{aboutError}</p>
@@ -526,7 +581,7 @@ const EditEmployerProfile = () => {
             
             <button
               type="submit"
-              disabled={saving || !!phoneError || !!aboutError}
+              disabled={saving || !!phoneError || !!aboutError || !!nameError || !!companyNameError || !formData.name || !formData.companyName || !formData.aboutMe}
               className="px-8 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {saving ? (
