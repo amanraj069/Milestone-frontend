@@ -438,6 +438,10 @@ const PublicJobListing = () => {
                               {job.applicationCount} applicants
                             </button>
 
+                            <div className="text-gray-600 text-xs font-medium">
+                              {getDaysAgo(job.postedDate)}
+                            </div>
+
                             {/* See More Button - Middle Right */}
                             <Link
                               to={`/jobs/${job.jobId}`}
@@ -448,9 +452,7 @@ const PublicJobListing = () => {
                             </Link>
 
                             {/* Posted Date - Bottom Right */}
-                            <div className="text-gray-600 text-xs font-medium">
-                              {getDaysAgo(job.postedDate)}
-                            </div>
+                            
                           </div>
                         </div>
                       </div>
