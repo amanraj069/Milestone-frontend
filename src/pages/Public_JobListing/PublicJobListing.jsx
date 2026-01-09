@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import Footer from '../../components/Home/Footer';
@@ -9,6 +9,7 @@ const PublicJobListing = () => {
   const user = auth?.user;
   const getDashboardRoute = auth?.getDashboardRoute;
   const { theme, toggleTheme } = useTheme();
+  const [searchParams] = useSearchParams();
   
   const [jobs, setJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
@@ -16,6 +17,7 @@ const PublicJobListing = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [visibleJobsCount, setVisibleJobsCount] = useState(6);
+  const [availableSkills, setAvailableSkills] = useState([]);
 
   // Filter states
   const [sortBy, setSortBy] = useState('date');
@@ -24,17 +26,18 @@ const PublicJobListing = () => {
   const [selectedJobType, setSelectedJobType] = useState('');
   const [isRemote, setIsRemote] = useState(false);
 
-  // Available skills for filter
-  const availableSkills = [
-    'JavaScript', 'Python', 'React', 'Node.js', 'SQL', 'AWS',
-    'Docker', 'Git', 'TypeScript', 'Vue.js', 'Angular', 'Flutter',
-    'Kotlin', 'Figma', 'Sketch', 'Blender', 'SEO', 'SEM', 'Pandas'
-  ];
-
   // Load jobs on mount
   useEffect(() => {
     loadJobs();
   }, []);
+
+  // Handle search params from URL
+  useEffect(() => {
+    const searchQuery = searchParams.get('search');
+    if (searchQuery) {
+      setSearchTerm(searchQuery);
+    }
+  }, [searchParams]);
 
   // Apply filters whenever dependencies change
   useEffect(() => {
@@ -49,6 +52,18 @@ const PublicJobListing = () => {
       const data = await response.json();
       if (data.success) {
         setJobs(data.jobs);
+        
+        // Extract unique skills from all jobs
+        const skillsSet = new Set();
+        data.jobs.forEach(job => {
+          if (job.description && job.description.skills) {
+            job.description.skills.forEach(skill => {
+              skillsSet.add(skill);
+            });
+          }
+        });
+        // Convert to array and sort alphabetically
+        setAvailableSkills(Array.from(skillsSet).sort());
       }
     } catch (error) {
       console.error('Failed to load jobs:', error);
@@ -166,13 +181,15 @@ const PublicJobListing = () => {
               </Link>
             </div>
             <div className="flex-1 max-w-md mx-8">
-              <form className="relative">
+              <form className="relative" onSubmit={handleSearch}>
                 <input 
                   type="text" 
                   placeholder="Search for services..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className={`w-full px-5 py-3 border-2 rounded-full text-sm outline-none transition-all focus:border-navy-700 focus:ring-4 focus:ring-navy-100 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'border-gray-200'}`}
                 />
-                <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy-700 text-white border-none rounded-full w-9 h-9 cursor-pointer transition-all hover:bg-navy-800 flex items-center justify-center">
+                <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy-700 text-white border-none rounded-full w-9 h-9 cursor-pointer transition-all hover:bg-navy-800 flex items-center justify-center shrink-0">
                   <i className="fas fa-search"></i>
                 </button>
               </form>
@@ -344,7 +361,7 @@ const PublicJobListing = () => {
                         key={job.jobId}
                         className={`rounded-lg border p-5 hover:shadow-md transition-all duration-200 ${theme === 'dark' ? 'bg-gray-800 border-gray-700 hover:border-gray-600' : 'bg-white border-gray-200'}`}
                       >
-                        <div className="flex gap-5 items-center">
+                        <div className="flex gap-5 min-h-[140px]">
                           {/* Company Logo - Circular */}
                           <div className="flex-shrink-0">
                             <img
@@ -424,20 +441,20 @@ const PublicJobListing = () => {
                           </div>
 
                           {/* Right Side - Actions */}
-                          <div className="flex flex-col items-end justify-between min-w-[140px] gap-3">
-                            {/* Application Count Button - Top Right */}
-                            <h4 className={`px-2 py-1.5 ${theme === 'dark' ? 'text-gray-300' : ''}`}>
+                          <div className="flex flex-col items-end justify-between min-w-[140px]">
+                            {/* Application Count - Top Right */}
+                            <h4 className={`px-2 py-1.5 text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                               {job.applicationCount} applicants
                             </h4>
 
-                            {/* Bottom row: Posted Date (on the left) + See More button (on the right) */}
+                            {/* Bottom row: Posted Date + See More button */}
                             <div className="flex items-center gap-3">
                               <div className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                                 {getDaysAgo(job.postedDate)}
                               </div>
                               <Link
                                 to={`/jobs/${job.jobId}`}
-                                className={`ml-2 px-4 py-2 inline-flex items-center justify-center border-2 border-blue-600 rounded-lg text-sm sm:text-base font-semibold hover:bg-blue-600 hover:text-white transition-colors whitespace-nowrap no-underline shadow-sm hover:shadow-md ${theme === 'dark' ? 'bg-gray-800 text-blue-400' : 'bg-white text-blue-600'}`}
+                                className={`px-4 py-2 inline-flex items-center justify-center border-2 border-blue-600 rounded-lg text-sm sm:text-base font-semibold hover:bg-blue-600 hover:text-white transition-colors whitespace-nowrap no-underline shadow-sm hover:shadow-md ${theme === 'dark' ? 'bg-gray-800 text-blue-400' : 'bg-white text-blue-600'}`}
                                 aria-label={`View details for ${job.title}`}
                               >
                                 See more

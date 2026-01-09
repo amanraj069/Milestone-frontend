@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import BlogSection from './Home/BlogSection';
@@ -7,8 +7,15 @@ import BlogSection from './Home/BlogSection';
 const Home = () => {
   const { user, getDashboardRoute } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
   const [currentFreelancerIndex, setCurrentFreelancerIndex] = useState(0);
   const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const searchRef = useRef(null);
 
   const freelancers = [
     {
@@ -102,6 +109,106 @@ const Home = () => {
     return () => clearInterval(interval);
   }, [testimonials.length]);
 
+  // Fetch all jobs on mount
+  useEffect(() => {
+    loadJobs();
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filter jobs based on search term
+  useEffect(() => {
+    if (searchTerm.trim() && jobs.length > 0) {
+      const search = searchTerm.toLowerCase();
+      const filtered = jobs.filter(job =>
+        job.title.toLowerCase().includes(search) ||
+        job.description.skills.some(skill => skill.toLowerCase().includes(search)) ||
+        job.category?.toLowerCase().includes(search)
+      ).slice(0, 5); // Show max 5 results
+      setSearchResults(filtered);
+      setShowSearchDropdown(filtered.length > 0);
+    } else {
+      setSearchResults([]);
+      setShowSearchDropdown(false);
+    }
+  }, [searchTerm, jobs]);
+
+  const loadJobs = async () => {
+    try {
+      const response = await fetch('http://localhost:9000/api/jobs/api', {
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (data.success) {
+        setJobs(data.jobs);
+      }
+    } catch (error) {
+      console.error('Failed to load jobs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      // Navigate to jobs page with search query
+      navigate(`/jobs?search=${encodeURIComponent(searchTerm.trim())}`);
+    } else {
+      // Navigate to jobs page without search
+      navigate('/jobs');
+    }
+    setShowSearchDropdown(false);
+  };
+
+  const handleSearchInputChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleSearchInputFocus = () => {
+    if (searchTerm.trim() && searchResults.length > 0) {
+      setShowSearchDropdown(true);
+    }
+  };
+
+  const handleResultClick = (jobId) => {
+    setShowSearchDropdown(false);
+    setSearchTerm('');
+    navigate(`/jobs/${jobId}`);
+  };
+
+  const formatSalary = (budget) => {
+    if (!budget) return 'Not specified';
+    return `₹${budget.amount.toLocaleString()}${budget.type === 'fixed' ? '' : '/' + budget.type}`;
+  };
+
+  const getDaysAgo = (postedDate) => {
+    const now = new Date();
+    const posted = new Date(postedDate);
+    const daysDiff = Math.floor((now - posted) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff === 0) return 'Today';
+    if (daysDiff === 1) return '1 Day Ago';
+    return `${daysDiff} Days Ago`;
+  };
+
+  const isNewJob = (postedDate) => {
+    const now = new Date();
+    const posted = new Date(postedDate);
+    const hoursDiff = (now - posted) / (1000 * 60 * 60);
+    return hoursDiff <= 24;
+  };
+
   const nextFreelancer = () => {
     setCurrentFreelancerIndex((prev) => (prev + 1) % freelancers.length);
   };
@@ -129,17 +236,105 @@ const Home = () => {
                 Mile<span className="text-navy-700">stone</span>
               </Link>
             </div>
-            <div className="flex-1 max-w-md mx-8">
-              <form className="relative">
+            <div className="flex-1 max-w-md mx-8 relative" ref={searchRef}>
+              <form className="relative" onSubmit={handleSearch}>
                 <input 
                   type="text" 
                   placeholder="Search for services..." 
+                  value={searchTerm}
+                  onChange={handleSearchInputChange}
+                  onFocus={handleSearchInputFocus}
                   className={`w-full px-5 py-3 border-2 rounded-full text-sm outline-none transition-all focus:border-navy-700 focus:ring-4 focus:ring-navy-100 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'border-gray-200'}`}
                 />
-                <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy-700 text-white border-none rounded-full w-9 h-9 cursor-pointer transition-all hover:bg-navy-800 flex items-center justify-center">
+                <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy-700 text-white border-none rounded-full w-9 h-9 cursor-pointer transition-all hover:bg-navy-800 flex items-center justify-center shrink-0">
                   <i className="fas fa-search"></i>
                 </button>
               </form>
+              
+              {/* Search Results Dropdown */}
+              {showSearchDropdown && searchResults.length > 0 && (
+                <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl shadow-2xl border overflow-hidden z-50 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                  <div className={`px-4 py-2 border-b text-xs font-semibold uppercase tracking-wide ${theme === 'dark' ? 'bg-gray-900 text-gray-400 border-gray-700' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                    Job Suggestions ({searchResults.length})
+                  </div>
+                  <div className="max-h-[400px] overflow-y-auto">
+                    {searchResults.map((job) => (
+                      <div
+                        key={job.jobId}
+                        onClick={() => handleResultClick(job.jobId)}
+                        className={`px-4 py-3 cursor-pointer transition-all duration-200 border-b last:border-b-0 ${theme === 'dark' ? 'hover:bg-gray-700 border-gray-700' : 'hover:bg-gray-50 border-gray-100'}`}
+                      >
+                        <div className="flex gap-3 items-center">
+                          {/* Company Logo/Image */}
+                          <div className="flex-shrink-0">
+                            <img
+                              src={job.imageUrl || '/assets/default-job.png'}
+                              alt={job.title}
+                              className={`w-12 h-12 rounded-full object-cover border-2 ${theme === 'dark' ? 'border-gray-600' : 'border-gray-200'}`}
+                              onError={(e) => {
+                                e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%234f46e5" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="white" text-anchor="middle" dominant-baseline="middle"%3E' + job.title.charAt(0) + '%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                          </div>
+
+                          {/* Job Info */}
+                          <div className="flex-1 min-w-0">
+                            {/* Job Title and Badges */}
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className={`font-semibold text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                                {job.title}
+                              </h4>
+                              {isNewJob(job.postedDate) && (
+                                <span className="inline-block px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded flex-shrink-0">
+                                  New
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {/* Salary */}
+                              <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>
+                                ₹{job.budget.amount.toLocaleString()}
+                                <span className={`text-xs font-normal ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                  /{job.budget.period}
+                                </span>
+                              </span>
+
+                              {/* Skills */}
+                              {job.description.skills.slice(0, 3).map((skill, idx) => (
+                                <span
+                                  key={idx}
+                                  className={`px-2 py-0.5 rounded text-xs ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Right Side - Date and Applicants */}
+                          <div className="flex flex-col items-end justify-center gap-1 flex-shrink-0">
+                            <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {getDaysAgo(job.postedDate)}
+                            </span>
+                            <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                              {job.applicationCount || 0} applicants
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={`px-4 py-2.5 text-center border-t ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                    <button
+                      onClick={handleSearch}
+                      className="text-sm font-medium text-navy-700 hover:text-navy-800 transition-colors"
+                    >
+                      View all results →
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-4">
               <button 

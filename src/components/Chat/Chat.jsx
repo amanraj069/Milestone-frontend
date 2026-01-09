@@ -96,11 +96,11 @@ const Chat = () => {
 
     // Handler for initial online users list
     const handleInitialOnlineUsers = ({ userIds }) => {
-      console.log('📋 Chat received users:online event with:', userIds);
+      console.log('Chat received users:online event with:', userIds);
       setOnlineUsers(new Set(userIds));
     };
 
-    console.log('🔌 Setting up socket listeners for user:', user?.id, 'role:', user?.role);
+    console.log('Setting up socket listeners for user:', user?.id, 'role:', user?.role);
 
     socket.on("message:new", handleNewMessage);
     socket.on("message:sent", handleMessageSent);
@@ -111,7 +111,7 @@ const Chat = () => {
     socket.on("message:read", handleMessageRead);
 
     // Request current online users
-    console.log('📞 Requesting current online users from server');
+    console.log('Requesting current online users from server');
     socket.emit("request:online-users");
 
     return () => {
@@ -128,12 +128,12 @@ const Chat = () => {
   // Log conversations and online users for debugging
   useEffect(() => {
     if (conversations.length > 0) {
-      console.log('💬 Current conversations:', conversations.map(c => ({
+      console.log('Current conversations:', conversations.map(c => ({
         name: c.participant.name,
         userId: c.participant.userId,
         role: c.participant.role
       })));
-      console.log('🟢 Online users:', Array.from(onlineUsers));
+      console.log('Online users:', Array.from(onlineUsers));
     }
   }, [conversations, onlineUsers]);
 
@@ -165,7 +165,7 @@ const Chat = () => {
         withCredentials: true,
       });
       if (response.data.success) {
-        console.log('📋 Fetched conversations:', response.data.conversations.map(c => ({
+        console.log('Fetched conversations:', response.data.conversations.map(c => ({
           name: c.participant.name,
           userId: c.participant.userId
         })));
@@ -333,7 +333,7 @@ const Chat = () => {
   const handleTypingUpdate = ({ userId, isTyping }) => {
     console.log('⌨️  Received typing:update:', { userId, isTyping, selectedUserId: selectedConversation?.participant.userId });
     if (selectedConversation?.participant.userId === userId) {
-      console.log('   ✅ Updating typing state for current conversation');
+      console.log('   Updating typing state for current conversation');
       setTypingUsers(prev => {
         const newSet = new Set(prev);
         if (isTyping) {
@@ -347,20 +347,20 @@ const Chat = () => {
         return newSet;
       });
     } else {
-      console.log('   ⚠️  Typing update not for current conversation');
+      console.log('   Typing update not for current conversation');
     }
   };
 
   const handleUserStatus = ({ userId, status }) => {
-    console.log('📡 User status update:', { userId, status, currentUser: user?.id });
+    console.log('User status update:', { userId, status, currentUser: user?.id });
     setOnlineUsers(prev => {
       const newSet = new Set(prev);
       if (status === "online") {
         newSet.add(userId);
-        console.log('✅ Added user to online:', userId, 'Total online:', newSet.size);
+        console.log('Added user to online:', userId, 'Total online:', newSet.size);
       } else {
         newSet.delete(userId);
-        console.log('❌ Removed user from online:', userId, 'Total online:', newSet.size);
+        console.log('Removed user from online:', userId, 'Total online:', newSet.size);
       }
       console.log('Online users now:', Array.from(newSet));
       return newSet;
@@ -626,7 +626,7 @@ const Chat = () => {
                       <div className="chat-header-status">
                         {(() => {
                           const isOnline = onlineUsers.has(selectedConversation.participant.userId);
-                          console.log('🔍 Online status check:', selectedConversation.participant.name, '- userId:', selectedConversation.participant.userId, '- Online:', isOnline);
+                          console.log('Online status check:', selectedConversation.participant.name, '- userId:', selectedConversation.participant.userId, '- Online:', isOnline);
                           console.log('All online users:', Array.from(onlineUsers));
                           return typingUsers.has(selectedConversation.participant.userId)
                             ? "Typing..."

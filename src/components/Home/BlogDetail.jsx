@@ -12,6 +12,7 @@ const BlogDetail = () => {
   const { user, getDashboardRoute } = useAuth();
   const { currentBlog: blog, recentBlogs, featuredBlog, fetchingCurrent: loading } = useSelector((state) => state.blog);
   const [theme, setTheme] = useState('light');
+  const [searchTerm, setSearchTerm] = useState('');
   const [comment, setComment] = useState({
     name: '',
     email: '',
@@ -21,6 +22,15 @@ const BlogDetail = () => {
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/jobs?search=${encodeURIComponent(searchTerm.trim())}`);
+    } else {
+      navigate('/jobs');
+    }
   };
 
   useEffect(() => {
@@ -113,13 +123,15 @@ const BlogDetail = () => {
               </Link>
             </div>
             <div className="flex-1 max-w-md mx-8">
-              <form className="relative">
+              <form className="relative" onSubmit={handleSearch}>
                 <input 
                   type="text" 
                   placeholder="Search for services..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full px-5 py-3 border-2 border-gray-200 rounded-full text-sm outline-none transition-all focus:border-navy-700 focus:ring-4 focus:ring-navy-100"
                 />
-                <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy-700 text-white border-none rounded-full w-9 h-9 cursor-pointer transition-all hover:bg-navy-800 flex items-center justify-center">
+                <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy-700 text-white border-none rounded-full w-9 h-9 cursor-pointer transition-all hover:bg-navy-800 flex items-center justify-center shrink-0">
                   <i className="fas fa-search"></i>
                 </button>
               </form>
