@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import BlogSection from './Home/BlogSection';
 
 const Home = () => {
   const { user, getDashboardRoute } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [currentFreelancerIndex, setCurrentFreelancerIndex] = useState(0);
   const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0);
@@ -226,12 +224,12 @@ const Home = () => {
   };
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className={`${theme === 'dark' ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} backdrop-blur-md border-b fixed top-0 left-0 right-0 z-50`}>
+      <header className="bg-white/95 border-gray-200 backdrop-blur-md border-b fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-8">
           <div className="flex items-center justify-between py-4">
-            <div className={`text-4xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            <div className="text-4xl font-bold text-gray-900">
               <Link to="/" className="hover:text-navy-700 transition-colors">
                 Mile<span className="text-navy-700">stone</span>
               </Link>
@@ -244,7 +242,7 @@ const Home = () => {
                   value={searchTerm}
                   onChange={handleSearchInputChange}
                   onFocus={handleSearchInputFocus}
-                  className={`w-full px-5 py-3 border-2 rounded-full text-sm outline-none transition-all focus:border-navy-700 focus:ring-4 focus:ring-navy-100 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'border-gray-200'}`}
+                  className="w-full px-5 py-3 border-2 rounded-full text-sm outline-none transition-all focus:border-navy-700 focus:ring-4 focus:ring-navy-100 border-gray-200"
                 />
                 <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy-700 text-white border-none rounded-full w-9 h-9 cursor-pointer transition-all hover:bg-navy-800 flex items-center justify-center shrink-0">
                   <i className="fas fa-search"></i>
@@ -253,8 +251,8 @@ const Home = () => {
               
               {/* Search Results Dropdown */}
               {showSearchDropdown && searchResults.length > 0 && (
-                <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl shadow-2xl border overflow-hidden z-50 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-                  <div className={`px-4 py-2 border-b text-xs font-semibold uppercase tracking-wide ${theme === 'dark' ? 'bg-gray-900 text-gray-400 border-gray-700' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                <div className="absolute top-full left-0 right-0 mt-2 rounded-xl shadow-2xl border overflow-hidden z-50 bg-white border-gray-200">
+                  <div className="px-4 py-2 border-b text-xs font-semibold uppercase tracking-wide bg-gray-50 text-gray-600 border-gray-200">
                     Job Suggestions ({searchResults.length})
                   </div>
                   <div className="max-h-[400px] overflow-y-auto">
@@ -262,7 +260,7 @@ const Home = () => {
                       <div
                         key={job.jobId}
                         onClick={() => handleResultClick(job.jobId)}
-                        className={`px-4 py-3 cursor-pointer transition-all duration-200 border-b last:border-b-0 ${theme === 'dark' ? 'hover:bg-gray-700 border-gray-700' : 'hover:bg-gray-50 border-gray-100'}`}
+                        className="px-4 py-3 cursor-pointer transition-all duration-200 border-b last:border-b-0 hover:bg-gray-50 border-gray-100"
                       >
                         <div className="flex gap-3 items-center">
                           {/* Company Logo/Image */}
@@ -270,7 +268,7 @@ const Home = () => {
                             <img
                               src={job.imageUrl || '/assets/default-job.png'}
                               alt={job.title}
-                              className={`w-12 h-12 rounded-full object-cover border-2 ${theme === 'dark' ? 'border-gray-600' : 'border-gray-200'}`}
+                              className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
                               onError={(e) => {
                                 e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%234f46e5" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="white" text-anchor="middle" dominant-baseline="middle"%3E' + job.title.charAt(0) + '%3C/text%3E%3C/svg%3E';
                               }}
@@ -281,7 +279,7 @@ const Home = () => {
                           <div className="flex-1 min-w-0">
                             {/* Job Title and Badges */}
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className={`font-semibold text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                              <h4 className="font-semibold text-sm text-gray-900">
                                 {job.title}
                               </h4>
                               {isNewJob(job.postedDate) && (
@@ -293,9 +291,9 @@ const Home = () => {
 
                             <div className="flex items-center gap-2 flex-wrap">
                               {/* Salary */}
-                              <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>
+                              <span className="text-sm font-semibold text-green-600">
                                 ₹{job.budget.amount.toLocaleString()}
-                                <span className={`text-xs font-normal ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                <span className="text-xs font-normal text-gray-500">
                                   /{job.budget.period}
                                 </span>
                               </span>
@@ -304,7 +302,7 @@ const Home = () => {
                               {job.description.skills.slice(0, 3).map((skill, idx) => (
                                 <span
                                   key={idx}
-                                  className={`px-2 py-0.5 rounded text-xs ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}
+                                  className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700"
                                 >
                                   {skill}
                                 </span>
@@ -314,10 +312,10 @@ const Home = () => {
 
                           {/* Right Side - Date and Applicants */}
                           <div className="flex flex-col items-end justify-center gap-1 flex-shrink-0">
-                            <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <span className="text-xs text-gray-600">
                               {getDaysAgo(job.postedDate)}
                             </span>
-                            <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                            <span className="text-xs font-medium text-gray-700">
                               {job.applicationCount || 0} applicants
                             </span>
                           </div>
@@ -325,7 +323,7 @@ const Home = () => {
                       </div>
                     ))}
                   </div>
-                  <div className={`px-4 py-2.5 text-center border-t ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="px-4 py-2.5 text-center border-t bg-gray-50 border-gray-200">
                     <button
                       onClick={handleSearch}
                       className="text-sm font-medium text-navy-700 hover:text-navy-800 transition-colors"
@@ -337,13 +335,6 @@ const Home = () => {
               )}
             </div>
             <div className="flex items-center gap-4">
-              <button 
-                onClick={toggleTheme}
-                className={`border-2 rounded-lg text-lg cursor-pointer transition-all p-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-yellow-400 hover:bg-gray-700' : 'bg-gray-100 border-gray-200 text-gray-600 hover:text-navy-700'}`}
-              >
-                <i className={`fas ${theme === 'light' ? 'fa-moon' : 'fa-sun'}`}></i>
-              </button>
-              
               {user ? (
                 <Link 
                   to={getDashboardRoute()} 
@@ -461,56 +452,56 @@ const Home = () => {
       </section>
 
       {/* Stats Section */}
-      <section className={`py-24 ${theme === 'dark' ? 'bg-gradient-to-b from-gray-900 to-gray-800' : 'bg-gradient-to-b from-gray-50 to-white'}`}>
+      <section className={`py-24 'bg-gradient-to-b from-gray-50 to-white'`}>
         <div className="max-w-7xl mx-auto px-8">
           <div className="text-center mb-16 max-w-4xl mx-auto">
-            <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-semibold mb-4 ${theme === 'dark' ? 'bg-navy-800 text-navy-300' : 'bg-navy-100 text-navy-700'}`}>Our Impact</span>
-            <h2 className={`text-4xl md:text-5xl font-bold mb-6 leading-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-semibold mb-4 'bg-navy-100 text-navy-700'`}>Our Impact</span>
+            <h2 className={`text-4xl md:text-5xl font-bold mb-6 leading-tight 'text-gray-900'`}>
               Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-navy-700 to-navy-500">achievement</span> at a glance
             </h2>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            <div className={`group p-8 md:p-10 rounded-2xl text-center shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border ${theme === 'dark' ? 'bg-gray-800 border-gray-700 hover:border-navy-500' : 'bg-white border-gray-100 hover:border-navy-200'}`}>
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-300 ${theme === 'dark' ? 'bg-gradient-to-br from-navy-700 to-navy-600' : 'bg-gradient-to-br from-navy-100 to-navy-50'}`}>
-                <i className={`fas fa-users text-2xl ${theme === 'dark' ? 'text-navy-300' : 'text-navy-700'}`}></i>
+            <div className={`group p-8 md:p-10 rounded-2xl text-center shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border 'bg-white border-gray-100 hover:border-navy-200'`}>
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-300 'bg-gradient-to-br from-navy-100 to-navy-50'`}>
+                <i className={`fas fa-users text-2xl 'text-navy-700'`}></i>
               </div>
-              <h3 className={`text-4xl md:text-5xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>10K+</h3>
-              <p className={`font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Active Freelancers</p>
+              <h3 className={`text-4xl md:text-5xl font-bold mb-2 'text-gray-900'`}>10K+</h3>
+              <p className={`font-medium 'text-gray-500'`}>Active Freelancers</p>
             </div>
-            <div className={`group p-8 md:p-10 rounded-2xl text-center shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border ${theme === 'dark' ? 'bg-gray-800 border-gray-700 hover:border-navy-500' : 'bg-white border-gray-100 hover:border-navy-200'}`}>
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-300 ${theme === 'dark' ? 'bg-gradient-to-br from-navy-700 to-navy-600' : 'bg-gradient-to-br from-navy-100 to-navy-50'}`}>
-                <i className={`fas fa-briefcase text-2xl ${theme === 'dark' ? 'text-navy-300' : 'text-navy-700'}`}></i>
+            <div className={`group p-8 md:p-10 rounded-2xl text-center shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border 'bg-white border-gray-100 hover:border-navy-200'`}>
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-300 'bg-gradient-to-br from-navy-100 to-navy-50'`}>
+                <i className={`fas fa-briefcase text-2xl 'text-navy-700'`}></i>
               </div>
-              <h3 className={`text-4xl md:text-5xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>5K+</h3>
-              <p className={`font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Projects Completed</p>
+              <h3 className={`text-4xl md:text-5xl font-bold mb-2 'text-gray-900'`}>5K+</h3>
+              <p className={`font-medium 'text-gray-500'`}>Projects Completed</p>
             </div>
-            <div className={`group p-8 md:p-10 rounded-2xl text-center shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border ${theme === 'dark' ? 'bg-gray-800 border-gray-700 hover:border-navy-500' : 'bg-white border-gray-100 hover:border-navy-200'}`}>
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-300 ${theme === 'dark' ? 'bg-gradient-to-br from-navy-700 to-navy-600' : 'bg-gradient-to-br from-navy-100 to-navy-50'}`}>
-                <i className={`fas fa-globe text-2xl ${theme === 'dark' ? 'text-navy-300' : 'text-navy-700'}`}></i>
+            <div className={`group p-8 md:p-10 rounded-2xl text-center shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border 'bg-white border-gray-100 hover:border-navy-200'`}>
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-300 'bg-gradient-to-br from-navy-100 to-navy-50'`}>
+                <i className={`fas fa-globe text-2xl 'text-navy-700'`}></i>
               </div>
-              <h3 className={`text-4xl md:text-5xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>28+</h3>
-              <p className={`font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>States Covered</p>
+              <h3 className={`text-4xl md:text-5xl font-bold mb-2 'text-gray-900'`}>28+</h3>
+              <p className={`font-medium 'text-gray-500'`}>States Covered</p>
             </div>
-            <div className={`group p-8 md:p-10 rounded-2xl text-center shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border ${theme === 'dark' ? 'bg-gray-800 border-gray-700 hover:border-navy-500' : 'bg-white border-gray-100 hover:border-navy-200'}`}>
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-300 ${theme === 'dark' ? 'bg-gradient-to-br from-amber-700 to-amber-600' : 'bg-gradient-to-br from-amber-100 to-amber-50'}`}>
-                <i className={`fas fa-star text-2xl ${theme === 'dark' ? 'text-amber-300' : 'text-amber-500'}`}></i>
+            <div className={`group p-8 md:p-10 rounded-2xl text-center shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border 'bg-white border-gray-100 hover:border-navy-200'`}>
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-300 'bg-gradient-to-br from-amber-100 to-amber-50'`}>
+                <i className={`fas fa-star text-2xl 'text-amber-500'`}></i>
               </div>
-              <h3 className={`text-4xl md:text-5xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>4.9/5</h3>
-              <p className={`font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Client Satisfaction</p>
+              <h3 className={`text-4xl md:text-5xl font-bold mb-2 'text-gray-900'`}>4.9/5</h3>
+              <p className={`font-medium 'text-gray-500'`}>Client Satisfaction</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Header */}
-      <section className={`py-16 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`} id="features">
+      <section className={`py-16 'bg-white'`} id="features">
         <div className="max-w-7xl mx-auto px-8">
           <div className="text-center max-w-4xl mx-auto">
-            <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-semibold mb-4 ${theme === 'dark' ? 'bg-navy-800 text-navy-300' : 'bg-navy-100 text-navy-700'}`}>Why Choose Us</span>
-            <h2 className={`text-4xl md:text-5xl font-bold mb-6 leading-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-semibold mb-4 'bg-navy-100 text-navy-700'`}>Why Choose Us</span>
+            <h2 className={`text-4xl md:text-5xl font-bold mb-6 leading-tight 'text-gray-900'`}>
               Everything You Need to <span className="text-transparent bg-clip-text bg-gradient-to-r from-navy-700 to-navy-500">Succeed</span>
             </h2>
-            <p className={`text-lg md:text-xl max-w-2xl mx-auto leading-relaxed ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+            <p className={`text-lg md:text-xl max-w-2xl mx-auto leading-relaxed 'text-gray-500'`}>
               Milestone provides all the tools you need to find, hire, and work with top freelancers from around the world.
             </p>
           </div>
@@ -518,35 +509,35 @@ const Home = () => {
       </section>
 
       {/* Feature 1: Find Jobs */}
-      <section className={`py-20 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <section className={`py-20 'bg-gray-50'`}>
         <div className="max-w-7xl mx-auto px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="order-2 lg:order-1">
-              <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mb-4 ${theme === 'dark' ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>
+              <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mb-4 'bg-blue-100 text-blue-700'`}>
                 <i className="fas fa-briefcase mr-2"></i>For Freelancers
               </span>
-              <h3 className={`text-3xl md:text-4xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Find Your Dream Projects</h3>
-              <p className={`text-lg mb-6 leading-relaxed ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              <h3 className={`text-3xl md:text-4xl font-bold mb-6 'text-gray-900'`}>Find Your Dream Projects</h3>
+              <p className={`text-lg mb-6 leading-relaxed 'text-gray-600'`}>
                 Browse thousands of job listings from top Indian companies and startups. Our smart matching algorithm helps you find projects that perfectly match your skills and experience.
               </p>
               <ul className="space-y-4 mb-8">
                 <li className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${theme === 'dark' ? 'bg-green-900' : 'bg-green-100'}`}>
-                    <i className={`fas fa-check text-xs ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}></i>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 'bg-green-100'`}>
+                    <i className={`fas fa-check text-xs 'text-green-600'`}></i>
                   </div>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Access to 5000+ active job listings</span>
+                  <span className='text-gray-600'>Access to 5000+ active job listings</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${theme === 'dark' ? 'bg-green-900' : 'bg-green-100'}`}>
-                    <i className={`fas fa-check text-xs ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}></i>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 'bg-green-100'`}>
+                    <i className={`fas fa-check text-xs 'text-green-600'`}></i>
                   </div>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>AI-powered job recommendations</span>
+                  <span className='text-gray-600'>AI-powered job recommendations</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${theme === 'dark' ? 'bg-green-900' : 'bg-green-100'}`}>
-                    <i className={`fas fa-check text-xs ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}></i>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 'bg-green-100'`}>
+                    <i className={`fas fa-check text-xs 'text-green-600'`}></i>
                   </div>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Apply with one click using your profile</span>
+                  <span className='text-gray-600'>Apply with one click using your profile</span>
                 </li>
               </ul>
               <Link to="/jobs" className="inline-flex items-center gap-2 px-6 py-3 bg-navy-800 text-white rounded-xl font-semibold hover:bg-navy-900 transition-all hover:shadow-lg no-underline">
@@ -561,38 +552,38 @@ const Home = () => {
       </section>
 
       {/* Feature 2: Post Jobs */}
-      <section className={`py-20 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+      <section className={`py-20 'bg-white'`}>
         <div className="max-w-7xl mx-auto px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="flex justify-center">
               <img src="/assets/home/oversight-bro.svg" alt="Post Jobs" className="w-full max-w-md drop-shadow-xl" />
             </div>
             <div>
-              <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mb-4 ${theme === 'dark' ? 'bg-purple-900 text-purple-300' : 'bg-purple-100 text-purple-700'}`}>
+              <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mb-4 'bg-purple-100 text-purple-700'`}>
                 <i className="fas fa-building mr-2"></i>For Employers
               </span>
-              <h3 className={`text-3xl md:text-4xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Hire Top Talent Easily</h3>
-              <p className={`text-lg mb-6 leading-relaxed ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              <h3 className={`text-3xl md:text-4xl font-bold mb-6 'text-gray-900'`}>Hire Top Talent Easily</h3>
+              <p className={`text-lg mb-6 leading-relaxed 'text-gray-600'`}>
                 Post your job requirements and get matched with qualified freelancers instantly. Review portfolios, compare rates, and hire the perfect candidate for your project.
               </p>
               <ul className="space-y-4 mb-8">
                 <li className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${theme === 'dark' ? 'bg-green-900' : 'bg-green-100'}`}>
-                    <i className={`fas fa-check text-xs ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}></i>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 'bg-green-100'`}>
+                    <i className={`fas fa-check text-xs 'text-green-600'`}></i>
                   </div>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Post unlimited job listings</span>
+                  <span className='text-gray-600'>Post unlimited job listings</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${theme === 'dark' ? 'bg-green-900' : 'bg-green-100'}`}>
-                    <i className={`fas fa-check text-xs ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}></i>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 'bg-green-100'`}>
+                    <i className={`fas fa-check text-xs 'text-green-600'`}></i>
                   </div>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Get applications within 24 hours</span>
+                  <span className='text-gray-600'>Get applications within 24 hours</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${theme === 'dark' ? 'bg-green-900' : 'bg-green-100'}`}>
-                    <i className={`fas fa-check text-xs ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}></i>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 'bg-green-100'`}>
+                    <i className={`fas fa-check text-xs 'text-green-600'`}></i>
                   </div>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Verified freelancers with ratings & reviews</span>
+                  <span className='text-gray-600'>Verified freelancers with ratings & reviews</span>
                 </li>
               </ul>
               <Link to="/signup" className="inline-flex items-center gap-2 px-6 py-3 bg-navy-800 text-white rounded-xl font-semibold hover:bg-navy-900 transition-all hover:shadow-lg no-underline">
@@ -604,35 +595,35 @@ const Home = () => {
       </section>
 
       {/* Feature 3: Secure Payments */}
-      <section className={`py-20 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <section className={`py-20 'bg-gray-50'`}>
         <div className="max-w-7xl mx-auto px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="order-2 lg:order-1">
-              <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mb-4 ${theme === 'dark' ? 'bg-emerald-900 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+              <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mb-4 'bg-emerald-100 text-emerald-700'`}>
                 <i className="fas fa-shield-alt mr-2"></i>Secure Platform
               </span>
-              <h3 className={`text-3xl md:text-4xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Safe & Secure Payments</h3>
-              <p className={`text-lg mb-6 leading-relaxed ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              <h3 className={`text-3xl md:text-4xl font-bold mb-6 'text-gray-900'`}>Safe & Secure Payments</h3>
+              <p className={`text-lg mb-6 leading-relaxed 'text-gray-600'`}>
                 Our milestone-based payment system ensures that funds are released only when you're satisfied with the work. Enjoy peace of mind with our secure escrow protection.
               </p>
               <ul className="space-y-4 mb-8">
                 <li className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${theme === 'dark' ? 'bg-green-900' : 'bg-green-100'}`}>
-                    <i className={`fas fa-check text-xs ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}></i>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 'bg-green-100'`}>
+                    <i className={`fas fa-check text-xs 'text-green-600'`}></i>
                   </div>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Escrow protection on all payments</span>
+                  <span className='text-gray-600'>Escrow protection on all payments</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${theme === 'dark' ? 'bg-green-900' : 'bg-green-100'}`}>
-                    <i className={`fas fa-check text-xs ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}></i>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 'bg-green-100'`}>
+                    <i className={`fas fa-check text-xs 'text-green-600'`}></i>
                   </div>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Milestone-based payment releases</span>
+                  <span className='text-gray-600'>Milestone-based payment releases</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${theme === 'dark' ? 'bg-green-900' : 'bg-green-100'}`}>
-                    <i className={`fas fa-check text-xs ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}></i>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 'bg-green-100'`}>
+                    <i className={`fas fa-check text-xs 'text-green-600'`}></i>
                   </div>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>UPI, Net Banking & Card payments supported</span>
+                  <span className='text-gray-600'>UPI, Net Banking & Card payments supported</span>
                 </li>
               </ul>
               <Link to="/signup" className="inline-flex items-center gap-2 px-6 py-3 bg-navy-800 text-white rounded-xl font-semibold hover:bg-navy-900 transition-all hover:shadow-lg no-underline">
@@ -647,11 +638,11 @@ const Home = () => {
       </section>
 
       {/* Quick Features Grid */}
-      <section className={`py-20 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+      <section className={`py-20 'bg-white'`}>
         <div className="max-w-7xl mx-auto px-8">
           <div className="text-center mb-12">
-            <h3 className={`text-3xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>More Powerful Features</h3>
-            <p className={`max-w-xl mx-auto ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Everything you need to succeed in your freelancing journey</p>
+            <h3 className={`text-3xl font-bold mb-4 'text-gray-900'`}>More Powerful Features</h3>
+            <p className={`max-w-xl mx-auto 'text-gray-500'`}>Everything you need to succeed in your freelancing journey</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
@@ -662,12 +653,12 @@ const Home = () => {
               { icon: 'fa-chart-line', title: 'Analytics Dashboard', desc: 'Track your progress and earnings in real-time.', color: 'from-emerald-500 to-teal-600' },
               { icon: 'fa-rocket', title: 'Fast Delivery', desc: 'Efficient workflow system for quick turnaround.', color: 'from-navy-600 to-navy-800' }
             ].map((feature, idx) => (
-              <div key={idx} className={`group p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl border ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 border-gray-600 hover:border-gray-500' : 'bg-gray-50 hover:bg-white border-transparent hover:border-gray-200'}`}>
+              <div key={idx} className={`group p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl border 'bg-gray-50 hover:bg-white border-transparent hover:border-gray-200'`}>
                 <div className={`w-12 h-12 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
                   <i className={`fas ${feature.icon} text-lg text-white`}></i>
                 </div>
-                <h4 className={`text-lg font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{feature.title}</h4>
-                <p className={`text-sm leading-relaxed ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{feature.desc}</p>
+                <h4 className={`text-lg font-bold mb-2 'text-gray-900'`}>{feature.title}</h4>
+                <p className={`text-sm leading-relaxed 'text-gray-500'`}>{feature.desc}</p>
               </div>
             ))}
           </div>
@@ -675,12 +666,12 @@ const Home = () => {
       </section>
 
       {/* Freelancers Section */}
-      <section className={`py-24 ${theme === 'dark' ? 'bg-gradient-to-b from-gray-900 to-gray-800' : 'bg-gradient-to-b from-gray-50 to-white'}`} id="freelancers">
+      <section className={`py-24 'bg-gradient-to-b from-gray-50 to-white'`} id="freelancers">
         <div className="max-w-7xl mx-auto px-8">
           <div className="text-center mb-14">
-            <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-semibold mb-4 ${theme === 'dark' ? 'bg-navy-800 text-navy-300' : 'bg-navy-100 text-navy-700'}`}>Top Talent</span>
-            <h2 className={`text-4xl md:text-5xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Meet Our Top Freelancers</h2>
-            <p className={`text-lg ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Work with the best talent in the industry</p>
+            <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-semibold mb-4 'bg-navy-100 text-navy-700'`}>Top Talent</span>
+            <h2 className={`text-4xl md:text-5xl font-bold mb-4 'text-gray-900'`}>Meet Our Top Freelancers</h2>
+            <p className={`text-lg 'text-gray-500'`}>Work with the best talent in the industry</p>
           </div>
           
           {/* Auto-scrolling carousel */}
@@ -695,7 +686,7 @@ const Home = () => {
                   key={idx} 
                   className="flex-shrink-0 w-full sm:w-1/2 lg:w-1/3 px-2"
                 >
-                  <div className={`rounded-3xl p-6 shadow-lg border transition-all duration-300 h-full ${theme === 'dark' ? 'bg-gray-800 shadow-gray-900/50 border-gray-700 hover:shadow-2xl hover:border-navy-500' : 'bg-white shadow-gray-200/50 border-gray-100 hover:shadow-2xl hover:border-navy-200'}`}>
+                  <div className={`rounded-3xl p-6 shadow-lg border transition-all duration-300 h-full 'bg-white shadow-gray-200/50 border-gray-100 hover:shadow-2xl hover:border-navy-200'`}>
                     {freelancer.featured && (
                       <div className="inline-flex items-center gap-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-3 py-1 rounded-full text-xs font-semibold mb-4 shadow-lg shadow-emerald-500/30">
                         <i className="fas fa-star text-xs"></i> Featured
@@ -712,39 +703,39 @@ const Home = () => {
                     
                     <div className="flex items-center gap-4 mb-5">
                       <div className="relative">
-                        <img src={freelancer.avatar} alt={freelancer.name} className={`w-16 h-16 rounded-2xl object-cover border-2 ${theme === 'dark' ? 'border-gray-600' : 'border-gray-100'}`} />
-                        <div className={`absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 ${theme === 'dark' ? 'border-gray-800' : 'border-white'}`}></div>
+                        <img src={freelancer.avatar} alt={freelancer.name} className={`w-16 h-16 rounded-2xl object-cover border-2 'border-gray-100'`} />
+                        <div className={`absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 'border-white'`}></div>
                       </div>
                       <div>
-                        <h4 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{freelancer.name}</h4>
-                        <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{freelancer.title}</p>
+                        <h4 className={`text-lg font-bold 'text-gray-900'`}>{freelancer.name}</h4>
+                        <p className={`text-sm font-medium 'text-gray-500'`}>{freelancer.title}</p>
                       </div>
                     </div>
                     
                     <div className="flex flex-wrap gap-2 mb-4">
                       {freelancer.skills.map((skill, index) => (
-                        <span key={index} className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${theme === 'dark' ? 'bg-navy-800 text-navy-300' : 'bg-navy-50 text-navy-700'}`}>{skill}</span>
+                        <span key={index} className={`px-2.5 py-1 rounded-lg text-xs font-semibold 'bg-navy-50 text-navy-700'`}>{skill}</span>
                       ))}
                     </div>
                     
                     <div className="flex items-center gap-2 mb-4">
                       <div className="flex gap-0.5">
                         {[...Array(5)].map((_, i) => (
-                          <i key={i} className={`fas fa-star text-xs ${i < Math.floor(freelancer.rating) ? 'text-amber-400' : (theme === 'dark' ? 'text-gray-600' : 'text-gray-200')}`}></i>
+                          <i key={i} className={`fas fa-star text-xs ${i < Math.floor(freelancer.rating) ? 'text-amber-400' : 'text-gray-200'}`}></i>
                         ))}
                       </div>
-                      <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{freelancer.rating} ({freelancer.reviews} reviews)</span>
+                      <span className={`text-sm font-medium 'text-gray-600'`}>{freelancer.rating} ({freelancer.reviews} reviews)</span>
                     </div>
                     
-                    <div className={`flex justify-between mb-5 p-3 rounded-xl ${theme === 'dark' ? 'bg-gradient-to-r from-gray-700 to-gray-700/50' : 'bg-gradient-to-r from-gray-50 to-gray-100/50'}`}>
+                    <div className={`flex justify-between mb-5 p-3 rounded-xl 'bg-gradient-to-r from-gray-50 to-gray-100/50'`}>
                       <div className="text-center flex-1">
-                        <span className={`block text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{freelancer.completed}</span>
-                        <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Projects</span>
+                        <span className={`block text-xl font-bold 'text-gray-900'`}>{freelancer.completed}</span>
+                        <span className={`text-xs font-medium 'text-gray-500'`}>Projects</span>
                       </div>
-                      <div className={`w-px ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'}`}></div>
+                      <div className={`w-px 'bg-gray-200'`}></div>
                       <div className="text-center flex-1">
                         <span className="block text-xl font-bold text-emerald-600">100%</span>
-                        <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Success</span>
+                        <span className={`text-xs font-medium 'text-gray-500'`}>Success</span>
                       </div>
                     </div>
                     
@@ -766,7 +757,7 @@ const Home = () => {
                 className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
                   currentFreelancerIndex === idx 
                     ? 'bg-navy-700 w-8' 
-                    : (theme === 'dark' ? 'bg-gray-600 hover:bg-gray-500' : 'bg-gray-300 hover:bg-gray-400')
+                    : 'bg-gray-300 hover:bg-gray-400'
                 }`}
               />
             ))}
@@ -774,10 +765,10 @@ const Home = () => {
           
           {/* Navigation buttons */}
           <div className="flex justify-center gap-3 mt-6">
-            <button onClick={prevFreelancer} className={`w-12 h-12 rounded-xl cursor-pointer transition-all duration-300 hover:bg-navy-700 hover:text-white hover:shadow-lg flex items-center justify-center border ${theme === 'dark' ? 'bg-gray-800 text-navy-400 border-gray-600 hover:border-navy-700' : 'bg-white text-navy-700 border-gray-200 hover:border-navy-700'}`}>
+            <button onClick={prevFreelancer} className={`w-12 h-12 rounded-xl cursor-pointer transition-all duration-300 hover:bg-navy-700 hover:text-white hover:shadow-lg flex items-center justify-center border 'bg-white text-navy-700 border-gray-200 hover:border-navy-700'`}>
               <i className="fas fa-chevron-left"></i>
             </button>
-            <button onClick={nextFreelancer} className={`w-12 h-12 rounded-xl cursor-pointer transition-all duration-300 hover:bg-navy-700 hover:text-white hover:shadow-lg flex items-center justify-center border ${theme === 'dark' ? 'bg-gray-800 text-navy-400 border-gray-600 hover:border-navy-700' : 'bg-white text-navy-700 border-gray-200 hover:border-navy-700'}`}>
+            <button onClick={nextFreelancer} className={`w-12 h-12 rounded-xl cursor-pointer transition-all duration-300 hover:bg-navy-700 hover:text-white hover:shadow-lg flex items-center justify-center border 'bg-white text-navy-700 border-gray-200 hover:border-navy-700'`}>
               <i className="fas fa-chevron-right"></i>
             </button>
           </div>

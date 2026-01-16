@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-const Header = ({ user, getDashboardRoute, theme, toggleTheme }) => {
+const Header = ({ user, getDashboardRoute }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
@@ -37,9 +37,6 @@ const Header = ({ user, getDashboardRoute, theme, toggleTheme }) => {
             </form>
           </div>
           <div className="header-actions">
-            <button className="theme-toggle" onClick={toggleTheme}>
-              <i className={`fas ${theme === 'light' ? 'fa-moon' : 'fa-sun'}`}></i>
-            </button>
             {user ? (
               <Link to={getDashboardRoute()} className="btn btn-primary">
                 <i className="fas fa-tachometer-alt"></i>

@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
+
 import Footer from '../../components/Home/Footer';
 
 const PublicJobListing = () => {
   const auth = useAuth();
   const user = auth?.user;
   const getDashboardRoute = auth?.getDashboardRoute;
-  const { theme, toggleTheme } = useTheme();
   const [searchParams] = useSearchParams();
   
   const [jobs, setJobs] = useState([]);
@@ -170,12 +169,12 @@ const PublicJobListing = () => {
   };
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className={`${theme === 'dark' ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} backdrop-blur-md border-b fixed top-0 left-0 right-0 z-50`}>
+      <header className="bg-white/95 border-gray-200 backdrop-blur-md border-b fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-8">
           <div className="flex items-center justify-between py-4">
-            <div className={`text-4xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            <div className="text-4xl font-bold text-gray-900">
               <Link to="/" className="hover:text-navy-700 transition-colors">
                 Mile<span className="text-navy-700">stone</span>
               </Link>
@@ -187,7 +186,7 @@ const PublicJobListing = () => {
                   placeholder="Search for services..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`w-full px-5 py-3 border-2 rounded-full text-sm outline-none transition-all focus:border-navy-700 focus:ring-4 focus:ring-navy-100 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'border-gray-200'}`}
+                  className="w-full px-5 py-3 border-2 rounded-full text-sm outline-none transition-all focus:border-navy-700 focus:ring-4 focus:ring-navy-100 border-gray-200"
                 />
                 <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy-700 text-white border-none rounded-full w-9 h-9 cursor-pointer transition-all hover:bg-navy-800 flex items-center justify-center shrink-0">
                   <i className="fas fa-search"></i>
@@ -195,13 +194,6 @@ const PublicJobListing = () => {
               </form>
             </div>
             <div className="flex items-center gap-4">
-              <button 
-                onClick={toggleTheme}
-                className={`border-2 rounded-lg text-lg cursor-pointer transition-all p-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-yellow-400 hover:bg-gray-700' : 'bg-gray-100 border-gray-200 text-gray-600 hover:text-navy-700'}`}
-              >
-                <i className={`fas ${theme === 'light' ? 'fa-moon' : 'fa-sun'}`}></i>
-              </button>
-              
               {user ? (
                 <Link 
                   to={getDashboardRoute()} 
@@ -225,19 +217,19 @@ const PublicJobListing = () => {
       </header>
 
       {/* Main Content */}
-      <main className={`pt-24 pb-12 min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <main className="pt-24 pb-12 min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Filters Sidebar */}
             <aside className="lg:w-80 flex-shrink-0">
-              <div className={`rounded-lg border p-6 sticky top-28 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <div className="rounded-lg border p-6 sticky top-28 bg-white border-gray-200">
                 {/* Job Type Section */}
                 <div className="mb-6">
-                  <h3 className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>Job type</h3>
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700">Job type</h3>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent cursor-pointer ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300 text-gray-600'}`}
+                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent cursor-pointer border-gray-300 text-gray-600"
                   >
                     <option value="date">Job type</option>
                     <option value="date">Newest First</option>
@@ -248,11 +240,11 @@ const PublicJobListing = () => {
 
                 {/* Categories Section */}
                 <div className="mb-6">
-                  <h3 className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>Categories</h3>
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700">Categories</h3>
                   <select
                     value={selectedJobType}
                     onChange={(e) => setSelectedJobType(e.target.value)}
-                    className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent cursor-pointer ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300 text-gray-600'}`}
+                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent cursor-pointer border-gray-300 text-gray-600"
                   >
                     <option value="">All categoriers</option>
                     <option value="full-time">Full Time</option>
@@ -264,11 +256,11 @@ const PublicJobListing = () => {
 
                 {/* Experience Level Section */}
                 <div className="mb-6">
-                  <h3 className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>Experience Level</h3>
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700">Experience Level</h3>
                   <select
                     value={selectedExperience}
                     onChange={(e) => setSelectedExperience(e.target.value)}
-                    className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent cursor-pointer ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300 text-gray-600'}`}
+                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent cursor-pointer border-gray-300 text-gray-600"
                   >
                     <option value="">All Levels</option>
                     <option value="Entry">Entry Level</option>
@@ -280,7 +272,7 @@ const PublicJobListing = () => {
 
                 {/* Related Tags Section */}
                 <div className="mb-6">
-                  <h3 className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>Required Skills</h3>
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700">Required Skills</h3>
                   <div className="flex flex-wrap gap-2">
                     {availableSkills.slice(0, 12).map((skill) => (
                       <button
@@ -289,9 +281,7 @@ const PublicJobListing = () => {
                         className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
                           selectedSkills.includes(skill)
                             ? 'bg-orange-100 text-orange-600 border border-orange-300'
-                            : theme === 'dark' 
-                              ? 'bg-gray-700 text-gray-300 border border-gray-600 hover:border-orange-300 hover:bg-orange-900/30'
-                              : 'bg-gray-50 text-gray-600 border border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+                            : 'bg-gray-50 text-gray-600 border border-gray-200 hover:border-orange-300 hover:bg-orange-50'
                         }`}
                       >
                         {skill}
@@ -302,21 +292,21 @@ const PublicJobListing = () => {
 
                 {/* Location Section */}
                 <div className="mb-6">
-                  <h3 className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>Location</h3>
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700">Location</h3>
                   <input
                     type="text"
                     placeholder="Location"
-                    className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
+                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent border-gray-300"
                   />
                 </div>
 
                 {/* Remote Section */}
                 <div className="mb-6">
-                  <h3 className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>Remote</h3>
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700">Remote</h3>
                   <select
                     value={isRemote ? 'remote' : 'all'}
                     onChange={(e) => setIsRemote(e.target.value === 'remote')}
-                    className={`w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent cursor-pointer ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300 text-gray-600'}`}
+                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent cursor-pointer border-gray-300 text-gray-600"
                   >
                     <option value="all">Remote</option>
                     <option value="remote">Remote Only</option>
@@ -341,15 +331,15 @@ const PublicJobListing = () => {
               {loading ? (
                 <div className="text-center py-12">
                   <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                  <p className={`mt-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Loading jobs...</p>
+                  <p className="mt-4 text-gray-600">Loading jobs...</p>
                 </div>
               ) : filteredJobs.length === 0 ? (
-                <div className={`text-center py-12 rounded-xl shadow-sm p-8 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-                  <i className={`fas fa-search text-6xl mb-4 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-300'}`}></i>
-                  <h3 className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
+                <div className="text-center py-12 rounded-xl shadow-sm p-8 bg-white">
+                  <i className="fas fa-search text-6xl mb-4 text-gray-300"></i>
+                  <h3 className="text-xl font-semibold mb-2 text-gray-700">
                     No matching jobs found
                   </h3>
-                  <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                  <p className="text-gray-500">
                     Try different keywords or adjust filters
                   </p>
                 </div>
@@ -359,7 +349,7 @@ const PublicJobListing = () => {
                     {filteredJobs.slice(0, visibleJobsCount).map((job) => (
                       <div
                         key={job.jobId}
-                        className={`rounded-lg border p-5 hover:shadow-md transition-all duration-200 ${theme === 'dark' ? 'bg-gray-800 border-gray-700 hover:border-gray-600' : 'bg-white border-gray-200'}`}
+                        className="rounded-lg border p-5 hover:shadow-md transition-all duration-200 bg-white border-gray-200"
                       >
                         <div className="flex gap-5 min-h-[140px]">
                           {/* Company Logo - Circular */}
@@ -367,7 +357,7 @@ const PublicJobListing = () => {
                             <img
                               src={job.imageUrl}
                               alt={job.title}
-                              className={`w-30 h-30 rounded-full object-cover border-2 ${theme === 'dark' ? 'border-gray-600' : 'border-gray-100'}`}
+                              className="w-30 h-30 rounded-full object-cover border-2 border-gray-100"
                             />
                           </div>
 
@@ -375,7 +365,7 @@ const PublicJobListing = () => {
                           <div className="flex-1 min-w-0">
                             {/* 1. Job Title and New Badge */}
                             <div className="flex items-center gap-2 mb-2">
-                              <h1 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                              <h1 className="text-lg font-bold text-gray-900">
                                 {job.title}
                               </h1>
                               {isNewJob(job.postedDate) && (
@@ -391,9 +381,9 @@ const PublicJobListing = () => {
                             </div>
 
                             {/* 2. Salary */}
-                            <div className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-black-1000'}`}>
+                            <div className="text-sm font-semibold mb-3 text-black-1000">
                               ₹{job.budget.amount.toLocaleString()}{' '}
-                              <span className={theme === 'dark' ? 'text-gray-400 font-normal' : 'text-gray-500 font-normal'}>/ {job.budget.period}</span>
+                              <span className="text-gray-500 font-normal">/ {job.budget.period}</span>
                             </div>
 
                             {/* 3. Skills - First 3 */}
@@ -401,7 +391,7 @@ const PublicJobListing = () => {
                               {job.description.skills.slice(0, 3).map((skill, index) => (
                                 <span
                                   key={index}
-                                  className={`px-3 py-1 rounded text-xs font-medium ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'}`}
+                                  className="px-3 py-1 rounded text-xs font-medium bg-gray-200 text-gray-700"
                                 >
                                   {skill}
                                 </span>
@@ -409,7 +399,7 @@ const PublicJobListing = () => {
                             </div>
 
                             {/* 4. Location, Job Type, Remote Info with Icons */}
-                            <div className={`flex flex-wrap items-center gap-3 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
                               <span className="flex items-center gap-1.5">
                                 <i className="fas fa-map-marker-alt text-blue-600 text-xs"></i>
                                 {job.location}
@@ -443,18 +433,18 @@ const PublicJobListing = () => {
                           {/* Right Side - Actions */}
                           <div className="flex flex-col items-end justify-between min-w-[140px]">
                             {/* Application Count - Top Right */}
-                            <h4 className={`px-2 py-1.5 text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                            <h4 className="px-2 py-1.5 text-sm font-medium text-gray-700">
                               {job.applicationCount} applicants
                             </h4>
 
                             {/* Bottom row: Posted Date + See More button */}
                             <div className="flex items-center gap-3">
-                              <div className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                              <div className="text-xs font-medium text-gray-600">
                                 {getDaysAgo(job.postedDate)}
                               </div>
                               <Link
                                 to={`/jobs/${job.jobId}`}
-                                className={`px-4 py-2 inline-flex items-center justify-center border-2 border-blue-600 rounded-lg text-sm sm:text-base font-semibold hover:bg-blue-600 hover:text-white transition-colors whitespace-nowrap no-underline shadow-sm hover:shadow-md ${theme === 'dark' ? 'bg-gray-800 text-blue-400' : 'bg-white text-blue-600'}`}
+                                className="px-4 py-2 inline-flex items-center justify-center border-2 border-blue-600 rounded-lg text-sm sm:text-base font-semibold hover:bg-blue-600 hover:text-white transition-colors whitespace-nowrap no-underline shadow-sm hover:shadow-md bg-white text-blue-600"
                                 aria-label={`View details for ${job.title}`}
                               >
                                 See more

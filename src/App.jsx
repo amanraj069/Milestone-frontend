@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { ChatProvider } from './context/ChatContext';
-import { ThemeProvider } from './context/ThemeContext';
 import { ChatNotificationProvider } from './context/ChatNotificationContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './components/Home';
@@ -66,13 +65,12 @@ import Notifications from './pages/Notifications/Notifications';
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <Router>
-          <ChatNotificationProvider>
-            <ChatProvider>
-              <SocketProvider>
-                <div className="App">
+    <AuthProvider>
+      <Router>
+        <ChatNotificationProvider>
+          <ChatProvider>
+            <SocketProvider>
+              <div className="App">
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/login" element={<Login />} />
@@ -146,7 +144,6 @@ function App() {
           </ChatNotificationProvider>
         </Router>
       </AuthProvider>
-    </ThemeProvider>
   );
 }
 

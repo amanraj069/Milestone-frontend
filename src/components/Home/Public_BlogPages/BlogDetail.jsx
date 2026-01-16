@@ -6,22 +6,8 @@ const BlogDetail = () => {
   const { blogId } = useParams();
   const navigate = useNavigate();
   const { user, getDashboardRoute } = useAuth();
-  const [theme, setTheme] = useState('light');
   const [searchTerm, setSearchTerm] = useState('');
   const [blog, setBlog] = useState(null);
-  const [recentBlogs, setRecentBlogs] = useState([]);
-  const [featuredBlog, setFeaturedBlog] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [comment, setComment] = useState({
-    name: '',
-    email: '',
-    message: ''
-  });
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
-
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
-  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -163,13 +149,6 @@ const BlogDetail = () => {
               </form>
             </div>
             <div className="flex items-center gap-4">
-              <button 
-                onClick={toggleTheme}
-                className="bg-transparent border-none text-lg cursor-pointer text-gray-600 transition-colors hover:text-navy-700 p-2"
-              >
-                <i className={`fas ${theme === 'light' ? 'fa-moon' : 'fa-sun'}`}></i>
-              </button>
-              
               {user ? (
                 <Link 
                   to={getDashboardRoute()} 

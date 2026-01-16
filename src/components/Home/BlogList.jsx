@@ -9,13 +9,8 @@ const BlogList = () => {
   const dispatch = useDispatch();
   const { user, getDashboardRoute } = useAuth();
   const { blogs: allBlogs, featuredBlog, loading } = useSelector((state) => state.blog);
-  const [theme, setTheme] = useState('light');
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
-  };
 
   const categories = [
     'All',
@@ -80,13 +75,6 @@ const BlogList = () => {
             </div> 
             
             <div className="flex items-center gap-4">
-              <button 
-                onClick={toggleTheme}
-                className="bg-transparent border-none text-lg cursor-pointer text-gray-600 transition-colors hover:text-navy-700 p-2"
-              >
-                <i className={`fas ${theme === 'light' ? 'fa-moon' : 'fa-sun'}`}></i>
-              </button>
-              
               {user ? (
                 <Link 
                   to={getDashboardRoute()} 

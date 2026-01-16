@@ -11,7 +11,6 @@ const BlogDetail = () => {
   const dispatch = useDispatch();
   const { user, getDashboardRoute } = useAuth();
   const { currentBlog: blog, recentBlogs, featuredBlog, fetchingCurrent: loading } = useSelector((state) => state.blog);
-  const [theme, setTheme] = useState('light');
   const [searchTerm, setSearchTerm] = useState('');
   const [comment, setComment] = useState({
     name: '',
@@ -19,10 +18,6 @@ const BlogDetail = () => {
     message: ''
   });
   const [comments, setComments] = useState([]);
-
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
-  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -137,13 +132,6 @@ const BlogDetail = () => {
               </form>
             </div>
             <div className="flex items-center gap-4">
-              <button 
-                onClick={toggleTheme}
-                className="bg-transparent border-none text-lg cursor-pointer text-gray-600 transition-colors hover:text-navy-700 p-2"
-              >
-                <i className={`fas ${theme === 'light' ? 'fa-moon' : 'fa-sun'}`}></i>
-              </button>
-              
               {user ? (
                 <Link 
                   to={getDashboardRoute()} 
