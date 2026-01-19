@@ -400,7 +400,7 @@ const BlogDetail = () => {
                       <img 
                         src={featuredBlog.imageUrl} 
                         alt={featuredBlog.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        className="w-full h-full object-cover"
                       />
                       <div className="absolute top-4 left-4">
                         <span className="bg-white text-indigo-600 px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
@@ -454,7 +454,7 @@ const BlogDetail = () => {
                       <img 
                         src={recentBlog.imageUrl} 
                         alt={recentBlog.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        className="w-full h-full object-cover"
                       />
                       <div className="absolute top-4 left-4">
                         <span className="bg-white text-indigo-600 px-3 py-1 rounded-full text-xs font-semibold shadow-lg">

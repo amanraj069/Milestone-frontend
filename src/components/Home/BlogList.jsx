@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../context/AuthContext';
 import { fetchAllBlogs, fetchFeaturedBlog } from '../../redux/slices/blogSlice';
@@ -7,10 +7,12 @@ import Footer from './Footer';
 
 const BlogList = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user, getDashboardRoute } = useAuth();
   const { blogs: allBlogs, featuredBlog, loading } = useSelector((state) => state.blog);
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const categories = [
     'All',
@@ -52,6 +54,33 @@ const BlogList = () => {
       month: 'long', 
       day: 'numeric' 
     });
+  };
+
+  // Get search suggestions
+  const getSearchSuggestions = () => {
+    if (!searchTerm.trim()) return [];
+    
+    const search = searchTerm.toLowerCase();
+    return allBlogs
+      .filter(blog => 
+        blog.title.toLowerCase().includes(search) ||
+        blog.category.toLowerCase().includes(search)
+      )
+      .slice(0, 5)
+      .map(blog => ({
+        id: blog.blogId,
+        title: blog.title,
+        category: blog.category
+      }));
+  };
+
+  const suggestions = getSearchSuggestions();
+  const topSuggestions = suggestions.slice(0, 4);
+
+  const handleSuggestionClick = (blog) => {
+    setSearchTerm('');
+    setShowSuggestions(false);
+    navigate(`/blogs/${blog.id}`);
   };
 
   if (loading) {
@@ -99,27 +128,83 @@ const BlogList = () => {
 
       <div className="pt-20">
         {/* Hero Section */}
-      <section className="relative py-20 overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+      <section className="relative py-12 overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50">
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Blog</span>
             </h1>
-            <p className="text-xl text-gray-600 mb-8">
+            <p className="text-lg text-gray-600 mb-6">
               Insights, stories, and tips for freelancers and employers
             </p>
             
             {/* Search Bar */}
-            <div className="max-w-2xl mx-auto relative">
-              <input
-                type="text"
-                placeholder="Search Blogs..."
-                className="w-full px-6 py-4 rounded-full border-2 border-gray-200 focus:border-indigo-500 focus:outline-none shadow-lg"
-              />
-              <button className="absolute right-3 top-1/2 -translate-y-1/2 bg-white text-indigo-600 px-6 py-2 rounded-full hover:bg-gray-100 transition-colors font-semibold border border-gray-200">
-                Search
-              </button>
+            <div className="max-w-2xl mx-auto relative z-40">
+              <div className="relative">
+                <i className="fas fa-search absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                <input
+                  type="text"
+                  placeholder="Search Blogs..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => searchTerm && setShowSuggestions(true)}
+                  className="w-full pl-14 pr-6 py-4 rounded-full border-2 border-gray-200 focus:border-indigo-500 focus:outline-none shadow-lg"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setShowSuggestions(false);
+                    }}
+                    className="absolute right-16 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                )}
+              </div>
+
+              {/* Auto-complete Suggestions Dropdown */}
+              {showSuggestions && searchTerm && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl z-50 border border-gray-100">
+                  <div className="py-1 max-h-80 overflow-y-auto">
+                    {suggestions.map((blog, index) => (
+                      <button
+                        key={blog.id}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleSuggestionClick(blog);
+                        }}
+                        className="w-full px-4 py-2.5 text-left hover:bg-indigo-50 transition-all duration-200 flex items-center justify-between group border-b border-gray-50 last:border-b-0"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 line-clamp-1 text-sm group-hover:text-indigo-600 transition-colors">{blog.title}</p>
+                          <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                            <i className="fas fa-tag text-gray-400"></i>
+                            {blog.category}
+                          </p>
+                        </div>
+                        <i className="fas fa-chevron-right text-indigo-600 ml-3 text-xs opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Show message when no suggestions found */}
+              {showSuggestions && searchTerm && suggestions.length === 0 && (
+                <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-xl shadow-2xl z-50 px-5 py-4 text-center border border-gray-100">
+                  <div className="flex justify-center mb-2">
+                    <i className="fas fa-search text-gray-300 text-lg"></i>
+                  </div>
+                  <p className="text-gray-600 text-sm">No blogs found for "<span className="font-semibold text-gray-900">{searchTerm}</span>"</p>
+                  <p className="text-xs text-gray-400 mt-1">Try searching with different keywords</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -127,7 +212,63 @@ const BlogList = () => {
 
       {/* Featured Blog */}
       {featuredBlog && (
-        <section className="py-16 bg-white">
+        <section className="py-16 bg-white relative">
+          {/* Floating top suggestions over featured block, same width as search bar */}
+          {showSuggestions && searchTerm && topSuggestions.length > 0 && (
+            <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-40 w-full px-4 flex justify-center">
+              <div className="bg-white/95 backdrop-blur shadow-2xl rounded-2xl border border-gray-100 max-w-2xl w-full">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                    <i className="fas fa-bolt text-indigo-600"></i>
+                    Top suggestions
+                  </div>
+                  <button
+                    onClick={() => setShowSuggestions(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label="Close suggestions"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  {topSuggestions.map((blog) => (
+                    <button
+                      key={blog.id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleSuggestionClick(blog);
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-indigo-50 transition-colors flex items-center justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{blog.title}</p>
+                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                          <i className="fas fa-tag text-gray-400"></i>
+                          {blog.category}
+                        </p>
+                      </div>
+                      <i className="fas fa-arrow-up-right-from-square text-indigo-600 text-sm"></i>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* No matches overlay over featured block */}
+          {showSuggestions && searchTerm && suggestions.length === 0 && (
+            <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-40 w-full px-4 flex justify-center">
+              <div className="bg-white/95 backdrop-blur shadow-2xl rounded-2xl border border-gray-100 max-w-2xl w-full text-center px-5 py-4">
+                <div className="flex justify-center mb-2">
+                  <i className="fas fa-search text-gray-300 text-lg"></i>
+                </div>
+                <p className="text-gray-900 font-semibold text-sm">No Matches Found</p>
+                <p className="text-xs text-gray-400 mt-1">Try different keywords</p>
+              </div>
+            </div>
+          )}
+
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
               <div className="flex items-center justify-between mb-8">
@@ -146,7 +287,7 @@ const BlogList = () => {
                     <img 
                       src={featuredBlog.imageUrl} 
                       alt={featuredBlog.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-full object-cover"
                     />
                     <div className="absolute top-4 left-4">
                       <span className="bg-white text-indigo-600 px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
@@ -221,7 +362,7 @@ const BlogList = () => {
                       <img 
                         src={blog.imageUrl} 
                         alt={blog.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        className="w-full h-full object-cover"
                       />
                       <div className="absolute top-4 left-4">
                         <span className="bg-white text-indigo-600 px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
@@ -304,7 +445,7 @@ const BlogList = () => {
                     <img 
                       src={blog.imageUrl} 
                       alt={blog.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-full object-cover"
                     />
                     <div className="absolute top-4 left-4">
                       <span className="bg-white text-indigo-600 px-3 py-1 rounded-full text-xs font-semibold shadow-lg">

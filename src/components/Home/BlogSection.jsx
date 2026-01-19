@@ -81,7 +81,7 @@ const BlogSection = () => {
                   <img
                     src={blog.imageUrl}
                     alt={blog.title}
-                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                    className="w-full h-full object-cover"
                     onError={(e) => {
                       e.target.src = '/assets/blog-default.jpg';
                     }}
