@@ -572,7 +572,12 @@ const JobDescription = () => {
                           />
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium text-gray-900 text-sm">{question.askerName}</span>
+                              <span className="font-medium text-gray-900 text-sm">
+                                {question.askerName}
+                                {user && user.roleId === question.askerId && (
+                                  <span className="text-gray-500 font-normal"> (You)</span>
+                                )}
+                              </span>
                               <span className="text-xs text-gray-500">{formatTimeAgo(question.createdAt)}</span>
                             </div>
                             <p className="text-gray-700 text-sm">{question.text}</p>
@@ -613,8 +618,8 @@ const JobDescription = () => {
                           </div>
                         )}
 
-                        {/* Answer Form - Only for employer or assigned freelancer */}
-                        {canAnswer && (
+                        {/* Answer Form - Only for employer or assigned freelancer, but not for the question asker */}
+                        {canAnswer && user && user.roleId !== question.askerId && (
                           <div className="mt-4 ml-11">
                             <div className="flex gap-3">
                               <img
