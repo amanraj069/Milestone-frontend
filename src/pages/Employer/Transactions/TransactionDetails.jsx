@@ -273,8 +273,8 @@ const TransactionDetails = () => {
                             ? 'text-yellow-700'
                             : 'text-gray-800'
                       }`}>
-                        {milestone.status === 'paid' && <span className="mr-2">✓</span>}
-                        {milestone.requested && milestone.status !== 'paid' && <span className="mr-2">⏳</span>}
+                        {milestone.status === 'paid' && <span className="mr-2"></span>}
+                        {milestone.requested && milestone.status !== 'paid' && <span className="mr-2"></span>}
                         {milestone.description}
                       </span>
                     </td>
@@ -287,7 +287,7 @@ const TransactionDetails = () => {
                     <td className="px-6 py-5 text-center">
                       {milestone.status === 'paid' ? (
                         <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-700">
-                          ✓ Paid
+                          Paid
                         </span>
                       ) : milestone.requested ? (
                         <button
