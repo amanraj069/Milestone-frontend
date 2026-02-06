@@ -119,7 +119,6 @@ const PublicFeedbackSection = ({ userId, userRole }) => {
         <div className="text-center py-8 text-gray-500">
           <i className="fas fa-comments text-4xl mb-3 text-gray-300"></i>
           <p className="text-lg font-medium">No reviews yet</p>
-          <p className="text-sm">Be the first to leave feedback after working together!</p>
         </div>
       ) : (
         <div className="space-y-4">

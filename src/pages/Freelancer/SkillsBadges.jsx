@@ -250,68 +250,70 @@ const FreelancerSkillsBadges = () => {
 
         {/* Max Attempts Modal */}
         {showMaxAttemptsModal && selectedQuizInfo && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowMaxAttemptsModal(false)}>
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-gray-900/75 flex items-center justify-center z-[9999] p-4" onClick={() => setShowMaxAttemptsModal(false)}>
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
               {/* Header */}
-              <div className="bg-gradient-to-r from-red-500 to-red-600 p-6 text-white">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              <div className="bg-gradient-to-br from-rose-500 to-red-600 px-6 py-8 rounded-t-xl">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-white/90 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold">Maximum Attempts Reached</h3>
-                    <p className="text-red-100 text-sm mt-1">{selectedQuizInfo.skillName}</p>
+                    <h3 className="text-xl font-bold text-white mb-1">Maximum Attempts Reached</h3>
+                    <p className="text-white/80 text-sm">{selectedQuizInfo.skillName}</p>
                   </div>
                 </div>
               </div>
 
               {/* Content */}
               <div className="p-6">
-                <div className="mb-4">
-                  <p className="text-gray-700 text-lg font-semibold mb-2">
-                    Maximum {selectedQuizInfo.maxAttempts} attempts reached for this quiz.
+                <div className="mb-5">
+                  <p className="text-gray-800 leading-relaxed">
+                    Maximum <span className="font-semibold text-red-600">{selectedQuizInfo.maxAttempts} attempts</span> reached for this quiz.
                   </p>
-                  <p className="text-gray-600">
-                    You can give this <span className="font-semibold text-blue-600">{selectedQuizInfo.skillName}</span> skill quiz after a period of <span className="font-bold text-red-600">{selectedQuizInfo.cooldownDays} days</span>.
+                  <p className="text-gray-600 text-sm mt-2">
+                    You can give this <span className="font-medium text-blue-600">{selectedQuizInfo.skillName}</span> skill quiz after a period of <span className="font-semibold text-red-600">{selectedQuizInfo.cooldownDays} days</span>.
                   </p>
                 </div>
 
                 {!selectedQuizInfo.isPremium && (
-                  <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-l-4 border-yellow-400 p-4 rounded-r-lg mb-4">
-                    <div className="flex items-start gap-3">
-                      <svg className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                      <div>
-                        <p className="font-semibold text-yellow-900 mb-1">Upgrade to Premium!</p>
-                        <p className="text-sm text-yellow-800">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-8 h-8 bg-amber-400 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-amber-900" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900 mb-2">Upgrade to Premium!</p>
+                        <p className="text-sm text-gray-700 leading-relaxed">
                           Get <strong>3 attempts</strong> instead of 2 and only <strong>{selectedQuizInfo.cooldownDays === 10 ? '5 days' : '4 days'} cooldown</strong> instead of {selectedQuizInfo.cooldownDays} days.
                         </p>
                       </div>
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* Footer */}
-              <div className="bg-gray-50 px-6 py-4 flex gap-3">
-                {!selectedQuizInfo.isPremium && (
-                  <Link
-                    to="/freelancer/subscription"
-                    className="flex-1 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-lg font-semibold hover:from-yellow-500 hover:to-yellow-600 transition text-center"
+                {/* Buttons */}
+                <div className="flex gap-3 mt-6">
+                  <button
                     onClick={() => setShowMaxAttemptsModal(false)}
+                    className="flex-1 px-4 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
                   >
-                    Upgrade to Premium
-                  </Link>
-                )}
-                <button
-                  onClick={() => setShowMaxAttemptsModal(false)}
-                  className={`${selectedQuizInfo.isPremium ? 'flex-1' : 'flex-1'} px-4 py-2 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition`}
-                >
-                  Close
-                </button>
+                    Close
+                  </button>
+                  {!selectedQuizInfo.isPremium && (
+                    <Link
+                      to="/freelancer/subscription"
+                      className="flex-1 px-4 py-2.5 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors text-center"
+                      onClick={() => setShowMaxAttemptsModal(false)}
+                    >
+                      Upgrade to Premium
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
           </div>

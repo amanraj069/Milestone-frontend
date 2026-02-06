@@ -37,6 +37,7 @@ export default function TakeQuiz() {
   const [shuffledQuiz, setShuffledQuiz] = useState(null);
   const [violations, setViolations] = useState([]);
   const [showViolationWarning, setShowViolationWarning] = useState(false);
+  const [showViolationModal, setShowViolationModal] = useState(false);
   const [showCooldownModal, setShowCooldownModal] = useState(false);
   const [cooldownInfo, setCooldownInfo] = useState(null);
 
@@ -90,7 +91,6 @@ export default function TakeQuiz() {
           };
           setQuiz(quizData);
           setShuffledQuiz(shuffled);
-          console.log('Quiz loaded and shuffled successfully');
         } else {
           setError('Failed to load quiz');
         }
@@ -128,9 +128,11 @@ export default function TakeQuiz() {
     if (!quizStarted || showInstructions) return;
 
     const addViolation = (type) => {
-      setViolations(prev => [...prev, { type, timestamp: new Date() }]);
-      setShowViolationWarning(true);
-      setTimeout(() => setShowViolationWarning(false), 3000);
+      setViolations(prev => {
+        const newViolations = [...prev, { type, timestamp: new Date() }];
+        return newViolations;
+      });
+      setShowViolationModal(true);
     };
 
     // Detect fullscreen exit
@@ -189,6 +191,14 @@ export default function TakeQuiz() {
     return ()=> clearInterval(t);
   }, [timeLeft]);
 
+  // Auto-submit quiz if violations exceed 10
+  useEffect(() => {
+    if (violations.length > 10 && quizStarted && !showInstructions && !submitting) {
+      console.log('Auto-submitting quiz due to excessive violations');
+      onSubmit();
+    }
+  }, [violations.length, quizStarted, showInstructions, submitting]);
+
   // Prevent leaving page during quiz - block back button completely
   useEffect(() => {
     if (!quizStarted || showInstructions) return;
@@ -218,6 +228,17 @@ export default function TakeQuiz() {
 
   function select(qid, originalIndex){ 
     setAnswers(a=> ({...a, [qid]: originalIndex})); 
+  }
+
+  function continueQuiz() {
+    setShowViolationModal(false);
+    // Re-enter fullscreen
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen().catch(err => {
+        console.error('Failed to re-enter fullscreen:', err);
+      });
+    }
   }
 
   async function leaveQuiz() {
@@ -434,11 +455,11 @@ export default function TakeQuiz() {
   if (showInstructions) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl">
+        <div className="w-full max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {/* Header */}
             <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-              <h2 className="text-xl font-semibold text-gray-900">Quiz Instructions</h2>
+              <h2 className="text-xl font-semibold text-gray-900 text-center">Quiz Instructions</h2>
             </div>
             
             <div className="p-6 space-y-6">
@@ -474,35 +495,35 @@ export default function TakeQuiz() {
                 <ul className="text-sm text-gray-700 space-y-2">
                   <li className="flex items-start gap-2">
                     <span className="text-orange-500 mt-0.5">•</span>
-                    <span><strong>Maximum {eligibility?.maxAttempts || 2} attempts allowed</strong> — This is attempt {(eligibility?.attemptsUsed || 0) + 1}</span>
+                    <span><strong>Maximum {eligibility?.maxAttempts || 2} attempts allowed</strong>: This is attempt {(eligibility?.attemptsUsed || 0) + 1}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-orange-500 mt-0.5">•</span>
-                    <span><strong>Fullscreen mode required</strong> — Quiz will start in fullscreen; exiting triggers warnings</span>
+                    <span><strong>Fullscreen mode required</strong>: Quiz will start in fullscreen; exiting triggers warnings</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-orange-500 mt-0.5">•</span>
-                    <span><strong>No tab switching</strong> — Switching tabs or windows will be detected and logged</span>
+                    <span><strong>No tab switching</strong>: Switching tabs or windows will be detected and logged</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-orange-500 mt-0.5">•</span>
-                    <span><strong>Press ESC to leave</strong> — Pressing ESC will prompt you to leave the quiz</span>
+                    <span><strong>Press ESC to leave</strong>: Pressing ESC will prompt you to leave the quiz</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-orange-500 mt-0.5">•</span>
-                    <span><strong>Browser navigation blocked</strong> — Back button will not work during quiz</span>
+                    <span><strong>Browser navigation blocked</strong>: Back button will not work during quiz</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-orange-500 mt-0.5">•</span>
-                    <span><strong>Auto-submit on timeout</strong> — Quiz submits automatically when time runs out</span>
+                    <span><strong>Auto-submit on timeout</strong>: Quiz submits automatically when time runs out</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-orange-500 mt-0.5">•</span>
-                    <span><strong>Randomized options</strong> — Answer choices are shuffled for each attempt</span>
+                    <span><strong>Randomized options</strong>: Answer choices are shuffled for each attempt</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-orange-500 mt-0.5">•</span>
-                    <span><strong>No pausing</strong> — Timer cannot be paused once started</span>
+                    <span><strong>No pausing</strong>: Timer cannot be paused once started</span>
                   </li>
                 </ul>
               </div>
@@ -591,81 +612,128 @@ export default function TakeQuiz() {
       </div>
 
       {/* Quiz Content */}
-      <div className="max-w-5xl mx-auto py-6 px-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          {/* Quiz Header */}
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-700">{shuffledQuiz.description || 'Answer all questions below'}</p>
-                <p className="text-xs text-gray-500 mt-0.5">Passing Score: {shuffledQuiz.passingScore}%</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Questions List */}
-          <div className="divide-y divide-gray-200">
+      <div className="max-w-5xl mx-auto py-6 px-4 pb-32">
+        <div className="space-y-4">
             {shuffledQuiz.questions.map((q, qi) => (
-              <div key={q._id} className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <span className="font-medium text-gray-900">Question {qi+1}</span>
-                  <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">{q.marks} marks</span>
+              <div key={q._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base font-semibold text-gray-900">Question {qi+1}</h3>
+                  <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{q.marks} mark{q.marks !== 1 ? 's' : ''}</span>
                 </div>
-                <div className="mb-4 text-gray-700">{q.text}</div>
+                <p className="text-gray-800 mb-4 leading-relaxed">{q.text}</p>
                 
-                {/* Code Snippet Display */}
-                {q.codeSnippet && q.codeSnippet.trim() !== '' && (
-                  <div className="mb-4 bg-gray-900 rounded-md p-4">
-                    <div className="text-xs text-gray-400 font-mono uppercase mb-2">{q.codeLanguage || 'code'}</div>
-                    <pre className="text-green-400 font-mono text-sm overflow-x-auto whitespace-pre-wrap break-words">
-                      <code>{q.codeSnippet}</code>
-                    </pre>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  {q.options.map((opt, oi) => {
-                    const originalIdx = opt.originalIndex !== undefined ? opt.originalIndex : oi;
-                    const isSelected = answers[q._id] === originalIdx;
-                    return (
-                      <div 
-                        key={oi} 
-                        className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors ${
-                          isSelected 
-                            ? 'bg-blue-50 border border-blue-500' 
-                            : 'bg-gray-50 border border-gray-200 hover:border-gray-300 hover:bg-gray-100'
-                        }`}
-                        onClick={()=>select(q._id, originalIdx)}
-                      >
-                        <input 
-                          type="radio" 
-                          name={q._id} 
-                          checked={isSelected} 
-                          onChange={()=>select(q._id, originalIdx)} 
-                          className="w-4 h-4 text-blue-600" 
-                        />
-                        <span className="text-sm text-gray-700">{opt.text}</span>
-                      </div>
-                    );
-                  })}
+              {/* Code Snippet Display */}
+              {q.codeSnippet && q.codeSnippet.trim() !== '' && (
+                <div className="mb-4 bg-gray-900 rounded-lg p-4">
+                  <div className="text-xs text-gray-400 font-mono uppercase mb-2">{q.codeLanguage || 'PYTHON'}</div>
+                  <pre className="text-green-400 font-mono text-sm overflow-x-auto">
+                    <code>{q.codeSnippet}</code>
+                  </pre>
                 </div>
-              </div>
-            ))}
-          </div>
+              )}
 
-          {/* Submit Button */}
-          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-            <div className="flex justify-center">
-              <button 
-                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors" 
-                onClick={()=>setShowConfirm(true)} 
-                disabled={submitting}
-              >
-                {submitting ? 'Submitting...' : 'Submit Quiz'}
-              </button>
+              <div className="space-y-2">
+                {q.options.map((opt, oi) => {
+                  const originalIdx = opt.originalIndex !== undefined ? opt.originalIndex : oi;
+                  const isSelected = answers[q._id] === originalIdx;
+                  return (
+                    <label 
+                      key={oi} 
+                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                        isSelected 
+                          ? 'bg-blue-50 border-2 border-blue-500' 
+                          : 'bg-gray-50 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
+                      }`}
+                    >
+                      <input 
+                        type="radio" 
+                        name={q._id} 
+                        checked={isSelected} 
+                        onChange={()=>select(q._id, originalIdx)} 
+                        className="w-4 h-4 text-blue-600 cursor-pointer" 
+                      />
+                      <span className="text-sm text-gray-800 flex-1">{opt.text}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Sticky Submit Button */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
+        <div className="max-w-5xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              <span className="font-medium text-gray-900">{answered}</span> of <span className="font-medium text-gray-900">{total}</span> answered
+            </div>
+            <button 
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md" 
+              onClick={()=>setShowConfirm(true)} 
+              disabled={submitting}
+            >
+              {submitting ? 'Submitting...' : 'Submit Quiz'}
+            </button>
           </div>
         </div>
+      </div>
+
+      {/* Violation Modal */}
+      {showViolationModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60]">
+            <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full mx-4 border-4 border-red-500">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+              </div>
+              
+              <h3 className="text-2xl font-bold text-center text-gray-900 mb-3">Suspicious Activity Detected!</h3>
+              
+              <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+                <p className="text-center text-red-800 text-sm mb-2">
+                  We detected that you left the quiz screen or switched tabs.
+                </p>
+                <p className="text-center text-red-900 font-bold text-lg">
+                  Violations: {violations.length}
+                </p>
+                {violations.length > 10 && (
+                  <p className="text-center text-red-600 font-semibold text-sm mt-2">
+                    Maximum violations exceeded! Quiz will be auto-submitted.
+                  </p>
+                )}
+                {violations.length <= 10 && violations.length > 7 && (
+                  <p className="text-center text-orange-600 font-semibold text-sm mt-2">
+                    Warning: {10 - violations.length} violations remaining before auto-submit!
+                  </p>
+                )}
+              </div>
+
+              <p className="text-center text-gray-700 text-sm mb-6">
+                Do you want to continue the quiz?
+              </p>
+
+              <div className="flex gap-3">
+                <button 
+                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors border border-gray-300" 
+                  onClick={leaveQuiz}
+                >
+                  Leave Quiz
+                </button>
+                <button 
+                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors" 
+                  onClick={continueQuiz}
+                >
+                  Continue Quiz
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Leave Confirm Modal */}
         {showLeaveConfirm && (
@@ -718,7 +786,6 @@ export default function TakeQuiz() {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }
