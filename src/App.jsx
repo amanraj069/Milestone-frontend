@@ -27,6 +27,8 @@ import AdminComplaints from './pages/Admin/Complaints';
 import ComplaintDetail from './pages/Admin/ComplaintDetail';
 import AdminQuizzes from './pages/Admin/Quizzes';
 import AdminBlogs from './pages/Admin/Blogs';
+import CreateBlog from './pages/Admin/Blogs/CreateBlog';
+import EditBlog from './pages/Admin/Blogs/EditBlog';
 import AdminProfile from './pages/Admin/Profile';
 import AdminEditProfile from './pages/Admin/EditProfile';
 import NewQuiz from './pages/Admin/Quizzes/NewQuiz';
@@ -96,6 +98,8 @@ function App() {
                     <Route path="/admin/quizzes/list" element={<ProtectedRoute requiredRole="Admin"><QuizList /></ProtectedRoute>} />
                     <Route path="/admin/quizzes/:id/edit" element={<ProtectedRoute requiredRole="Admin"><EditQuiz /></ProtectedRoute>} />
                     <Route path="/admin/blogs" element={<ProtectedRoute requiredRole="Admin"><AdminBlogs /></ProtectedRoute>} />
+                    <Route path="/admin/blogs/create" element={<ProtectedRoute requiredRole="Admin"><CreateBlog /></ProtectedRoute>} />
+                    <Route path="/admin/blogs/edit/:slug" element={<ProtectedRoute requiredRole="Admin"><EditBlog /></ProtectedRoute>} />
                     <Route path="/admin/profile" element={<ProtectedRoute requiredRole="Admin"><AdminProfile /></ProtectedRoute>} />
                     <Route path="/admin/chat" element={<ProtectedRoute requiredRole="Admin"><Chat /></ProtectedRoute>} />
                     <Route path="/admin/profile/edit" element={<ProtectedRoute requiredRole="Admin"><AdminEditProfile /></ProtectedRoute>} />
