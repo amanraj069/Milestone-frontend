@@ -277,8 +277,8 @@ const PaymentDetails = () => {
                             ? 'text-yellow-700'
                             : 'text-gray-800'
                       }`}>
-                        {milestone.status === 'paid' && <span className="mr-2">✓</span>}
-                        {milestone.requested && milestone.status !== 'paid' && <span className="mr-2">⏳</span>}
+                        {milestone.status === 'paid' && <span className="mr-2"></span>}
+                        {milestone.requested && milestone.status !== 'paid' && <span className="mr-2"></span>}
                         {milestone.description}
                       </span>
                     </td>
@@ -295,7 +295,7 @@ const PaymentDetails = () => {
                         </span>
                       ) : milestone.requested ? (
                         <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">
-                          ⏳ Requested
+                          Requested
                         </span>
                       ) : (
                         <button

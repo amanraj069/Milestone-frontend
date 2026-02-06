@@ -601,8 +601,8 @@ const EditJob = () => {
                         {!isValid && (
                           <p className="text-sm text-gray-600 mt-2 text-center">
                             {remaining > 0 
-                              ? '⚠️ Milestone payments should equal the total budget' 
-                              : '❌ Milestone payments exceed the total budget'}
+                              ? 'Milestone payments should equal the total budget' 
+                              : 'Milestone payments exceed the total budget'}
                           </p>
                         )}
                       </div>

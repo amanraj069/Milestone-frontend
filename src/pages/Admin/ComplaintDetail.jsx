@@ -26,31 +26,31 @@ const ComplaintDetail = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔍 Fetching complaint details for ID:', complaintId);
+      console.log('Fetching complaint details for ID:', complaintId);
       const response = await axios.get(
         `${API_BASE_URL}/api/admin/complaints`,
         { withCredentials: true }
       );
 
-      console.log('📨 Backend response:', response.data);
-      console.log('📋 All complaints received:', response.data.complaints);
+      console.log('Backend response:', response.data);
+      console.log('All complaints received:', response.data.complaints);
 
       if (response.data.success) {
         const foundComplaint = response.data.complaints.find(
           c => c.complaintId === complaintId
         );
-        console.log('🎯 Found complaint:', foundComplaint);
+        console.log('Found complaint:', foundComplaint);
         if (foundComplaint) {
-          console.log('✅ Setting complaint with complainantUserId:', foundComplaint.complainantUserId);
+          console.log('Setting complaint with complainantUserId:', foundComplaint.complainantUserId);
           setComplaint(foundComplaint);
           setAdminNotes(foundComplaint.adminNotes || '');
         } else {
-          console.error('❌ Complaint not found with ID:', complaintId);
+          console.error('Complaint not found with ID:', complaintId);
           setError('Complaint not found');
         }
       }
     } catch (error) {
-      console.error('💥 Error fetching complaint:', error);
+      console.error('Error fetching complaint:', error);
       setError('Failed to load complaint details. Please try again.');
     } finally {
       setLoading(false);
@@ -73,7 +73,7 @@ const ComplaintDetail = () => {
         // Use the updated complaint from the server response
         setComplaint(response.data.complaint);
         setSuccessMessage(`Complaint status updated to ${status} successfully!`);
-        console.log('✅ Updated complaint with complainantUserId:', response.data.complaint.complainantUserId);
+        console.log('Updated complaint with complainantUserId:', response.data.complaint.complainantUserId);
       }
     } catch (error) {
       console.error('Error updating complaint:', error);
@@ -104,28 +104,28 @@ const ComplaintDetail = () => {
   };
 
   const handleChat = () => {
-    console.log('🔥 CHAT BUTTON CLICKED');
-    console.log('💡 Complaint object exists:', !!complaint);
+    console.log('CHAT BUTTON CLICKED');
+    console.log('Complaint object exists:', !!complaint);
     
     if (!complaint) {
-      console.error('❌ No complaint object available');
+      console.error('No complaint object available');
       return;
     }
     
-    console.log('📝 Full complaint object:', complaint);
-    console.log('🗃️ Object keys:', Object.keys(complaint));
+    console.log('Full complaint object:', complaint);
+    console.log('Object keys:', Object.keys(complaint));
     console.log('🆔 ComplainantUserId:', complaint.complainantUserId);
     console.log('🆔 ComplainantUserId type:', typeof complaint.complainantUserId);
     console.log('🆔 ComplainantUserId truthiness:', !!complaint.complainantUserId);
     
     if (!complaint.complainantUserId) {
-      console.error('❌ No complainantUserId found in complaint object');
-      console.log('🔍 Available fields:', Object.keys(complaint));
+      console.error('No complainantUserId found in complaint object');
+      console.log('Available fields:', Object.keys(complaint));
       alert('Error: Unable to start chat. Complainant User ID not found.');
       return;
     }
     
-    console.log('✅ Opening chat with userId:', complaint.complainantUserId);
+    console.log('Opening chat with userId:', complaint.complainantUserId);
     openChatWith(complaint.complainantUserId);
   };
 

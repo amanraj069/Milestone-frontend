@@ -65,6 +65,9 @@ import QuizResult from './pages/Quizzes/QuizResult';
 // Notifications Page
 import Notifications from './pages/Notifications/Notifications';
 
+// 404 Page
+import NotFound from './pages/NotFound';
+
 function App() {
   return (
     <AuthProvider>
@@ -139,8 +142,8 @@ function App() {
                     <Route path="/quizzes/:id" element={<ProtectedRoute><TakeQuiz /></ProtectedRoute>} />
                     <Route path="/quizzes/:id/result" element={<ProtectedRoute><QuizResult /></ProtectedRoute>} />
                     
-                    {/* Catch all other routes */}
-                    <Route path="*" element={<Home />} />
+                    {/* Catch all - 404 Page */}
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </div>
               </SocketProvider>
