@@ -76,7 +76,7 @@ const AdminJobListings = () => {
   );
   const totalJobs = jobs.length;
   const totalBudget = jobs.reduce((s, j) => s + (Number(j.budget) || 0), 0);
-  const openJobs = jobs.filter(j => j.status === 'Open').length;
+  const openJobs = jobs.filter(j => j.status === 'open').length;
 
   const headerAction = (<div></div>);
 
@@ -168,7 +168,10 @@ const AdminJobListings = () => {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                        job.status === 'Open' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                        job.status === 'open' || job.status === 'active' ? 'bg-green-100 text-green-700' : 
+                        job.status === 'closed' ? 'bg-red-100 text-red-700' :
+                        job.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                        'bg-amber-100 text-amber-700'
                       }`}>
                         {job.status}
                       </span>

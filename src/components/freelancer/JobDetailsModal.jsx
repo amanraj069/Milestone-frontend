@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
-const JobDetailsModal = ({ isOpen, onClose, job, onJobLeft }) => {
+const JobDetailsModal = ({ isOpen, onClose, job, onJobLeft, showLeaveButton = true }) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [closing, setClosing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -269,15 +269,17 @@ const JobDetailsModal = ({ isOpen, onClose, job, onJobLeft }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-100 flex justify-between items-center gap-3 bg-gray-50 rounded-b-2xl">
-          <button
-            className="px-6 py-2.5 bg-red-600 text-white border-none rounded-lg font-semibold cursor-pointer transition-all hover:bg-red-700 hover:-translate-y-0.5 hover:shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
-            onClick={handleLeaveJob}
-            disabled={loading}
-          >
-            <i className="fas fa-sign-out-alt mr-2"></i>
-            {loading ? 'Leaving Job...' : 'Leave Job'}
-          </button>
+        <div className={`p-6 border-t border-gray-100 flex ${showLeaveButton ? 'justify-between' : 'justify-end'} items-center gap-3 bg-gray-50 rounded-b-2xl`}>
+          {showLeaveButton && (
+            <button
+              className="px-6 py-2.5 bg-red-600 text-white border-none rounded-lg font-semibold cursor-pointer transition-all hover:bg-red-700 hover:-translate-y-0.5 hover:shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
+              onClick={handleLeaveJob}
+              disabled={loading}
+            >
+              <i className="fas fa-sign-out-alt mr-2"></i>
+              {loading ? 'Leaving Job...' : 'Leave Job'}
+            </button>
+          )}
           <button 
             className="px-6 py-2.5 bg-gray-200 text-gray-700 border-none rounded-lg font-semibold cursor-pointer transition-all hover:bg-gray-300"
             onClick={handleClose}

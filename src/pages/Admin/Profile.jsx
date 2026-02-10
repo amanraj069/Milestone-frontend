@@ -275,27 +275,6 @@ const AdminProfile = () => {
           </div>
         </div>
       </div>
-
-      {/* Admin Privileges */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-base font-semibold text-gray-900">Admin Privileges</h3>
-          <p className="text-sm text-gray-500 mt-0.5">Your access permissions on this platform</p>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {privileges.map((privilege) => (
-              <div key={privilege} className="flex items-center gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
-                <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">{privilege}</p>
-                  <p className="text-xs text-green-600">Full access</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </DashboardPage>
   );
 };

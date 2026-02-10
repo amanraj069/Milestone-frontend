@@ -35,25 +35,26 @@ export default function FreelancerCard({ freelancer, onLeaveFeedback }) {
   };
 
   return (
-    <div className="border-2 border-blue-200 rounded-lg p-5 hover:border-blue-500 transition-all hover:shadow-lg">
-      <div className="flex items-start gap-4">
+    <div className="bg-white border border-gray-200 rounded-xl p-6 hover:border-blue-400 transition-all duration-200 hover:shadow-md">
+      <div className="flex items-start gap-5">
         {/* Profile Picture */}
         <div className="flex-shrink-0">
           <img
             src={freelancer.picture || '/default-avatar.png'}
             alt={freelancer.name}
-            className="w-16 h-16 rounded-full object-cover border-3 border-blue-500"
+            className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 shadow-sm"
           />
         </div>
 
         {/* Freelancer Info */}
-        <div className="flex-1">
-          <div className="flex items-start justify-between mb-2">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 hover:text-blue-600 cursor-pointer">
+        <div className="flex-1 min-w-0">
+          {/* Top Row: Name, Rating, Buttons, Status */}
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-xl font-semibold text-gray-900 hover:text-blue-600 cursor-pointer transition-colors truncate">
                 {freelancer.name}
               </h3>
-              <div className="flex items-center gap-1 mt-1">
+              <div className="flex items-center gap-1.5 mt-1.5">
                 {[...Array(5)].map((_, i) => (
                   <i
                     key={i}
@@ -62,58 +63,62 @@ export default function FreelancerCard({ freelancer, onLeaveFeedback }) {
                     }`}
                   ></i>
                 ))}
-                <span className="text-sm text-gray-600 ml-1">{freelancer.rating.toFixed(1)}</span>
+                <span className="text-sm font-medium text-gray-700 ml-1">{freelancer.rating.toFixed(1)}</span>
               </div>
             </div>
-            <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
-              freelancer.status === 'left' 
-                ? 'bg-red-100 text-red-700' 
-                : 'bg-green-100 text-green-700'
-            }`}>
-              {freelancer.status === 'left' ? 'Left Job' : 'Completed'}
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-2 items-start">
+              {eligibility?.canGiveFeedback && (
+                <button
+                  onClick={() => onLeaveFeedback(freelancer)}
+                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md"
+                >
+                  <i className="fas fa-star mr-2"></i>
+                  Leave Feedback
+                </button>
+              )}
+              <button className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md">
+                <i className="fas fa-comment mr-2"></i>
+                Chat
+              </button>
+              <button
+                onClick={handleViewProfile}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 text-sm font-medium"
+              >
+                <i className="fas fa-user mr-2"></i>
+                Profile
+              </button>
+            </div>
+
+            {/* Status Badge */}
+            <div className="flex-shrink-0">
+              <div className={`px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
+                freelancer.status === 'left' 
+                  ? 'bg-red-50 text-red-700 border border-red-200' 
+                  : 'bg-green-50 text-green-700 border border-green-200'
+              }`}>
+                {freelancer.status === 'left' ? 'Left Job' : 'Completed'}
+              </div>
             </div>
           </div>
 
           {/* Job Info */}
           <div className="mb-3">
-            <p className="text-xs text-gray-500 mb-1">Worked as:</p>
-            <p className="font-medium text-gray-800">{freelancer.jobTitle}</p>
+            <p className="text-xs text-gray-500 font-medium mb-1">Worked as:</p>
+            <p className="font-semibold text-gray-900">{freelancer.jobTitle}</p>
           </div>
 
           {/* Completion Date */}
-          <div className="mb-4">
-            <p className="text-sm text-gray-600 flex items-center gap-2">
-              <i className={`fas ${freelancer.status === 'left' ? 'fa-sign-out-alt text-red-600' : 'fa-calendar-check text-green-600'}`}></i>
-              {formatDate(freelancer.completedDate)}
-            </p>
-            {freelancer.completedDate && (
-              <p className="text-xs text-gray-500 ml-5">
-                {freelancer.status === 'left' ? 'Left on:' : 'Finished on:'} {formatCompletionDate(freelancer.completedDate)}
+          <div>
+            <div className="flex items-center gap-2 text-sm text-gray-700">
+              <i className={`fas ${freelancer.status === 'left' ? 'fa-sign-out-alt text-red-500' : 'fa-calendar-check text-green-500'}`}></i>
+              <span className="font-medium">{formatDate(freelancer.completedDate || freelancer.leftDate)}</span>
+            </div>
+            {(freelancer.completedDate || freelancer.leftDate) && (
+              <p className="text-xs text-gray-500 mt-1">
+                {freelancer.status === 'left' ? 'Left on:' : 'Finished on:'} {formatCompletionDate(freelancer.completedDate || freelancer.leftDate)}
               </p>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-2">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-              <i className="fas fa-comment mr-2"></i>
-              Chat
-            </button>
-            <button
-              onClick={handleViewProfile}
-              className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
-            >
-              <i className="fas fa-user mr-2"></i>
-              Profile
-            </button>
-            {eligibility?.canGiveFeedback && (
-              <button
-                onClick={() => onLeaveFeedback(freelancer)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-              >
-                <i className="fas fa-star mr-2"></i>
-                Leave Feedback
-              </button>
             )}
           </div>
         </div>

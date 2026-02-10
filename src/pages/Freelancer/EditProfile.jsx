@@ -115,6 +115,24 @@ const EditProfile = () => {
     fetchProfileData();
   }, [user]);
 
+  // Cleanup blob URLs ONLY on unmount to prevent memory leaks
+  useEffect(() => {
+    const currentProfilePreview = profileImagePreview;
+    const currentPortfolio = [...portfolio];
+    
+    return () => {
+      // Only cleanup on unmount
+      if (currentProfilePreview && currentProfilePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(currentProfilePreview);
+      }
+      currentPortfolio.forEach(item => {
+        if (item.image && item.image.startsWith('blob:')) {
+          URL.revokeObjectURL(item.image);
+        }
+      });
+    };
+  }, []); // Empty dependency array - only run on mount/unmount
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -413,8 +431,10 @@ const EditProfile = () => {
         alert('Please select an image file');
         return;
       }
+      const blobUrl = URL.createObjectURL(file);
+      console.log('Created profile image blob URL:', blobUrl);
       setProfileImage(file);
-      setProfileImagePreview(URL.createObjectURL(file));
+      setProfileImagePreview(blobUrl);
     }
   };
 
@@ -507,8 +527,10 @@ const EditProfile = () => {
       }));
       
       // Create preview URL
+      const blobUrl = URL.createObjectURL(file);
+      console.log('Created portfolio blob URL for index', index, ':', blobUrl);
       const updated = [...portfolio];
-      updated[index].image = URL.createObjectURL(file);
+      updated[index].image = blobUrl;
       updated[index].isNewImage = true; // Mark as new image to upload
       setPortfolio(updated);
     }
@@ -619,6 +641,8 @@ const EditProfile = () => {
           setProfileImagePreview('');
         } else {
           alert(result.error || 'Failed to upload profile picture');
+          setProfileImage(null);
+          setProfileImagePreview('');
           setLoading(false);
           return;
         }
@@ -748,7 +772,9 @@ const EditProfile = () => {
                     src={profileImagePreview || formData.profileImageUrl || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'} 
                     alt="Profile Preview" 
                     className="w-full h-full object-cover"
+                    onLoad={() => console.log('Profile image loaded:', profileImagePreview || formData.profileImageUrl)}
                     onError={(e) => {
+                      console.error('Profile image failed to load:', e.target.src);
                       e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png';
                     }}
                   />
@@ -807,7 +833,7 @@ const EditProfile = () => {
                   name="location"
                   value={formData.location}
                   onChange={handleChange}
-                  placeholder="e.g., New York, USA"
+                  placeholder="e.g., Chennai, India"
                   className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${locationError ? 'border border-red-500' : 'border border-gray-300 focus:border-blue-500'}`}
                 />
                 {locationError && (
@@ -1135,16 +1161,17 @@ const EditProfile = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Portfolio Image
                       </label>
-                      {item.image && (
+                      {item.image ? (
                         <div className="mb-2">
                           <img 
                             src={item.image} 
                             alt="Portfolio preview" 
                             className="w-32 h-32 object-cover rounded-lg border-2 border-gray-200"
-                            onError={(e) => {
-                              e.target.src = '/assets/portfolio_placeholder.jpg';
-                            }}
                           />
+                        </div>
+                      ) : (
+                        <div className="mb-2 w-32 h-32 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
+                          <i className="fas fa-image text-gray-400 text-2xl"></i>
                         </div>
                       )}
                       <input

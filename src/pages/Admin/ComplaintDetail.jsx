@@ -130,15 +130,7 @@ const ComplaintDetail = () => {
   };
 
   const content = (
-    <div className="complaint-form-container">
-      {/* Page Header */}
-      <div className="complaint-header">
-        <button className="back-btn" onClick={() => navigate('/admin/complaints')}>
-          <i className="fas fa-arrow-left"></i> Back to Complaints
-        </button>
-        <h1 className="page-title">Complaint Details</h1>
-        <p className="page-subtitle">Review and manage complaint</p>
-      </div>
+    <div className="complaint-form-container min-w-6xl">
 
       {/* Loading State */}
       {loading && (

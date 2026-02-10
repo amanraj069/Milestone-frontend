@@ -321,7 +321,7 @@ const AdminEditProfile = () => {
                   name="location"
                   value={formData.location}
                   onChange={handleChange}
-                  placeholder="e.g., New York, USA"
+                  placeholder="e.g., Chennai, India"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 />
               </div>

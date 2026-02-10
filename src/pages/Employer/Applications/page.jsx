@@ -180,10 +180,10 @@ const EmployerApplications = () => {
                 placeholder="Search applications, freelancers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
               />
             </div>
-            <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+            <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md">
               <i className="fas fa-search"></i>
             </button>
           </div>
@@ -205,20 +205,20 @@ const EmployerApplications = () => {
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead>
-                  <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Freelancer
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Job Details
                     </th>
-                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider" colSpan="2">
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider" colSpan="2">
                       Applied Details
                     </th>
-                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider" style={{width: '140px'}}>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider" style={{width: '140px'}}>
                       Actions
                     </th>
                   </tr>
@@ -275,7 +275,7 @@ const EmployerApplications = () => {
                       <td className="px-6 py-5 text-center">
                         <button
                           onClick={() => handleViewDetails(application)}
-                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
                         >
                           <i className="fas fa-eye mr-2"></i>
                           View Application
@@ -287,7 +287,7 @@ const EmployerApplications = () => {
                         {application.resumeLink ? (
                           <button
                             onClick={() => handleViewResume(application.resumeLink)}
-                            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-all duration-200 shadow-sm hover:shadow-md"
                           >
                             <i className="fas fa-file-pdf mr-2"></i>
                             View Resume
@@ -303,14 +303,14 @@ const EmployerApplications = () => {
                           <div className="flex flex-col gap-2">
                             <button
                               onClick={() => handleAccept(application.applicationId)}
-                              className="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
+                              className="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
                             >
                               <i className="fas fa-check mr-2"></i>
                               Accept
                             </button>
                             <button
                               onClick={() => handleReject(application.applicationId)}
-                              className="inline-flex items-center justify-center px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors whitespace-nowrap"
+                              className="inline-flex items-center justify-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
                             >
                               <i className="fas fa-times mr-2"></i>
                               Reject
