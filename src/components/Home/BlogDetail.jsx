@@ -505,30 +505,7 @@ const BlogDetail = () => {
         </section>
       )}
 
-      {/* Newsletter Section */}
-      <section className="py-20 bg-gradient-to-br from-indigo-600 to-purple-600">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-4xl font-bold text-white mb-6">
-              Subscribe to Our Newsletter
-            </h2>
-            <p className="text-xl text-indigo-100 mb-8">
-              Get the latest insights and updates delivered to your inbox
-            </p>
-            
-            <div className="flex gap-4 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="px-8 py-4 bg-white text-gray-900 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-white placeholder:text-gray-500 w-[200px]"
-              />
-              <button className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-lg font-semibold transition-all hover:bg-white hover:text-indigo-600 whitespace-nowrap w-[150px]">
-                Subscribe
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+      
       </div>
 
       <Footer />
