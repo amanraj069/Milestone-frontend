@@ -331,7 +331,7 @@ const Chat = () => {
   };
 
   const handleTypingUpdate = ({ userId, isTyping }) => {
-    console.log('⌨️  Received typing:update:', { userId, isTyping, selectedUserId: selectedConversation?.participant.userId });
+    console.log('Received typing:update:', { userId, isTyping, selectedUserId: selectedConversation?.participant.userId });
     if (selectedConversation?.participant.userId === userId) {
       console.log('   Updating typing state for current conversation');
       setTypingUsers(prev => {
