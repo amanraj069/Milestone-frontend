@@ -76,7 +76,7 @@ const DeleteModal = ({ isOpen, onClose, onConfirm, blogTitle, isDeleting }) => {
   );
 };
 
-const AdminBlogs = () => {
+const ModeratorBlogs = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [blogs, setBlogs] = useState([]);
@@ -101,7 +101,7 @@ const AdminBlogs = () => {
 
   const fetchBlogs = async () => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/admin/blogs`, {
+      const response = await fetch(`${apiBaseUrl}/api/moderator/blogs`, {
         credentials: 'include',
       });
       const data = await response.json();
@@ -120,7 +120,7 @@ const AdminBlogs = () => {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/api/admin/blogs/${deleteModal.blog.blogId}`, {
+      const response = await fetch(`${apiBaseUrl}/api/moderator/blogs/${deleteModal.blog.blogId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -279,4 +279,4 @@ const AdminBlogs = () => {
   );
 };
 
-export default AdminBlogs;
+export default ModeratorBlogs;

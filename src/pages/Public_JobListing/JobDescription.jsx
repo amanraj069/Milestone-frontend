@@ -233,8 +233,8 @@ const JobDescription = () => {
               {user ? (
                 <Link
                   to={
-                    user.role === 'Admin'
-                      ? '/admin/profile'
+                    user.role === 'Moderator'
+                      ? '/moderator/profile'
                       : user.role === 'Employer'
                       ? '/employer/profile'
                       : '/freelancer/profile'

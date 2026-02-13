@@ -121,7 +121,7 @@ export default function NewQuiz() {
 
     setSaving(true);
     const payload = { title, skillName, description, timeLimitMinutes: timeLimit ? Number(timeLimit) : undefined, passingScore, questions };
-    const res = await fetch('/api/admin/quizzes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(payload) });
+    const res = await fetch('/api/moderator/quizzes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(payload) });
     const data = await res.json();
     setSaving(false);
     if (data.success) {

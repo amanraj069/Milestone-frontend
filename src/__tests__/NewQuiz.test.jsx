@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import NewQuiz from '../pages/Admin/Quizzes/NewQuiz';
+import NewQuiz from '../pages/Moderator/Quizzes/NewQuiz';
 
 test('renders Add New Skill Quiz header', () => {
   render(<NewQuiz />);

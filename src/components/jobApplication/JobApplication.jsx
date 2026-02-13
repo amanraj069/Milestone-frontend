@@ -183,7 +183,7 @@ const JobApplication = () => {
               </button>
               {user ? (
                 <Link
-                  to={user.role === 'Admin' ? '/admin/profile' : user.role === 'Employer' ? '/employer/profile' : '/freelancer/profile'}
+                  to={user.role === 'Moderator' ? '/moderator/profile' : user.role === 'Employer' ? '/employer/profile' : '/freelancer/profile'}
                   className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

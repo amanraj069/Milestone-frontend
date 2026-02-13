@@ -10,7 +10,7 @@ import {
 } from '../../redux/slices/complaintsSlice';
 import DashboardPage from '../../components/DashboardPage';
 
-const AdminComplaints = () => {
+const ModeratorComplaints = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
@@ -298,5 +298,5 @@ const AdminComplaints = () => {
   );
 };
 
-export default AdminComplaints;
+export default ModeratorComplaints;
 

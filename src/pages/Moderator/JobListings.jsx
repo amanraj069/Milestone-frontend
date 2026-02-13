@@ -5,7 +5,7 @@ import DashboardPage from '../../components/DashboardPage';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
-const AdminJobListings = () => {
+const ModeratorJobListings = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ const AdminJobListings = () => {
       setLoading(true);
       setError(null);
       const response = await axios.get(
-        `${API_BASE_URL}/api/admin/jobs`,
+        `${API_BASE_URL}/api/moderator/jobs`,
         { withCredentials: true }
       );
 
@@ -48,7 +48,7 @@ const AdminJobListings = () => {
     setDeleting(jobId);
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/api/admin/jobs/${jobId}`,
+        `${API_BASE_URL}/api/moderator/jobs/${jobId}`,
         { withCredentials: true }
       );
 
@@ -198,5 +198,5 @@ const AdminJobListings = () => {
   return <DashboardPage title="Job Listings" headerAction={headerAction}>{content}</DashboardPage>;
 };
 
-export default AdminJobListings;
+export default ModeratorJobListings;
 

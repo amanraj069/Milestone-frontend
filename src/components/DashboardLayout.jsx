@@ -73,17 +73,17 @@ const DashboardLayout = ({ children }) => {
 
   const getMenuItems = () => {
     switch (user?.role) {
-      case 'Admin':
+      case 'Moderator':
         return [
           { name: 'Home', path: '/', icon: 'fas fa-home' },
-          { name: 'Job Listings', path: '/admin/job-listings', icon: 'fas fa-briefcase' },
-          { name: 'Freelancers', path: '/admin/freelancers', icon: 'fas fa-users' },
-          { name: 'Employers', path: '/admin/employers', icon: 'fas fa-building' },
-          { name: 'Complaints', path: '/admin/complaints', icon: 'fas fa-exclamation-triangle' },
-          { name: 'Quizzes', path: '/admin/quizzes', icon: 'fas fa-question-circle' },
-          { name: 'Blogs', path: '/admin/blogs', icon: 'fas fa-blog' },
-          { name: 'Chat', path: '/admin/chat', icon: 'fas fa-comments' },
-          { name: 'Profile', path: '/admin/profile', icon: 'fas fa-user' },
+          { name: 'Job Listings', path: '/moderator/job-listings', icon: 'fas fa-briefcase' },
+          { name: 'Freelancers', path: '/moderator/freelancers', icon: 'fas fa-users' },
+          { name: 'Employers', path: '/moderator/employers', icon: 'fas fa-building' },
+          { name: 'Complaints', path: '/moderator/complaints', icon: 'fas fa-exclamation-triangle' },
+          { name: 'Quizzes', path: '/moderator/quizzes', icon: 'fas fa-question-circle' },
+          { name: 'Blogs', path: '/moderator/blogs', icon: 'fas fa-blog' },
+          { name: 'Chat', path: '/moderator/chat', icon: 'fas fa-comments' },
+          { name: 'Profile', path: '/moderator/profile', icon: 'fas fa-user' },
         ];
       case 'Employer':
         return [

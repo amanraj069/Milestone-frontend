@@ -288,7 +288,7 @@ const EmployerComplaintForm = () => {
       <div className="help-text">
         <i className="fas fa-info-circle"></i>
         <p>
-          Your complaint will be reviewed by our admin team. We aim to respond within 2-3
+          Your complaint will be reviewed by our moderator team. We aim to respond within 2-3
           business days. For urgent matters, please mark the priority as "High".
         </p>
       </div>

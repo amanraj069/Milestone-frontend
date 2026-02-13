@@ -102,8 +102,8 @@ const Login = () => {
       // Determine dashboard route based on the selected role
       let dashboardRoute = '/';
       switch (formData.role) {
-        case 'Admin':
-          dashboardRoute = '/admin/profile';
+        case 'Moderator':
+          dashboardRoute = '/moderator/profile';
           break;
         case 'Employer':
           dashboardRoute = '/employer/profile';
@@ -210,7 +210,7 @@ const Login = () => {
                   <option value="">Select role</option>
                   <option value="Freelancer">Freelancer</option>
                   <option value="Employer">Employer</option>
-                  <option value="Admin">Admin</option>
+                  <option value="Moderator">Moderator</option>
                 </select>
                 {fieldErrors.role && (
                   <div className="text-rose-600 text-sm mt-1">

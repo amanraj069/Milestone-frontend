@@ -19,21 +19,21 @@ import BlogList from './components/Home/BlogList';
 import BlogDetail from './components/Home/BlogDetail';
 import JobApplication from './components/jobApplication/JobApplication';
 
-// Admin Pages
-import AdminJobListings from './pages/Admin/JobListings';
-import AdminFreelancers from './pages/Admin/Freelancers';
-import AdminEmployers from './pages/Admin/Employers';
-import AdminComplaints from './pages/Admin/Complaints';
-import ComplaintDetail from './pages/Admin/ComplaintDetail';
-import AdminQuizzes from './pages/Admin/Quizzes';
-import AdminBlogs from './pages/Admin/Blogs';
-import CreateBlog from './pages/Admin/Blogs/CreateBlog';
-import EditBlog from './pages/Admin/Blogs/EditBlog';
-import AdminProfile from './pages/Admin/Profile';
-import AdminEditProfile from './pages/Admin/EditProfile';
-import NewQuiz from './pages/Admin/Quizzes/NewQuiz';
-import QuizList from './pages/Admin/Quizzes/QuizList';
-import EditQuiz from './pages/Admin/Quizzes/EditQuiz';
+// Moderator Pages
+import ModeratorJobListings from './pages/Moderator/JobListings';
+import ModeratorFreelancers from './pages/Moderator/Freelancers';
+import ModeratorEmployers from './pages/Moderator/Employers';
+import ModeratorComplaints from './pages/Moderator/Complaints';
+import ComplaintDetail from './pages/Moderator/ComplaintDetail';
+import ModeratorQuizzes from './pages/Moderator/Quizzes';
+import ModeratorBlogs from './pages/Moderator/Blogs';
+import CreateBlog from './pages/Moderator/Blogs/CreateBlog';
+import EditBlog from './pages/Moderator/Blogs/EditBlog';
+import ModeratorProfile from './pages/Moderator/Profile';
+import ModeratorEditProfile from './pages/Moderator/EditProfile';
+import NewQuiz from './pages/Moderator/Quizzes/NewQuiz';
+import QuizList from './pages/Moderator/Quizzes/QuizList';
+import EditQuiz from './pages/Moderator/Quizzes/EditQuiz';
 
 // Employer Pages
 import EmployerProfile from './pages/Employer/Profile/Profile';
@@ -89,23 +89,23 @@ function App() {
                     <Route path="/blogs/:blogId" element={<BlogDetail />} />
                     
                     {/* Admin Routes */}
-                    <Route path="/admin/dashboard" element={<Navigate to="/admin/job-listings" replace />} />
-                    <Route path="/admin/home" element={<Navigate to="/admin/job-listings" replace />} />
-                    <Route path="/admin/job-listings" element={<ProtectedRoute requiredRole="Admin"><AdminJobListings /></ProtectedRoute>} />
-                    <Route path="/admin/freelancers" element={<ProtectedRoute requiredRole="Admin"><AdminFreelancers /></ProtectedRoute>} />
-                    <Route path="/admin/employers" element={<ProtectedRoute requiredRole="Admin"><AdminEmployers /></ProtectedRoute>} />
-                    <Route path="/admin/complaints" element={<ProtectedRoute requiredRole="Admin"><AdminComplaints /></ProtectedRoute>} />
-                    <Route path="/admin/complaints/:complaintId" element={<ProtectedRoute requiredRole="Admin"><ComplaintDetail /></ProtectedRoute>} />
-                    <Route path="/admin/quizzes" element={<ProtectedRoute requiredRole="Admin"><AdminQuizzes /></ProtectedRoute>} />
-                    <Route path="/admin/quizzes/new" element={<ProtectedRoute requiredRole="Admin"><NewQuiz /></ProtectedRoute>} />
-                    <Route path="/admin/quizzes/list" element={<ProtectedRoute requiredRole="Admin"><QuizList /></ProtectedRoute>} />
-                    <Route path="/admin/quizzes/:id/edit" element={<ProtectedRoute requiredRole="Admin"><EditQuiz /></ProtectedRoute>} />
-                    <Route path="/admin/blogs" element={<ProtectedRoute requiredRole="Admin"><AdminBlogs /></ProtectedRoute>} />
-                    <Route path="/admin/blogs/create" element={<ProtectedRoute requiredRole="Admin"><CreateBlog /></ProtectedRoute>} />
-                    <Route path="/admin/blogs/edit/:slug" element={<ProtectedRoute requiredRole="Admin"><EditBlog /></ProtectedRoute>} />
-                    <Route path="/admin/profile" element={<ProtectedRoute requiredRole="Admin"><AdminProfile /></ProtectedRoute>} />
-                    <Route path="/admin/chat" element={<ProtectedRoute requiredRole="Admin"><Chat /></ProtectedRoute>} />
-                    <Route path="/admin/profile/edit" element={<ProtectedRoute requiredRole="Admin"><AdminEditProfile /></ProtectedRoute>} />
+                    <Route path="/moderator/dashboard" element={<Navigate to="/moderator/job-listings" replace />} />
+                    <Route path="/moderator/home" element={<Navigate to="/moderator/job-listings" replace />} />
+                    <Route path="/moderator/job-listings" element={<ProtectedRoute requiredRole="Moderator"><ModeratorJobListings /></ProtectedRoute>} />
+                    <Route path="/moderator/freelancers" element={<ProtectedRoute requiredRole="Moderator"><ModeratorFreelancers /></ProtectedRoute>} />
+                    <Route path="/moderator/employers" element={<ProtectedRoute requiredRole="Moderator"><ModeratorEmployers /></ProtectedRoute>} />
+                    <Route path="/moderator/complaints" element={<ProtectedRoute requiredRole="Moderator"><ModeratorComplaints /></ProtectedRoute>} />
+                    <Route path="/moderator/complaints/:complaintId" element={<ProtectedRoute requiredRole="Moderator"><ComplaintDetail /></ProtectedRoute>} />
+                    <Route path="/moderator/quizzes" element={<ProtectedRoute requiredRole="Moderator"><ModeratorQuizzes /></ProtectedRoute>} />
+                    <Route path="/moderator/quizzes/new" element={<ProtectedRoute requiredRole="Moderator"><NewQuiz /></ProtectedRoute>} />
+                    <Route path="/moderator/quizzes/list" element={<ProtectedRoute requiredRole="Moderator"><QuizList /></ProtectedRoute>} />
+                    <Route path="/moderator/quizzes/:id/edit" element={<ProtectedRoute requiredRole="Moderator"><EditQuiz /></ProtectedRoute>} />
+                    <Route path="/moderator/blogs" element={<ProtectedRoute requiredRole="Moderator"><ModeratorBlogs /></ProtectedRoute>} />
+                    <Route path="/moderator/blogs/create" element={<ProtectedRoute requiredRole="Moderator"><CreateBlog /></ProtectedRoute>} />
+                    <Route path="/moderator/blogs/edit/:slug" element={<ProtectedRoute requiredRole="Moderator"><EditBlog /></ProtectedRoute>} />
+                    <Route path="/moderator/profile" element={<ProtectedRoute requiredRole="Moderator"><ModeratorProfile /></ProtectedRoute>} />
+                    <Route path="/moderator/chat" element={<ProtectedRoute requiredRole="Moderator"><Chat /></ProtectedRoute>} />
+                    <Route path="/moderator/profile/edit" element={<ProtectedRoute requiredRole="Moderator"><ModeratorEditProfile /></ProtectedRoute>} />
 
                     {/* Employer Routes */}
                     <Route path="/employer/dashboard" element={<Navigate to="/employer/job-listings" replace />} />

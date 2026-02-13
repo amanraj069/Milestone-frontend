@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
 
-const AdminEditProfile = () => {
+const ModeratorEditProfile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -29,7 +29,7 @@ const AdminEditProfile = () => {
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
-        const response = await fetch('http://localhost:9000/api/admin/profile', {
+        const response = await fetch('http://localhost:9000/api/moderator/profile', {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -174,7 +174,7 @@ const AdminEditProfile = () => {
         const formDataImg = new FormData();
         formDataImg.append('profilePicture', profileImage);
 
-        const response = await fetch('http://localhost:9000/api/admin/profile/picture/upload', {
+        const response = await fetch('http://localhost:9000/api/moderator/profile/picture/upload', {
           method: 'POST',
           credentials: 'include',
           body: formDataImg
@@ -203,7 +203,7 @@ const AdminEditProfile = () => {
         socialMedia: formData.socialMedia
       };
 
-      const response = await fetch('http://localhost:9000/api/admin/profile/update', {
+      const response = await fetch('http://localhost:9000/api/moderator/profile/update', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -481,4 +481,4 @@ const AdminEditProfile = () => {
   );
 };
 
-export default AdminEditProfile;
+export default ModeratorEditProfile;

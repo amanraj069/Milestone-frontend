@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import DashboardPage from '../../components/DashboardPage';
 
-const AdminProfile = () => {
+const ModeratorProfile = () => {
   const { user } = useAuth();
   const [profileData, setProfileData] = useState(null);
   const [dashboardStats, setDashboardStats] = useState(null);
@@ -20,14 +20,14 @@ const AdminProfile = () => {
     picture: user.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png',
     aboutMe: user.aboutMe || '',
     socialMedia: user.socialMedia || {},
-    subscription: user.subscription || 'Premium Admin',
+    subscription: user.subscription || 'Premium Moderator',
   });
 
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
         if (user) {
-          const response = await fetch('http://localhost:9000/api/admin/profile', {
+          const response = await fetch('http://localhost:9000/api/moderator/profile', {
             method: 'GET',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
@@ -48,7 +48,7 @@ const AdminProfile = () => {
 
     const fetchDashboardStats = async () => {
       try {
-        const response = await fetch('http://localhost:9000/api/admin/dashboard/stats', {
+        const response = await fetch('http://localhost:9000/api/moderator/dashboard/stats', {
           method: 'GET',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
@@ -64,7 +64,7 @@ const AdminProfile = () => {
 
     const fetchRecentActivities = async () => {
       try {
-        const response = await fetch('http://localhost:9000/api/admin/dashboard/activities', {
+        const response = await fetch('http://localhost:9000/api/moderator/dashboard/activities', {
           method: 'GET',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
@@ -110,7 +110,7 @@ const AdminProfile = () => {
 
   if (loading) {
     return (
-      <DashboardPage title="Admin Profile" headerAction={headerAction}>
+      <DashboardPage title="Moderator Profile" headerAction={headerAction}>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mb-3"></div>
           <p className="text-gray-500">Loading profile...</p>
@@ -121,7 +121,7 @@ const AdminProfile = () => {
 
   if (!profileData) {
     return (
-      <DashboardPage title="Admin Profile" headerAction={headerAction}>
+      <DashboardPage title="Moderator Profile" headerAction={headerAction}>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-lg font-medium text-gray-700 mb-1">No profile data</p>
           <p className="text-gray-500">Unable to load profile information.</p>
@@ -147,7 +147,7 @@ const AdminProfile = () => {
   ];
 
   return (
-    <DashboardPage title="Admin Profile" headerAction={headerAction}>
+    <DashboardPage title="Moderator Profile" headerAction={headerAction}>
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
@@ -184,7 +184,7 @@ const AdminProfile = () => {
               <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 mb-2">
                 {profileData?.role}
               </span>
-              <span className="text-sm text-gray-500">{profileData?.subscription || 'Premium Admin'}</span>
+              <span className="text-sm text-gray-500">{profileData?.subscription || 'Premium Moderator'}</span>
             </div>
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -279,4 +279,4 @@ const AdminProfile = () => {
   );
 };
 
-export default AdminProfile;
+export default ModeratorProfile;
