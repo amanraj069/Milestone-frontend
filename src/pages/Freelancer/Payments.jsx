@@ -24,6 +24,30 @@ const COMPLETED_COLUMNS = [
   { key: 'action', label: 'Action' },
 ];
 
+const ACTIVE_SORT_OPTIONS = [
+  { value: 'budget-high', label: 'Budget (High to Low)' },
+  { value: 'budget-low', label: 'Budget (Low to High)' },
+  { value: 'earned-high', label: 'Earned (High to Low)' },
+  { value: 'earned-low', label: 'Earned (Low to High)' },
+  { value: 'pending-high', label: 'Pending (High to Low)' },
+  { value: 'pending-low', label: 'Pending (Low to High)' },
+  { value: 'progress-high', label: 'Progress (High to Low)' },
+  { value: 'progress-low', label: 'Progress (Low to High)' },
+];
+
+const PAST_SORT_OPTIONS = [
+  { value: 'earned-high', label: 'Earned (High to Low)' },
+  { value: 'earned-low', label: 'Earned (Low to High)' },
+  { value: 'newest', label: 'Most Recent' },
+  { value: 'oldest', label: 'Oldest First' },
+];
+
+const STATUS_FILTERS = [
+  { value: 'all', label: 'All' },
+  { value: 'finished', label: 'Completed' },
+  { value: 'left', label: 'Left' },
+];
+
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function getAvailableYears(payments) {
@@ -90,6 +114,11 @@ const FreelancerPayments = () => {
   const [error, setError] = useState(null);
   const [chartType, setChartType] = useState('bar'); // bar | area
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [activeSearchTerm, setActiveSearchTerm] = useState('');
+  const [activeSortBy, setActiveSortBy] = useState('budget-high');
+  const [pastSearchTerm, setPastSearchTerm] = useState('');
+  const [pastSortBy, setPastSortBy] = useState('earned-high');
+  const [pastStatusFilter, setPastStatusFilter] = useState('all');
   const navigate = useNavigate();
 
   const activeCols = useColumnToggle(ACTIVE_COLUMNS, 'payments-active-cols');
@@ -134,6 +163,63 @@ const FreelancerPayments = () => {
 
   const availableYears = useMemo(() => getAvailableYears(payments), [payments]);
   const monthlyData = useMemo(() => buildMonthlyEarnings(payments, selectedYear), [payments, selectedYear]);
+
+  const processedActivePayments = useMemo(() => {
+    let list = payments.filter((p) => p.status === 'working');
+    
+    // Search
+    if (activeSearchTerm) {
+      const q = activeSearchTerm.toLowerCase();
+      list = list.filter(p =>
+        p.jobTitle?.toLowerCase().includes(q) ||
+        p.employerName?.toLowerCase().includes(q) ||
+        p.companyName?.toLowerCase().includes(q)
+      );
+    }
+    
+    // Sort
+    const sorted = [...list];
+    switch (activeSortBy) {
+      case 'budget-high': sorted.sort((a, b) => (b.totalBudget || 0) - (a.totalBudget || 0)); break;
+      case 'budget-low': sorted.sort((a, b) => (a.totalBudget || 0) - (b.totalBudget || 0)); break;
+      case 'earned-high': sorted.sort((a, b) => (b.paidAmount || 0) - (a.paidAmount || 0)); break;
+      case 'earned-low': sorted.sort((a, b) => (a.paidAmount || 0) - (b.paidAmount || 0)); break;
+      case 'pending-high': sorted.sort((a, b) => getRealPending(b) - getRealPending(a)); break;
+      case 'pending-low': sorted.sort((a, b) => getRealPending(a) - getRealPending(b)); break;
+      case 'progress-high': sorted.sort((a, b) => (b.paymentPercentage || 0) - (a.paymentPercentage || 0)); break;
+      case 'progress-low': sorted.sort((a, b) => (a.paymentPercentage || 0) - (b.paymentPercentage || 0)); break;
+    }
+    return sorted;
+  }, [payments, activeSearchTerm, activeSortBy]);
+
+  const processedPastPayments = useMemo(() => {
+    let list = payments.filter((p) => p.status === 'finished' || p.status === 'left');
+    
+    // Status filter
+    if (pastStatusFilter !== 'all') {
+      list = list.filter(p => p.status === pastStatusFilter);
+    }
+    
+    // Search
+    if (pastSearchTerm) {
+      const q = pastSearchTerm.toLowerCase();
+      list = list.filter(p =>
+        p.jobTitle?.toLowerCase().includes(q) ||
+        p.employerName?.toLowerCase().includes(q) ||
+        p.companyName?.toLowerCase().includes(q)
+      );
+    }
+    
+    // Sort
+    const sorted = [...list];
+    switch (pastSortBy) {
+      case 'earned-high': sorted.sort((a, b) => (b.paidAmount || 0) - (a.paidAmount || 0)); break;
+      case 'earned-low': sorted.sort((a, b) => (a.paidAmount || 0) - (b.paidAmount || 0)); break;
+      case 'newest': sorted.sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0)); break;
+      case 'oldest': sorted.sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0)); break;
+    }
+    return sorted;
+  }, [payments, pastSearchTerm, pastSortBy, pastStatusFilter]);
 
   if (loading) {
     return (
@@ -315,7 +401,29 @@ const FreelancerPayments = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800">Active Projects</h2>
-            <ColumnToggle columns={ACTIVE_COLUMNS} visible={activeCols.visible} onChange={activeCols.setVisible} storageKey="payments-active-cols" />
+          </div>
+          {/* Search + Sort + Columns */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+              <div className="flex-1 relative">
+                <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <input
+                  type="text"
+                  placeholder="Search by job title, employer, or company..."
+                  value={activeSearchTerm}
+                  onChange={(e) => setActiveSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <select
+                value={activeSortBy}
+                onChange={(e) => setActiveSortBy(e.target.value)}
+                className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                {ACTIVE_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <ColumnToggle columns={ACTIVE_COLUMNS} visible={activeCols.visible} onChange={activeCols.setVisible} storageKey="payments-active-cols" />
+            </div>
           </div>
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div className="overflow-x-auto">
@@ -332,7 +440,16 @@ const FreelancerPayments = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {payments.filter((p) => p.status === 'working').map((payment) => (
+                  {processedActivePayments.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-12 text-center">
+                        <div className="text-gray-500">
+                          <p className="text-sm font-medium mb-1">No matching projects found</p>
+                          <p className="text-xs">Try adjusting your search criteria</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : processedActivePayments.map((payment) => (
                     <tr key={payment.jobId} className="hover:bg-gray-50 transition-colors">
                       {activeCols.visible.has('employer') && (
                         <td className="px-6 py-5">
@@ -406,7 +523,41 @@ const FreelancerPayments = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800">Past Projects</h2>
-            <ColumnToggle columns={COMPLETED_COLUMNS} visible={completedCols.visible} onChange={completedCols.setVisible} storageKey="payments-completed-cols" />
+          </div>
+          {/* Search + Sort + Filter + Columns */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+              <div className="flex-1 relative">
+                <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <input
+                  type="text"
+                  placeholder="Search by job title, employer, or company..."
+                  value={pastSearchTerm}
+                  onChange={(e) => setPastSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              {/* Status Filter */}
+              <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+                {STATUS_FILTERS.map(f => (
+                  <button
+                    key={f.value}
+                    onClick={() => setPastStatusFilter(f.value)}
+                    className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${pastStatusFilter === f.value ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <select
+                value={pastSortBy}
+                onChange={(e) => setPastSortBy(e.target.value)}
+                className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                {PAST_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <ColumnToggle columns={COMPLETED_COLUMNS} visible={completedCols.visible} onChange={completedCols.setVisible} storageKey="payments-completed-cols" />
+            </div>
           </div>
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div className="overflow-x-auto">
@@ -421,7 +572,16 @@ const FreelancerPayments = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {payments.filter((p) => p.status === 'finished' || p.status === 'left').map((payment) => (
+                  {processedPastPayments.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="px-6 py-12 text-center">
+                        <div className="text-gray-500">
+                          <p className="text-sm font-medium mb-1">No matching projects found</p>
+                          <p className="text-xs">Try adjusting your filters or search criteria</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : processedPastPayments.map((payment) => (
                     <tr key={payment.jobId} className="hover:bg-gray-50 transition-colors">
                       {completedCols.visible.has('employer') && (
                         <td className="px-6 py-5">
