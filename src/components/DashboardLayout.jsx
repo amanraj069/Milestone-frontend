@@ -114,7 +114,7 @@ const DashboardLayout = ({ children }) => {
           { name: 'Home', path: '/', icon: 'fas fa-home' },
           { name: 'Profile', path: '/freelancer/profile', icon: 'fas fa-user' },
           { name: 'Notifications', path: '/freelancer/notifications', icon: 'fas fa-bell', showBadge: true },
-          { name: 'Active Jobs', path: '/freelancer/active-jobs', icon: 'fas fa-briefcase' },
+          { name: 'My Jobs', path: '/freelancer/active-jobs', icon: 'fas fa-briefcase' },
           { name: 'Job History', path: '/freelancer/job-history', icon: 'fas fa-history' },
           { name: 'Payments', path: '/freelancer/payments', icon: 'fas fa-credit-card' },
           { name: 'Skills & Badges', path: '/freelancer/skills-badges', icon: 'fas fa-award' },
