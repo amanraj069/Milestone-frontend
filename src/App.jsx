@@ -14,6 +14,7 @@ import Chat from './components/Chat/Chat';
 // Public Pages
 import PublicJobListing from './pages/Public_JobListing/PublicJobListing';
 import JobDescription from './pages/Public_JobListing/JobDescription';
+import JobApplicants from './pages/Public_JobListing/JobApplicants';
 import FreelancerPublicProfile from './pages/Public_JobListing/FreelancerProfile';
 import BlogList from './components/Home/BlogList';
 import BlogDetail from './components/Home/BlogDetail';
@@ -82,6 +83,7 @@ function App() {
                     <Route path="/signup" element={<Signup />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/jobs" element={<PublicJobListing />} />
+                    <Route path="/jobs/:jobId/applicants" element={<JobApplicants />} />
                     <Route path="/jobs/:jobId" element={<JobDescription />} />
                     <Route path="/jobs/apply/:jobId" element={<ProtectedRoute requiredRole="Freelancer"><JobApplication /></ProtectedRoute>} />
                     <Route path="/freelancer/:freelancerId" element={<FreelancerPublicProfile />} />

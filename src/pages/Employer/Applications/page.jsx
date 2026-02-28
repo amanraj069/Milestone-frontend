@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import ApplicationDetailsModal from '../../../components/employer/ApplicationDetailsModal';
 import axios from 'axios';
@@ -6,6 +7,8 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const EmployerApplications = () => {
+  const [searchParams] = useSearchParams();
+  const jobIdFilter = searchParams.get('jobId');
   const [applications, setApplications] = useState([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -91,10 +94,12 @@ const EmployerApplications = () => {
     setShowDetailsModal(true);
   };
 
-  const filteredApplications = applications.filter(app => 
-    app.freelancerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredApplications = applications.filter(app => {
+    const matchesSearch = app.freelancerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesJobId = !jobIdFilter || app.jobId === jobIdFilter;
+    return matchesSearch && matchesJobId;
+  });
 
   const getStatusBadge = (status) => {
     const statusMap = {

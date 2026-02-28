@@ -220,25 +220,37 @@ const EmployerJobListings = () => {
                       </div>
                     </div>
 
-                    <div className="flex-shrink-0 flex flex-col gap-2">
+                    {/* Right Side Actions */}
+                    <div className="flex-shrink-0 flex gap-3 items-start">
+                      {/* Applicant Count - Left of buttons */}
                       <button
-                        onClick={() => navigate(`/jobs/${job.jobId}`)}
-                        className="border-2 border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium"
+                        onClick={() => navigate(`/employer/applications?jobId=${job.jobId}`)}
+                        className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors cursor-pointer mt-2"
                       >
-                        View Details
+                        {job.applicants || 0} applicants
                       </button>
-                      <button
-                        onClick={() => navigate(`/employer/job-listings/edit/${job.jobId}`)}
-                        className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all font-medium"
-                      >
-                        <i className="fas fa-edit"></i> Edit
-                      </button>
-                      <button
-                        onClick={() => setDeleteModal({ show: true, jobId: job.jobId })}
-                        className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all font-medium"
-                      >
-                        <i className="fas fa-trash"></i> Delete
-                      </button>
+                      
+                      {/* Action Buttons - All Same Size */}
+                      <div className="flex flex-col gap-2 min-w-[140px]">
+                        <button
+                          onClick={() => navigate(`/jobs/${job.jobId}`)}
+                          className="w-full border-2 border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => navigate(`/employer/job-listings/edit/${job.jobId}`)}
+                          className="w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all font-medium"
+                        >
+                          <i className="fas fa-edit"></i> Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteModal({ show: true, jobId: job.jobId })}
+                          className="w-full bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all font-medium"
+                        >
+                          <i className="fas fa-trash"></i> Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

@@ -90,7 +90,7 @@ const EditBlog = () => {
       if (!response.ok) {
         const message = data?.message || 'Failed to load blog';
         alert(message);
-        navigate('/admin/blogs');
+        navigate('/moderator/blogs');
         return;
       }
 
@@ -99,11 +99,11 @@ const EditBlog = () => {
         setImagePreview(data.blog.imageUrl);
       } else {
         alert('Failed to load blog');
-        navigate('/admin/blogs');
+        navigate('/moderator/blogs');
       }
     } catch (error) {
       alert('Error loading blog');
-      navigate('/admin/blogs');
+      navigate('/moderator/blogs');
     } finally {
       setLoading(false);
     }
@@ -176,7 +176,7 @@ const EditBlog = () => {
       const data = await response.json();
 
       if (data.success) {
-        navigate('/admin/blogs', { state: { message: 'Blog updated successfully!' } });
+        navigate('/moderator/blogs', { state: { message: 'Blog updated successfully!' } });
       } else {
         alert(data.message || 'Failed to update blog');
       }
@@ -189,7 +189,7 @@ const EditBlog = () => {
 
   const headerAction = (
     <button
-      onClick={() => navigate('/admin/blogs')}
+      onClick={() => navigate('/moderator/blogs')}
       className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
     >
       Back to Blogs
@@ -216,7 +216,7 @@ const EditBlog = () => {
           <div className="text-center">
             <p className="text-lg font-medium text-gray-700">Blog not found</p>
             <button
-              onClick={() => navigate('/admin/blogs')}
+              onClick={() => navigate('/moderator/blogs')}
               className="mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
               Back to Blogs
@@ -458,7 +458,7 @@ const EditBlog = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate('/admin/blogs')}
+                    onClick={() => navigate('/moderator/blogs')}
                     className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors"
                   >
                     Cancel

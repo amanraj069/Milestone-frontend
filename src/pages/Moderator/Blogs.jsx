@@ -84,6 +84,13 @@ const ModeratorBlogs = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, blog: null });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchMode, setSearchMode] = useState('title');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [featuredFilter, setFeaturedFilter] = useState('all');
+  const [authorFilter, setAuthorFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
   const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
 
 
@@ -141,14 +148,85 @@ const ModeratorBlogs = () => {
     }
   };
 
+  const categories = [...new Set(blogs.map(blog => blog.category).filter(Boolean))].sort();
+  const authors = [...new Set(blogs.map(blog => blog.author).filter(Boolean))].sort();
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setSearchMode('title');
+    setStatusFilter('all');
+    setCategoryFilter('all');
+    setFeaturedFilter('all');
+    setAuthorFilter('all');
+    setSortBy('newest');
+  };
+
+  const hasActiveFilters =
+    searchTerm.trim() !== '' ||
+    statusFilter !== 'all' ||
+    categoryFilter !== 'all' ||
+    featuredFilter !== 'all' ||
+    authorFilter !== 'all' ||
+    sortBy !== 'newest';
+
+  const filteredBlogs = [...blogs]
+    .filter((blog) => {
+      const query = searchTerm.trim().toLowerCase();
+      let matchesSearch = query === '';
+      
+      if (!matchesSearch) {
+        if (searchMode === 'title') {
+          matchesSearch = blog.title?.toLowerCase().includes(query) || blog.tagline?.toLowerCase().includes(query);
+        } else if (searchMode === 'author') {
+          matchesSearch = blog.author?.toLowerCase().includes(query);
+        }
+      }
+
+      const matchesStatus = statusFilter === 'all' || blog.status === statusFilter;
+      const matchesCategory = categoryFilter === 'all' || blog.category === categoryFilter;
+      const matchesAuthor = authorFilter === 'all' || blog.author === authorFilter;
+      const matchesFeatured =
+        featuredFilter === 'all' ||
+        (featuredFilter === 'featured' && blog.featured) ||
+        (featuredFilter === 'not-featured' && !blog.featured);
+
+      return matchesSearch && matchesStatus && matchesCategory && matchesAuthor && matchesFeatured;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'oldest':
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        case 'views-desc':
+          return (b.views || 0) - (a.views || 0);
+        case 'likes-desc':
+          return (b.likes || 0) - (a.likes || 0);
+        case 'readtime-asc':
+          return (a.readTime || 0) - (b.readTime || 0);
+        case 'readtime-desc':
+          return (b.readTime || 0) - (a.readTime || 0);
+        case 'newest':
+        default:
+          return new Date(b.createdAt) - new Date(a.createdAt);
+      }
+    });
+
   // Stats calculations
   const totalBlogs = blogs.length;
-  const publishedBlogs = blogs.filter(b => b.status === 'published').length;
-  const featuredBlogs = blogs.filter(b => b.featured).length;
+  const publishedBlogs = blogs.filter((b) => b.status === 'published').length;
+  const draftBlogs = blogs.filter((b) => b.status === 'draft').length;
+  const featuredBlogs = blogs.filter((b) => b.featured).length;
+  const totalViews = blogs.reduce((sum, blog) => sum + (blog.views || 0), 0);
+  const totalLikes = blogs.reduce((sum, blog) => sum + (blog.likes || 0), 0);
+  const archivedBlogs = blogs.filter((b) => b.status === 'archived').length;
+  const recentBlogs30Days = blogs.filter((blog) => {
+    if (!blog.createdAt) return false;
+    const daysSinceCreated = (Date.now() - new Date(blog.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+    return daysSinceCreated <= 30;
+  }).length;
 
   const headerAction = (
     <button
-      onClick={() => navigate('/admin/blogs/create')}
+      onClick={() => navigate('/moderator/blogs/create')}
       className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
     >
       Create New Blog
@@ -169,18 +247,153 @@ const ModeratorBlogs = () => {
 
       <div className="space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total Blogs</p>
             <p className="text-2xl font-semibold text-gray-900">{totalBlogs}</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Published</p>
-            <p className="text-2xl font-semibold text-gray-900">{publishedBlogs}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Featured</p>
             <p className="text-2xl font-semibold text-gray-900">{featuredBlogs}</p>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total Views</p>
+            <p className="text-2xl font-semibold text-gray-900">{totalViews}</p>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total Likes</p>
+            <p className="text-2xl font-semibold text-gray-900">{totalLikes}</p>
+          </div>
+        </div>
+
+        {/* Filters and Search */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All</option>
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Featured</label>
+              <select
+                value={featuredFilter}
+                onChange={(e) => setFeaturedFilter(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All</option>
+                <option value="featured">Featured</option>
+                <option value="not-featured">Not Featured</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Author</label>
+              <select
+                value={authorFilter}
+                onChange={(e) => setAuthorFilter(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All</option>
+                {authors.map((author) => (
+                  <option key={author} value={author}>{author}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Sort By</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="views-desc">Most Viewed</option>
+                <option value="likes-desc">Most Liked</option>
+                <option value="readtime-asc">Read Time: Low to High</option>
+                <option value="readtime-desc">Read Time: High to Low</option>
+              </select>
+            </div>
+
+            {hasActiveFilters && (
+              <div>
+                <label className="block text-xs font-medium text-transparent mb-1">.</label>
+                <button
+                  onClick={clearAllFilters}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-700">Search by:</span>
+              <div className="inline-flex rounded-md shadow-sm" role="group">
+                <button
+                  type="button"
+                  onClick={() => setSearchMode('title')}
+                  className={`px-4 py-2 text-sm font-medium rounded-l-lg border ${
+                    searchMode === 'title'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  Title
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchMode('author')}
+                  className={`px-4 py-2 text-sm font-medium rounded-r-lg border ${
+                    searchMode === 'author'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  Author
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 min-w-[300px]">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={
+                  searchMode === 'title' 
+                    ? 'Search by title...' 
+                    : 'Search by author...'
+                }
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
           </div>
         </div>
 
@@ -188,7 +401,7 @@ const ModeratorBlogs = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-base font-semibold text-gray-900">All Blogs</h2>
-            <p className="text-sm text-gray-500 mt-0.5">Manage your blog posts</p>
+            <p className="text-sm text-gray-500 mt-0.5">Showing {filteredBlogs.length} of {blogs.length} blogs</p>
           </div>
 
           <div className="p-6">
@@ -202,15 +415,26 @@ const ModeratorBlogs = () => {
                 <p className="text-lg font-medium text-gray-700">No blogs found</p>
                 <p className="text-gray-500 mt-1 mb-4">Create your first blog post to get started</p>
                 <button
-                  onClick={() => navigate('/admin/blogs/create')}
+                  onClick={() => navigate('/moderator/blogs/create')}
                   className="inline-block px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                 >
                   Create Your First Blog
                 </button>
               </div>
+            ) : filteredBlogs.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-lg font-medium text-gray-700">No matching blogs found</p>
+                <p className="text-gray-500 mt-1 mb-4">Try adjusting your search or filters</p>
+                <button
+                  onClick={clearAllFilters}
+                  className="inline-block px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Reset Filters
+                </button>
+              </div>
             ) : (
               <div className="space-y-3">
-                {blogs.map((blog) => (
+                {filteredBlogs.map((blog) => (
                   <div key={blog.blogId} className="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
                     <div className="p-4 flex justify-between items-center">
                       <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -241,12 +465,14 @@ const ModeratorBlogs = () => {
                               </span>
                             )}
                             <span className="text-sm text-gray-500">{blog.readTimeDisplay}</span>
+                            <span className="text-sm text-gray-500">{blog.views || 0} views</span>
+                            <span className="text-sm text-gray-500">{blog.likes || 0} likes</span>
                           </div>
                         </div>
                       </div>
                       <div className="flex gap-2 flex-shrink-0 ml-4">
                         <button
-                          onClick={() => navigate(`/admin/blogs/edit/${blog.blogId}`)}
+                          onClick={() => navigate(`/moderator/blogs/edit/${blog.slug || blog.blogId}?id=${blog.blogId}`)}
                           className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-xs font-medium hover:bg-gray-800 transition-colors"
                         >
                           Edit
