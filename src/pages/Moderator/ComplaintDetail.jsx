@@ -14,7 +14,7 @@ const ComplaintDetail = () => {
   const [complaint, setComplaint] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [adminNotes, setAdminNotes] = useState('');
+  const [moderatorNotes, setAdminNotes] = useState('');
   const [updating, setUpdating] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -28,7 +28,7 @@ const ComplaintDetail = () => {
       setError(null);
       console.log('Fetching complaint details for ID:', complaintId);
       const response = await axios.get(
-        `${API_BASE_URL}/api/admin/complaints`,
+        `${API_BASE_URL}/api/moderator/complaints`,
         { withCredentials: true }
       );
 
@@ -43,7 +43,7 @@ const ComplaintDetail = () => {
         if (foundComplaint) {
           console.log('Setting complaint with complainantUserId:', foundComplaint.complainantUserId);
           setComplaint(foundComplaint);
-          setAdminNotes(foundComplaint.adminNotes || '');
+          setAdminNotes(foundComplaint.moderatorNotes || '');
         } else {
           console.error('Complaint not found with ID:', complaintId);
           setError('Complaint not found');
@@ -64,8 +64,8 @@ const ComplaintDetail = () => {
     setSuccessMessage('');
     try {
       const response = await axios.put(
-        `${API_BASE_URL}/api/admin/complaints/${complaint.complaintId}`,
-        { status, adminNotes },
+        `${API_BASE_URL}/api/moderator/complaints/${complaint.complaintId}`,
+        { status, moderatorNotes },
         { withCredentials: true }
       );
 
@@ -266,14 +266,14 @@ const ComplaintDetail = () => {
               />
             </div>
 
-            {/* Admin Notes */}
+            {/* Moderator Notes */}
             <div className="form-group">
-              <label htmlFor="adminNotes">
-                Admin Notes <span className="required">*</span>
+              <label htmlFor="moderatorNotes">
+                Moderator Notes <span className="required">*</span>
               </label>
               <textarea
-                id="adminNotes"
-                value={adminNotes}
+                id="moderatorNotes"
+                value={moderatorNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
                 placeholder="Add notes about this complaint..."
                 rows="4"

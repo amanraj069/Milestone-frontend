@@ -7,6 +7,7 @@ import FeedbackForm from '../../components/FeedbackForm';
 import JobDetailsModal from '../../components/freelancer/JobDetailsModal';
 import { loadJobHistory, selectJobHistory, selectJobsLoading, selectJobsError } from '../../redux/slices/jobsSlice';
 import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../redux/slices/feedbackSlice';
+import { useChatContext } from '../../context/ChatContext';
 
 function Stars({ rating = 0 }) {
   const full = Math.floor(rating);
@@ -29,6 +30,7 @@ function Stars({ rating = 0 }) {
 export default function FreelancerJobHistory() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { openChatWith } = useChatContext();
   const jobs = useSelector(selectJobHistory);
   const loading = useSelector(selectJobsLoading);
   const error = useSelector(selectJobsError);
@@ -78,6 +80,22 @@ export default function FreelancerJobHistory() {
     const handleSeeMore = () => {
       setSelectedJob(job);
       setIsModalOpen(true);
+    };
+
+    const handleChat = () => {
+      console.log('JobHistory - Chat clicked for job:', job);
+      console.log('JobHistory - employerUserId:', job.employerUserId);
+      console.log('JobHistory - job.employer:', job.employer);
+      
+      const employerUserId = job.employerUserId || job.employer?.userId || job.employerUser?.userId;
+      console.log('JobHistory - resolved employerUserId:', employerUserId);
+      
+      if (!employerUserId) {
+        console.error('JobHistory - No employerUserId found, job object:', job);
+        alert('Unable to start chat: Employer information not available');
+        return;
+      }
+      openChatWith(employerUserId);
     };
 
     return (
@@ -141,6 +159,14 @@ export default function FreelancerJobHistory() {
                 className="px-3 py-1.5 bg-red-100 text-red-700 text-sm font-medium rounded-md hover:bg-red-200 transition-colors"
               >
                 Left Job
+              </button>
+            )}
+            {isLeft && (
+              <button
+                onClick={handleChat}
+                className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Chat
               </button>
             )}
             <button 

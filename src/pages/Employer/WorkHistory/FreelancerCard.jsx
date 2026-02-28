@@ -1,10 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { useChatContext } from '../../../context/ChatContext';
 import { selectFeedbackEligibility } from '../../../redux/slices/feedbackSlice';
 
 export default function FreelancerCard({ freelancer, onLeaveFeedback }) {
   const navigate = useNavigate();
+  const { openChatWith } = useChatContext();
   const eligibility = useSelector((state) => selectFeedbackEligibility(state, freelancer.jobId));
 
   const formatDate = (dateString) => {
@@ -32,6 +34,22 @@ export default function FreelancerCard({ freelancer, onLeaveFeedback }) {
 
   const handleViewProfile = () => {
     navigate(`/freelancer/${freelancer.freelancerId}`);
+  };
+
+  const handleChat = () => {
+    console.log('FreelancerCard - Chat clicked for:', freelancer);
+    console.log('FreelancerCard - userId:', freelancer.userId);
+    console.log('FreelancerCard - freelancerId:', freelancer.freelancerId);
+    
+    const chatUserId = freelancer.userId || freelancer.user?.userId || freelancer.freelancerUserId;
+    console.log('FreelancerCard - resolved chatUserId:', chatUserId);
+    
+    if (!chatUserId) {
+      console.error('FreelancerCard - No userId found, freelancer object:', freelancer);
+      alert('Unable to start chat: User information not available');
+      return;
+    }
+    openChatWith(chatUserId);
   };
 
   return (
@@ -78,7 +96,10 @@ export default function FreelancerCard({ freelancer, onLeaveFeedback }) {
                   Leave Feedback
                 </button>
               )}
-              <button className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md">
+              <button
+                onClick={handleChat}
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md"
+              >
                 <i className="fas fa-comment mr-2"></i>
                 Chat
               </button>

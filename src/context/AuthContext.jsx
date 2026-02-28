@@ -149,8 +149,8 @@ function AuthProvider({ children }) {
   const getDashboardRoute = () => {
     if (!user) return null;
     switch (user.role) {
-      case 'Admin':
-        return '/admin/home';
+      case 'Moderator':
+        return '/moderator/home';
       case 'Employer':
         return '/employer/home';
       case 'Freelancer':

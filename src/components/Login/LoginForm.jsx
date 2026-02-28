@@ -66,7 +66,7 @@ const LoginForm = ({ formData, error, loading, handleChange, handleSubmit }) => 
           <option value="">Select role</option>
           <option value="Freelancer">Freelancer</option>
           <option value="Employer">Employer</option>
-          <option value="Admin">Admin</option>
+          <option value="Moderator">Moderator</option>
         </select>
       </div>
       <div className="forgot-password-link">

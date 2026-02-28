@@ -9,7 +9,7 @@ export const fetchComplaints = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/api/admin/complaints`,
+        `${API_BASE_URL}/api/moderator/complaints`,
         { withCredentials: true }
       );
       
@@ -26,16 +26,16 @@ export const fetchComplaints = createAsyncThunk(
 // Async thunk to update complaint status
 export const updateComplaintStatus = createAsyncThunk(
   'complaints/updateStatus',
-  async ({ complaintId, status, adminNotes }, { rejectWithValue }) => {
+  async ({ complaintId, status, moderatorNotes }, { rejectWithValue }) => {
     try {
       const response = await axios.put(
-        `${API_BASE_URL}/api/admin/complaints/${complaintId}`,
-        { status, adminNotes },
+        `${API_BASE_URL}/api/moderator/complaints/${complaintId}`,
+        { status, moderatorNotes },
         { withCredentials: true }
       );
       
       if (response.data.success) {
-        return { complaintId, status, adminNotes };
+        return { complaintId, status, moderatorNotes };
       }
       return rejectWithValue('Failed to update complaint');
     } catch (error) {
@@ -243,7 +243,7 @@ const complaintsSlice = createSlice({
       })
       .addCase(updateComplaintStatus.fulfilled, (state, action) => {
         state.loading = false;
-        const { complaintId, status, adminNotes } = action.payload;
+        const { complaintId, status, moderatorNotes } = action.payload;
         
         // Update in complaints array
         const complaintIndex = state.complaints.findIndex(
@@ -251,14 +251,14 @@ const complaintsSlice = createSlice({
         );
         if (complaintIndex !== -1) {
           state.complaints[complaintIndex].status = status;
-          state.complaints[complaintIndex].adminNotes = adminNotes;
+          state.complaints[complaintIndex].moderatorNotes = moderatorNotes;
           state.complaints[complaintIndex].updatedAt = new Date().toISOString();
         }
 
         // Update selected complaint if it's the one being updated
         if (state.selectedComplaint?.complaintId === complaintId) {
           state.selectedComplaint.status = status;
-          state.selectedComplaint.adminNotes = adminNotes;
+          state.selectedComplaint.moderatorNotes = moderatorNotes;
           state.selectedComplaint.updatedAt = new Date().toISOString();
         }
 

@@ -24,7 +24,7 @@ export default function EditQuiz() {
 
   const fetchQuiz = async () => {
     try {
-      const res = await fetch(`/api/admin/quizzes/${id}`, { credentials: 'include' });
+      const res = await fetch(`/api/moderator/quizzes/${id}`, { credentials: 'include' });
       const data = await res.json();
       if (data.success) {
         const quiz = data.data;
@@ -143,7 +143,7 @@ export default function EditQuiz() {
 
     setSaving(true);
     const payload = { title, skillName, description, timeLimitMinutes: timeLimit ? Number(timeLimit) : undefined, passingScore, questions };
-    const res = await fetch(`/api/admin/quizzes/${id}`, { 
+    const res = await fetch(`/api/moderator/quizzes/${id}`, { 
       method: 'PUT', 
       headers: { 'Content-Type': 'application/json' }, 
       credentials: 'include', 
