@@ -65,6 +65,16 @@ import QuizResult from './pages/Quizzes/QuizResult';
 // Notifications Page
 import Notifications from './pages/Notifications/Notifications';
 
+// Admin Pages
+import AdminDashboard from './pages/Admin/Dashboard';
+import AdminPlatform from './pages/Admin/Revenue';
+import AdminPayments from './pages/Admin/Payments';
+import AdminModerators from './pages/Admin/Moderators';
+import ModeratorDetail from './pages/Admin/ModeratorDetail';
+import AdminUsers from './pages/Admin/Users';
+import AdminProfile from './pages/Admin/Profile';
+import AdminEditProfile from './pages/Admin/EditProfile';
+
 // 404 Page
 import NotFound from './pages/NotFound';
 
@@ -89,6 +99,18 @@ function App() {
                     <Route path="/blogs/:blogId" element={<BlogDetail />} />
                     
                     {/* Admin Routes */}
+                    <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="Admin"><AdminDashboard /></ProtectedRoute>} />
+                    <Route path="/admin/home" element={<Navigate to="/admin/dashboard" replace />} />
+                    <Route path="/admin/revenue" element={<ProtectedRoute requiredRole="Admin"><AdminPlatform /></ProtectedRoute>} />
+                    <Route path="/admin/payments" element={<ProtectedRoute requiredRole="Admin"><AdminPayments /></ProtectedRoute>} />
+                    <Route path="/admin/moderators/:moderatorId" element={<ProtectedRoute requiredRole="Admin"><ModeratorDetail /></ProtectedRoute>} />
+                    <Route path="/admin/moderators" element={<ProtectedRoute requiredRole="Admin"><AdminModerators /></ProtectedRoute>} />
+                    <Route path="/admin/users" element={<ProtectedRoute requiredRole="Admin"><AdminUsers /></ProtectedRoute>} />
+                    <Route path="/admin/profile" element={<ProtectedRoute requiredRole="Admin"><AdminProfile /></ProtectedRoute>} />
+                    <Route path="/admin/profile/edit" element={<ProtectedRoute requiredRole="Admin"><AdminEditProfile /></ProtectedRoute>} />
+                    <Route path="/admin/chat" element={<ProtectedRoute requiredRole="Admin"><Chat /></ProtectedRoute>} />
+
+                    {/* Moderator Routes */}
                     <Route path="/moderator/dashboard" element={<Navigate to="/moderator/job-listings" replace />} />
                     <Route path="/moderator/home" element={<Navigate to="/moderator/job-listings" replace />} />
                     <Route path="/moderator/job-listings" element={<ProtectedRoute requiredRole="Moderator"><ModeratorJobListings /></ProtectedRoute>} />

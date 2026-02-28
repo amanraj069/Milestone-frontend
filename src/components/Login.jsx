@@ -111,6 +111,9 @@ const Login = () => {
         case 'Freelancer':
           dashboardRoute = '/freelancer/profile';
           break;
+        case 'Admin':
+          dashboardRoute = '/admin/dashboard';
+          break;
         default:
           dashboardRoute = '/';
       }
@@ -211,6 +214,7 @@ const Login = () => {
                   <option value="Freelancer">Freelancer</option>
                   <option value="Employer">Employer</option>
                   <option value="Moderator">Moderator</option>
+                  <option value="Admin">Admin</option>
                 </select>
                 {fieldErrors.role && (
                   <div className="text-rose-600 text-sm mt-1">
