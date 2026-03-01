@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
@@ -159,6 +159,22 @@ const ModeratorEmployers = () => {
     } finally {
       setLoadingJobListings(false);
     }
+  };
+
+  const getStatusBadge = (status) => {
+    const config = {
+      open: { bg: 'bg-green-100', text: 'text-green-700', label: 'Open' },
+      'in-progress': { bg: 'bg-blue-100', text: 'text-blue-700', label: 'In Progress' },
+      completed: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Completed' },
+      expired: { bg: 'bg-red-100', text: 'text-red-700', label: 'Expired' },
+      closed: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Closed' },
+    };
+    const s = config[status] || { bg: 'bg-gray-100', text: 'text-gray-600', label: status };
+    return (
+      <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>
+        {s.label}
+      </span>
+    );
   };
 
   const handleDeleteEmployer = async () => {
@@ -559,7 +575,9 @@ const ModeratorEmployers = () => {
                       </td>
                     )}
                     {isColumnVisible('name') && (
-                      <td className="px-4 py-3 font-medium text-gray-900">{employer.name}</td>
+                      <td className="px-4 py-3 font-medium text-gray-900">
+                        {employer.name}
+                      </td>
                     )}
                     {isColumnVisible('company') && (
                       <td className="px-4 py-3 text-gray-600">{employer.companyName || 'N/A'}</td>
@@ -650,7 +668,7 @@ const ModeratorEmployers = () => {
         </div>
       )}
 
-      {/* Job Listings Modal */}
+      {/* Job Listings Modal (from count click) */}
       {jobListingsModal.show && (
         <div
           className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn"
@@ -683,7 +701,7 @@ const ModeratorEmployers = () => {
                 </div>
               ) : jobListingsModal.jobListings.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500">No job listings posted by this employer.</p>
+                  <p className="text-gray-500">This employer has not posted any jobs yet.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -692,21 +710,30 @@ const ModeratorEmployers = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900">{job.title}</h4>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                            <span>Budget: ${job.budget?.toLocaleString()}</span>
+                          {job.description && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              {job.description.length > 120 ? job.description.substring(0, 120) + '...' : job.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                            <span>Budget: Rs.{job.budget?.toLocaleString()}</span>
                             <span>Type: {job.jobType}</span>
                             <span>Posted: {new Date(job.postedDate).toLocaleDateString()}</span>
+                            {job.applicationDeadline && (
+                              <span className={new Date(job.applicationDeadline) < new Date() ? 'text-red-500' : ''}>
+                                Deadline: {new Date(job.applicationDeadline).toLocaleDateString()}
+                              </span>
+                            )}
                           </div>
+                          {job.skills && job.skills.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {job.skills.map((skill, i) => (
+                                <span key={i} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">{skill}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          job.status === 'open' ? 'bg-green-100 text-green-700' :
-                          job.status === 'in-progress' ? 'bg-blue-100 text-blue-700' :
-                          job.status === 'completed' ? 'bg-gray-100 text-gray-700' :
-                          job.status === 'closed' ? 'bg-red-100 text-red-700' :
-                          'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {job.status}
-                        </span>
+                        {getStatusBadge(job.status)}
                       </div>
                     </div>
                   ))}
