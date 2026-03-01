@@ -79,7 +79,7 @@ function ColumnToggleDropdown({ columns, visible, onToggle, onShowAll, onReset, 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 /**
- * ColumnToggle
+ * SmartColumnToggle
  *
  * Props:
  *   columns          – array of { key, label, defaultVisible? }
@@ -92,7 +92,7 @@ function ColumnToggleDropdown({ columns, visible, onToggle, onShowAll, onReset, 
  *   dropdownClassName?   – override dropdown container className
  *   badgeClassName?      – override badge className
  */
-export default function ColumnToggle({
+export default function SmartColumnToggle({
   columns,
   visible,
   onChange,
@@ -170,7 +170,7 @@ export default function ColumnToggle({
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useColumnToggle(columns, storageKey) {
+export function useSmartColumnToggle(columns, storageKey) {
   const [visible, setVisible] = useState(() => {
     if (storageKey) {
       try {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
-import ColumnToggle, { useColumnToggle } from '../../components/SmartColumnToggle';
+import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
@@ -121,8 +121,8 @@ const FreelancerPayments = () => {
   const [pastStatusFilter, setPastStatusFilter] = useState('all');
   const navigate = useNavigate();
 
-  const activeCols = useColumnToggle(ACTIVE_COLUMNS, 'payments-active-cols');
-  const completedCols = useColumnToggle(COMPLETED_COLUMNS, 'payments-completed-cols');
+  const activeCols = useSmartColumnToggle(ACTIVE_COLUMNS, 'payments-active-cols');
+  const completedCols = useSmartColumnToggle(COMPLETED_COLUMNS, 'payments-completed-cols');
 
   useEffect(() => { fetchPayments(); }, []);
 
@@ -422,7 +422,7 @@ const FreelancerPayments = () => {
               >
                 {ACTIVE_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
-              <ColumnToggle columns={ACTIVE_COLUMNS} visible={activeCols.visible} onChange={activeCols.setVisible} storageKey="payments-active-cols" />
+              <SmartColumnToggle columns={ACTIVE_COLUMNS} visible={activeCols.visible} onChange={activeCols.setVisible} storageKey="payments-active-cols" />
             </div>
           </div>
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
@@ -556,7 +556,7 @@ const FreelancerPayments = () => {
               >
                 {PAST_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
-              <ColumnToggle columns={COMPLETED_COLUMNS} visible={completedCols.visible} onChange={completedCols.setVisible} storageKey="payments-completed-cols" />
+              <SmartColumnToggle columns={COMPLETED_COLUMNS} visible={completedCols.visible} onChange={completedCols.setVisible} storageKey="payments-completed-cols" />
             </div>
           </div>
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
