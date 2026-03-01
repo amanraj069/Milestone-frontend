@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
-const PublicFeedbackSection = ({ userId, userRole }) => {
+const PublicFeedbackSection = ({ userId, userRole, overrideRating }) => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -100,17 +100,19 @@ const PublicFeedbackSection = ({ userId, userRole }) => {
             What others say about this {userRole === 'Employer' ? 'employer' : 'freelancer'}
           </p>
         </div>
-        {stats && (
+        {(stats || overrideRating !== undefined) && (
           <div className="text-right">
             <div className="flex items-center gap-2 mb-1">
               <div className="flex items-center">
-                {renderStars(Math.floor(stats.averageRating))}
+                {renderStars(Math.floor(overrideRating !== undefined ? overrideRating : stats.averageRating))}
               </div>
-              <span className="font-bold text-lg">{stats.averageRating.toFixed(1)}</span>
+              <span className="font-bold text-lg">{(overrideRating !== undefined ? overrideRating : stats.averageRating).toFixed(1)}</span>
             </div>
-            <p className="text-sm text-gray-600">
-              {stats.totalFeedbacks} review{stats.totalFeedbacks !== 1 ? 's' : ''}
-            </p>
+            {stats && (
+              <p className="text-sm text-gray-600">
+                {stats.totalFeedbacks} review{stats.totalFeedbacks !== 1 ? 's' : ''}
+              </p>
+            )}
           </div>
         )}
       </div>

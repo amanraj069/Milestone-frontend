@@ -155,6 +155,8 @@ function AuthProvider({ children }) {
         return '/employer/home';
       case 'Freelancer':
         return '/freelancer/home';
+      case 'Admin':
+        return '/admin/dashboard';
       default:
         return '/';
     }

@@ -396,7 +396,11 @@ const FreelancerProfile = () => {
           </div>
 
           {/* Reviews & Feedback Section */}
-          <PublicFeedbackSection userId={user?.id} userRole="Freelancer" />
+          <PublicFeedbackSection 
+            userId={user?.id} 
+            userRole="Freelancer"
+            overrideRating={profileData?.rating}
+          />
         </div>
       </div>
     </DashboardPage>
