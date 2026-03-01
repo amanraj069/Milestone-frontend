@@ -125,7 +125,7 @@ const ComplaintForm = () => {
       {/* Page Header */}
       <div className="complaint-header">
         <button className="back-btn" onClick={handleCancel}>
-          <i className="fas fa-arrow-left"></i> Back to Active Jobs
+          <i className="fas fa-arrow-left"></i> Back to My Jobs
         </button>
         <h1 className="page-title">Raise a Complaint</h1>
         <p className="page-subtitle">Submit a complaint about your job experience</p>

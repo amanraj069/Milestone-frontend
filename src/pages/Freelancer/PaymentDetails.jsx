@@ -222,7 +222,16 @@ const PaymentDetails = () => {
             </div>
             <div className="flex justify-between text-xs text-gray-500">
               <span>Received: ₹{payment.paidAmount.toLocaleString()}</span>
-              <span>Pending: ₹{(payment.totalBudget - payment.paidAmount).toLocaleString()}</span>
+              {payment.status === 'left' ? (
+                <span>
+                  <span className="text-gray-400">Requestable: </span>
+                  <span className="font-medium">₹{(payment.milestones || []).filter(m => m.status !== 'paid' && m.requested).reduce((s, m) => s + (parseFloat(m.payment) || 0), 0).toLocaleString()}</span>
+                  <span className="text-gray-300 mx-1">|</span>
+                  <span className="text-red-400">Forfeited: ₹{(payment.milestones || []).filter(m => m.status !== 'paid' && !m.requested).reduce((s, m) => s + (parseFloat(m.payment) || 0), 0).toLocaleString()}</span>
+                </span>
+              ) : (
+                <span>Pending: ₹{(payment.totalBudget - payment.paidAmount).toLocaleString()}</span>
+              )}
             </div>
           </div>
         </div>
@@ -297,6 +306,10 @@ const PaymentDetails = () => {
                         <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">
                           Requested
                         </span>
+                      ) : payment.status === 'left' ? (
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-500">
+                          Unavailable
+                        </span>
                       ) : (
                         <button
                           onClick={() => handleRequestPayment(milestone.milestoneId)}
@@ -324,26 +337,7 @@ const PaymentDetails = () => {
           )}
         </div>
 
-        {/* Summary Card */}
-        <div className="mt-6 bg-gray-900 rounded-xl p-6 text-white">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold">Earnings Summary</h3>
-              <p className="text-gray-400 text-sm">Track your earnings at a glance</p>
-            </div>
-            <div className="flex gap-8">
-              <div>
-                <p className="text-3xl font-bold text-green-400">₹{payment.paidAmount.toLocaleString()}</p>
-                <p className="text-gray-400 text-sm">Received</p>
-              </div>
-              <div className="w-px bg-gray-700"></div>
-              <div>
-                <p className="text-3xl font-bold text-amber-400">₹{(payment.totalBudget - payment.paidAmount).toLocaleString()}</p>
-                <p className="text-gray-400 text-sm">Pending</p>
-              </div>
-            </div>
-          </div>
-        </div>
+
       </div>
     </DashboardLayout>
   );
