@@ -30,7 +30,7 @@ const ModeratorComplaints = () => {
   }, [dispatch]);
 
   const handleViewComplaint = (complaintId) => {
-    navigate(`/admin/complaints/${complaintId}`);
+    navigate(`/moderator/complaints/${complaintId}`);
   };
 
   const handleFilterChange = (filterType, value) => {

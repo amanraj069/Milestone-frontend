@@ -413,7 +413,11 @@ const EmployerProfile = () => {
         </div>
         <br></br>
         {/* Public Feedback Section */}
-        <PublicFeedbackSection userId={user?.id} />
+        <PublicFeedbackSection 
+          userId={user?.id} 
+          userRole="Employer"
+          overrideRating={profileData?.rating}
+        />
 
         {/* Social Media & Links Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mt-6">

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardPage from '../../components/DashboardPage';
+import RatingAdjustmentModal from '../../components/RatingAdjustmentModal';
+import RatingHistoryModal from '../../components/RatingHistoryModal';
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -12,6 +14,11 @@ const AdminUsers = () => {
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  
+  // Rating adjustment modal state
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -47,6 +54,32 @@ const AdminUsers = () => {
     } catch (error) {
       console.error('Error deleting user:', error);
     }
+  };
+
+  const handleAdjustRating = (user) => {
+    setSelectedUser({
+      userId: user.userId,
+      name: user.name,
+      role: user.role,
+      rating: user.rating || 4.5,
+      email: user.email,
+      picture: user.picture
+    });
+    setShowRatingModal(true);
+  };
+
+  const handleViewHistory = (user) => {
+    setSelectedUser({
+      userId: user.userId,
+      name: user.name
+    });
+    setShowHistoryModal(true);
+  };
+
+  const handleRatingAdjustmentSuccess = (data) => {
+    // Refresh users to get updated rating
+    fetchUsers();
+    setShowRatingModal(false);
   };
 
   const filtered = users
@@ -214,12 +247,30 @@ const AdminUsers = () => {
                       {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => setDeleteConfirm(u.userId)}
-                        className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200 transition-colors"
-                      >
-                        <i className="fas fa-trash"></i>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleAdjustRating(u)}
+                          className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-200 transition-colors inline-flex items-center gap-1"
+                          title="Adjust Rating"
+                        >
+                          <i className="fas fa-adjust"></i>
+                          Rating
+                        </button>
+                        <button
+                          onClick={() => handleViewHistory(u)}
+                          className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 transition-colors inline-flex items-center gap-1"
+                          title="View Rating History"
+                        >
+                          <i className="fas fa-history"></i>
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(u.userId)}
+                          className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200 transition-colors"
+                          title="Delete User"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -261,6 +312,22 @@ const AdminUsers = () => {
           </div>
         </div>
       )}
+
+      {/* Rating Adjustment Modal */}
+      <RatingAdjustmentModal
+        isOpen={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        user={selectedUser}
+        onSuccess={handleRatingAdjustmentSuccess}
+      />
+
+      {/* Rating History Modal */}
+      <RatingHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        userId={selectedUser?.userId}
+        userName={selectedUser?.name}
+      />
     </DashboardPage>
   );
 };
