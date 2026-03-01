@@ -27,12 +27,6 @@ const SORT_OPTIONS = [
   { value: 'rating-low',   label: 'Rating (Low to High)' },
 ];
 
-const STATUS_FILTERS = [
-  { value: 'all',      label: 'All' },
-  { value: 'finished', label: 'Completed' },
-  { value: 'left',     label: 'Left' },
-];
-
 function Stars({ rating = 0 }) {
   const full = Math.floor(rating);
   const half = rating % 1 >= 0.5 ? 1 : 0;
@@ -181,6 +175,34 @@ export default function FreelancerJobHistory() {
         </div>
       </div>
 
+      {/* Status Filter Tabs */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <button
+          onClick={() => setStatusFilter('all')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            statusFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          All ({jobs?.length || 0})
+        </button>
+        <button
+          onClick={() => setStatusFilter('finished')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            statusFilter === 'finished' ? 'bg-green-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          Completed ({stats.completed})
+        </button>
+        <button
+          onClick={() => setStatusFilter('left')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            statusFilter === 'left' ? 'bg-red-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          Left ({stats.left})
+        </button>
+      </div>
+
       {/* Search + Sort + Filter + Columns */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
@@ -193,18 +215,6 @@ export default function FreelancerJobHistory() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-          </div>
-          {/* Status Filter */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-            {STATUS_FILTERS.map(f => (
-              <button
-                key={f.value}
-                onClick={() => setStatusFilter(f.value)}
-                className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${statusFilter === f.value ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                {f.label}
-              </button>
-            ))}
           </div>
           {/* Sort */}
           <select
