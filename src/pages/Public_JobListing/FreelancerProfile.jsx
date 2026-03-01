@@ -126,6 +126,17 @@ const FreelancerProfile = () => {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 lg:px-8 py-8">
+        {/* Back Button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-6 text-gray-600 font-medium hover:text-blue-600 transition-colors flex items-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back
+        </button>
+
         {/* Profile Header Card */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 pt-8 pb-24">
