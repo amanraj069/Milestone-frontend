@@ -8,6 +8,13 @@ import {
 } from '../redux/slices/notificationsSlice';
 import { useChatNotifications } from '../context/ChatNotificationContext';
 
+// Paths that unapproved employers can access (must match ProtectedRoute)
+const UNAPPROVED_EMPLOYER_ALLOWED_PATHS = [
+  '/',
+  '/employer/profile',
+  '/employer/profile/edit',
+];
+
 const DashboardLayout = ({ children }) => {
   const { user, logout, checkAuthStatus } = useAuth();
   const { totalUnreadCount } = useChatNotifications();
@@ -17,6 +24,16 @@ const DashboardLayout = ({ children }) => {
   const [isPremium, setIsPremium] = useState(false);
   
   const unreadCount = useSelector(selectUnreadCount);
+
+  // Check if employer is unapproved
+  const isUnapprovedEmployer = user?.role === 'Employer' && user?.isApproved === false;
+
+  // Helper to check if a path is allowed for unapproved employers
+  const isPathAllowedForUnapproved = (path) => {
+    return UNAPPROVED_EMPLOYER_ALLOWED_PATHS.some(
+      (allowedPath) => path === allowedPath || path.startsWith(allowedPath + '/')
+    );
+  };
 
   useEffect(() => {
     // Update premium status whenever user changes
@@ -90,6 +107,7 @@ const DashboardLayout = ({ children }) => {
           { name: 'Job Listings', path: '/moderator/job-listings', icon: 'fas fa-briefcase' },
           { name: 'Freelancers', path: '/moderator/freelancers', icon: 'fas fa-users' },
           { name: 'Employers', path: '/moderator/employers', icon: 'fas fa-building' },
+          { name: 'Approvals', path: '/moderator/approvals', icon: 'fas fa-check-circle' },
           { name: 'Complaints', path: '/moderator/complaints', icon: 'fas fa-exclamation-triangle' },
           { name: 'Quizzes', path: '/moderator/quizzes', icon: 'fas fa-question-circle' },
           { name: 'Blogs', path: '/moderator/blogs', icon: 'fas fa-blog' },
@@ -179,6 +197,23 @@ const DashboardLayout = ({ children }) => {
             const isActive = location.pathname === item.path;
             const showChatBadge = item.name === 'Chat' && totalUnreadCount > 0;
             const showNotificationBadge = item.showBadge && unreadCount > 0;
+            const isLocked = isUnapprovedEmployer && !isPathAllowedForUnapproved(item.path);
+            
+            // For locked items, render a div instead of Link
+            if (isLocked) {
+              return (
+                <div
+                  key={item.path}
+                  className="flex items-center gap-3 px-6 py-3 text-base font-medium transition-all relative text-white/40 cursor-not-allowed blur-[1px]"
+                  title="Your account is pending approval"
+                >
+                  <i className={`${item.icon} text-lg w-5`}></i>
+                  <span>{item.name}</span>
+                  <i className="fas fa-lock absolute right-4 text-yellow-400/70 text-sm"></i>
+                </div>
+              );
+            }
+            
             return (
               <Link
                 key={item.path}
@@ -204,6 +239,19 @@ const DashboardLayout = ({ children }) => {
               </Link>
             );
           })}
+          
+          {/* Pending Approval Notice for unapproved employers */}
+          {/* {isUnapprovedEmployer && (
+            <div className="mx-1 mt-1 p-3 bg-yellow-500/20 border border-yellow-400/40 rounded-lg">
+              <div className="flex items-center gap-2 text-yellow-300 text-sm">
+                <i className="fas fa-clock"></i>
+                <span className="font-medium">Pending Approval</span>
+              </div>
+              <p className="text-yellow-200/80 text-xs mt-1">
+                Your account is being reviewed. You'll get full access once approved.
+              </p>
+            </div>
+          )} */}
         </nav>
 
         {/* Logout Button */}
