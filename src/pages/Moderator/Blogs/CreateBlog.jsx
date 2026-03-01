@@ -133,7 +133,7 @@ const CreateBlog = () => {
       const data = await response.json();
 
       if (data.success) {
-        navigate('/admin/blogs', { state: { message: 'Blog created successfully!' } });
+        navigate('/moderator/blogs', { state: { message: 'Blog created successfully!' } });
       } else {
         alert(data.message || 'Failed to create blog');
       }
@@ -146,7 +146,7 @@ const CreateBlog = () => {
 
   const headerAction = (
     <button
-      onClick={() => navigate('/admin/blogs')}
+      onClick={() => navigate('/moderator/blogs')}
       className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
     >
       Back to Blogs
@@ -382,7 +382,7 @@ const CreateBlog = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate('/admin/blogs')}
+                    onClick={() => navigate('/moderator/blogs')}
                     className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors"
                   >
                     Cancel
