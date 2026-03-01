@@ -101,7 +101,8 @@ function App() {
                     {/* Admin Routes */}
                     <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="Admin"><AdminDashboard /></ProtectedRoute>} />
                     <Route path="/admin/home" element={<Navigate to="/admin/dashboard" replace />} />
-                    <Route path="/admin/revenue" element={<ProtectedRoute requiredRole="Admin"><AdminPlatform /></ProtectedRoute>} />
+                    <Route path="/admin/revenue" element={<Navigate to="/admin/platform" replace />} />
+                    <Route path="/admin/platform" element={<ProtectedRoute requiredRole="Admin"><AdminPlatform /></ProtectedRoute>} />
                     <Route path="/admin/payments" element={<ProtectedRoute requiredRole="Admin"><AdminPayments /></ProtectedRoute>} />
                     <Route path="/admin/moderators/:moderatorId" element={<ProtectedRoute requiredRole="Admin"><ModeratorDetail /></ProtectedRoute>} />
                     <Route path="/admin/moderators" element={<ProtectedRoute requiredRole="Admin"><AdminModerators /></ProtectedRoute>} />

@@ -77,7 +77,7 @@ const DashboardLayout = ({ children }) => {
         return [
           { name: 'Home', path: '/', icon: 'fas fa-home' },
           { name: 'Dashboard', path: '/admin/dashboard', icon: 'fas fa-tachometer-alt' },
-          { name: 'Platform', path: '/admin/revenue', icon: 'fas fa-layer-group' },
+          { name: 'Platform', path: '/admin/platform', icon: 'fas fa-layer-group' },
           { name: 'Payments', path: '/admin/payments', icon: 'fas fa-credit-card' },
           { name: 'Moderators', path: '/admin/moderators', icon: 'fas fa-user-shield' },
           { name: 'Users', path: '/admin/users', icon: 'fas fa-users' },
