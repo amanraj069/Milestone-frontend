@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DashboardPage from '../../components/DashboardPage';
+import SmartFilter from '../../components/SmartFilter';
 import { useChatContext } from '../../context/ChatContext';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
@@ -76,7 +77,6 @@ const ModeratorFreelancers = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchMode, setSearchMode] = useState('name'); // 'name', 'email', or 'location'
   const [deleting, setDeleting] = useState(null);
 
   // Filter states
@@ -84,14 +84,49 @@ const ModeratorFreelancers = () => {
   const [subscriptionFilter, setSubscriptionFilter] = useState('all'); // 'all', 'premium', 'basic'
   const [workingFilter, setWorkingFilter] = useState('all'); // 'all', 'working', 'not-working'
 
-  // Autocomplete states
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  // Column-level SmartFilter states
+  const [nameFilters, setNameFilters] = useState([]);
+  const [emailFilters, setEmailFilters] = useState([]);
+  const [phoneFilters, setPhoneFilters] = useState([]);
+  const [ratingFilters, setRatingFilters] = useState([]);
+  const [subscribedFilters, setSubscribedFilters] = useState([]);
+  const [durationFilters, setDurationFilters] = useState([]);
 
   // Modal states
   const [applicationsModal, setApplicationsModal] = useState({ show: false, freelancerId: null, freelancerName: '', applications: []  });
   const [deleteModal, setDeleteModal] = useState({ show: false, freelancerId: null, name: '' });
   const [loadingApplications, setLoadingApplications] = useState(false);
+
+  // Column visibility state - all visible except 'joined' by default
+  const allColumns = [
+    { key: 'photo', label: 'Photo' },
+    { key: 'name', label: 'Name' },
+    { key: 'email', label: 'Email' },
+    { key: 'phone', label: 'Phone' },
+    { key: 'rating', label: 'Rating' },
+    { key: 'subscribed', label: 'Subscribed' },
+    { key: 'subscriptionDuration', label: 'Subscription Duration' },
+    { key: 'applications', label: 'Applications' },
+    { key: 'joined', label: 'Joined' },
+    { key: 'actions', label: 'Actions' },
+  ];
+  const [visibleColumns, setVisibleColumns] = useState(
+    allColumns.filter(col => col.key !== 'joined').map(col => col.key)
+  );
+
+  const toggleColumn = (columnKey) => {
+    setVisibleColumns(prev => 
+      prev.includes(columnKey) 
+        ? prev.filter(k => k !== columnKey)
+        : [...prev, columnKey]
+    );
+  };
+
+  const showAllColumns = () => {
+    setVisibleColumns(allColumns.map(col => col.key));
+  };
+
+  const isColumnVisible = (columnKey) => visibleColumns.includes(columnKey);
 
   useEffect(() => {
     fetchFreelancers();
@@ -171,74 +206,23 @@ const ModeratorFreelancers = () => {
     openChatWith(freelancer.userId);
   };
 
-  // Generate autocomplete suggestions
-  const generateSuggestions = (value) => {
-    if (!value || value.trim() === '') {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-
-    const searchLower = value.toLowerCase();
-    const uniqueValues = new Set();
-
-    // Get unique values based on search mode
-    freelancers.forEach(freelancer => {
-      const fieldValue = searchMode === 'name' ? freelancer.name : 
-                        searchMode === 'email' ? freelancer.email : 
-                        freelancer.location;
-      uniqueValues.add(fieldValue);
-    });
-
-    // Filter and rank suggestions using fuzzy matching
-    const rankedSuggestions = Array.from(uniqueValues)
-      .map(item => {
-        const itemLower = item.toLowerCase();
-        const startsWithMatch = itemLower.startsWith(searchLower);
-        const includesMatch = itemLower.includes(searchLower);
-        const distance = levenshteinDistance(searchLower, itemLower);
-
-        let score = distance;
-        if (startsWithMatch) score -= 1000;
-        if (includesMatch) score -= 100;
-
-        return { item, score, distance };
-      })
-      .filter(({ distance, item }) => {
-        const threshold = Math.max(2, Math.floor(searchLower.length * 0.4));
-        return item.toLowerCase().includes(searchLower) || distance <= threshold;
-      })
-      .sort((a, b) => a.score - b.score)
-      .slice(0, 5)
-      .map(({ item }) => item);
-
-    setSuggestions(rankedSuggestions);
-    setShowSuggestions(rankedSuggestions.length > 0);
-  };
-
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    generateSuggestions(value);
-  };
-
-  const handleSuggestionClick = (suggestion) => {
-    setSearchTerm(suggestion);
-    setShowSuggestions(false);
-    setSuggestions([]);
-  };
-
   // Clear all filters
   const clearAllFilters = () => {
     setSearchTerm('');
     setRatingSort('none');
     setSubscriptionFilter('all');
     setWorkingFilter('all');
-    setSuggestions([]);
-    setShowSuggestions(false);
+    setNameFilters([]);
+    setEmailFilters([]);
+    setPhoneFilters([]);
+    setRatingFilters([]);
+    setSubscribedFilters([]);
+    setDurationFilters([]);
   };
 
-  const hasActiveFilters = searchTerm !== '' || ratingSort !== 'none' || subscriptionFilter !== 'all' || workingFilter !== 'all';
+  const hasActiveFilters = searchTerm !== '' || ratingSort !== 'none' || subscriptionFilter !== 'all' || workingFilter !== 'all' ||
+    nameFilters.length > 0 || emailFilters.length > 0 || phoneFilters.length > 0 || 
+    ratingFilters.length > 0 || subscribedFilters.length > 0 || durationFilters.length > 0;
 
   // Filter and sort freelancers
   let filteredFreelancers = freelancers.filter(freelancer => {
@@ -250,20 +234,35 @@ const ModeratorFreelancers = () => {
     if (workingFilter === 'working' && !freelancer.isCurrentlyWorking) return false;
     if (workingFilter === 'not-working' && freelancer.isCurrentlyWorking) return false;
 
-    // Search filter
+    // Column SmartFilter filters
+    if (nameFilters.length > 0 && !nameFilters.includes(freelancer.name)) return false;
+    if (emailFilters.length > 0 && !emailFilters.includes(freelancer.email)) return false;
+    if (phoneFilters.length > 0 && !phoneFilters.includes(freelancer.phone || 'N/A')) return false;
+    if (ratingFilters.length > 0 && !ratingFilters.includes(freelancer.rating)) return false;
+    if (subscribedFilters.length > 0 && !subscribedFilters.includes(freelancer.isPremium ? 'Yes' : 'No')) return false;
+    if (durationFilters.length > 0 && !durationFilters.includes(freelancer.subscriptionDuration || 0)) return false;
+
+    // Search filter - regex based across all fields
     if (searchTerm.trim() === '') return true;
 
-    const searchLower = searchTerm.toLowerCase();
-    const searchField = searchMode === 'name' ? freelancer.name :
-                       searchMode === 'email' ? freelancer.email :
-                       freelancer.location;
-    const fieldLower = searchField.toLowerCase();
-
-    if (fieldLower.includes(searchLower)) return true;
-
-    const threshold = Math.max(2, Math.floor(searchLower.length * 0.3));
-    const distance = levenshteinDistance(searchLower, fieldLower);
-    return distance <= threshold;
+    try {
+      const regex = new RegExp(searchTerm, 'i');
+      return (
+        regex.test(freelancer.name || '') ||
+        regex.test(freelancer.email || '') ||
+        regex.test(freelancer.location || '') ||
+        regex.test(freelancer.phone || '')
+      );
+    } catch (e) {
+      // Invalid regex, fall back to includes
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        (freelancer.name || '').toLowerCase().includes(searchLower) ||
+        (freelancer.email || '').toLowerCase().includes(searchLower) ||
+        (freelancer.location || '').toLowerCase().includes(searchLower) ||
+        (freelancer.phone || '').toLowerCase().includes(searchLower)
+      );
+    }
   });
 
   // Apply rating sorting
@@ -359,102 +358,62 @@ const ModeratorFreelancers = () => {
             </div>
           )}
 
+          {/* Columns Dropdown */}
+          <div className="relative group">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Columns</label>
+            <button className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
+              Columns
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-300 rounded-md shadow-lg z-20 hidden group-hover:block">
+              <div className="p-2 border-b border-gray-200">
+                <button
+                  onClick={showAllColumns}
+                  className="w-full text-left px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded font-medium"
+                >
+                  Show All
+                </button>
+              </div>
+              <div className="p-2 max-h-64 overflow-y-auto">
+                {allColumns.map(col => (
+                  <label key={col.key} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 rounded cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isColumnVisible(col.key)}
+                      onChange={() => toggleColumn(col.key)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{col.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div className="ml-auto text-sm text-gray-500 whitespace-nowrap">
             Showing: {filteredFreelancers.length} of {totalFreelancers}
           </div>
         </div>
 
         {/* Search Row */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 shrink-0">
-            <label className="text-xs font-medium text-gray-500">Search by:</label>
-            <div className="flex bg-gray-100 rounded-md p-1">
-              <button
-                onClick={() => {
-                  setSearchMode('name');
-                  setSearchTerm('');
-                  setSuggestions([]);
-                  setShowSuggestions(false);
-                }}
-                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                  searchMode === 'name'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Name
-              </button>
-              <button
-                onClick={() => {
-                  setSearchMode('email');
-                  setSearchTerm('');
-                  setSuggestions([]);
-                  setShowSuggestions(false);
-                }}
-                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                  searchMode === 'email'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Email
-              </button>
-              <button
-                onClick={() => {
-                  setSearchMode('location');
-                  setSearchTerm('');
-                  setSuggestions([]);
-                  setShowSuggestions(false);
-                }}
-                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                  searchMode === 'location'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Location
-              </button>
-            </div>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
-
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder={`Search by ${searchMode}... `}
-              value={searchTerm}
-              onChange={handleSearchChange}
-              onFocus={() => {
-                if (suggestions.length > 0) {
-                  setShowSuggestions(true);
-                }
-              }}
-              onBlur={() => {
-                setTimeout(() => setShowSuggestions(false), 200);
-              }}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-
-            {/* Autocomplete Suggestions */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                {suggestions.map((suggestion, index) => (
-                  <div
-                    key={index}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 border-b border-gray-100 last:border-b-0 flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <span className="flex-1">{suggestion}</span>
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <input
+            type="text"
+            placeholder="Search freelancers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
         </div>
       </div>
 
@@ -486,16 +445,99 @@ const ModeratorFreelancers = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Photo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rating</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subscribed</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subscription Duration</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Applications</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  {isColumnVisible('photo') && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Photo</th>}
+                  {isColumnVisible('name') && (
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <div className="flex items-center gap-2">
+                        Name
+                        <SmartFilter
+                          label="Filter"
+                          data={freelancers}
+                          field="name"
+                          selectedValues={nameFilters}
+                          onFilterChange={setNameFilters}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {isColumnVisible('email') && (
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <div className="flex items-center gap-2">
+                        Email
+                        <SmartFilter
+                          label="Filter"
+                          data={freelancers}
+                          field="email"
+                          selectedValues={emailFilters}
+                          onFilterChange={setEmailFilters}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {isColumnVisible('phone') && (
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <div className="flex items-center gap-2">
+                        Phone
+                        <SmartFilter
+                          label="Filter"
+                          data={freelancers}
+                          field="phone"
+                          selectedValues={phoneFilters}
+                          onFilterChange={setPhoneFilters}
+                          valueExtractor={(f) => f.phone || 'N/A'}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {isColumnVisible('rating') && (
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <div className="flex items-center gap-2">
+                        Rating
+                        <SmartFilter
+                          label="Filter"
+                          data={freelancers}
+                          field="rating"
+                          selectedValues={ratingFilters}
+                          onFilterChange={setRatingFilters}
+                          valueFormatter={(v) => `★ ${v.toFixed(1)}`}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {isColumnVisible('subscribed') && (
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <div className="flex items-center gap-2">
+                        Subscribed
+                        <SmartFilter
+                          label="Filter"
+                          data={freelancers}
+                          field="isPremium"
+                          selectedValues={subscribedFilters}
+                          onFilterChange={setSubscribedFilters}
+                          valueExtractor={(f) => f.isPremium ? 'Yes' : 'No'}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {isColumnVisible('subscriptionDuration') && (
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <div className="flex items-center gap-2">
+                        Duration
+                        <SmartFilter
+                          label="Filter"
+                          data={freelancers}
+                          field="subscriptionDuration"
+                          selectedValues={durationFilters}
+                          onFilterChange={setDurationFilters}
+                          valueExtractor={(f) => f.subscriptionDuration || 0}
+                          valueFormatter={(v) => v === 0 ? 'None' : `${v} months`}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {isColumnVisible('applications') && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Applications</th>}
+                  {isColumnVisible('joined') && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>}
+                  {isColumnVisible('actions') && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -504,69 +546,81 @@ const ModeratorFreelancers = () => {
                     key={freelancer.freelancerId} 
                     className={`hover:bg-gray-50 ${freelancer.isCurrentlyWorking ? 'bg-green-400/20' : ''}`}
                   >
-                    <td className="px-4 py-3">
-                      <img
-                        src={freelancer.picture}
-                        alt={freelancer.name}
-                        className="w-10 h-10 rounded-full object-cover"
-                        onError={(e) => { e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'; }}
-                      />
-                    </td>
-                    <td className="px-4 py-3 font-medium text-gray-900">{freelancer.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{freelancer.email}</td>
-                    <td className="px-4 py-3 text-gray-600">{freelancer.phone || 'N/A'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <span className="text-yellow-500">★</span>
-                        <span className="font-medium text-gray-900">{freelancer.rating.toFixed(1)}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                        freelancer.isPremium ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {freelancer.isPremium ? 'Yes' : 'No'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 text-xs">
-                      {freelancer.isPremium && freelancer.subscriptionExpiryDate ? (
-                        <div>
-                          <div>Expires: {new Date(freelancer.subscriptionExpiryDate).toLocaleDateString()}</div>
-                          {freelancer.subscriptionDuration && (
-                            <div className="text-gray-500">({freelancer.subscriptionDuration} months)</div>
-                          )}
+                    {isColumnVisible('photo') && (
+                      <td className="px-4 py-3">
+                        <img
+                          src={freelancer.picture}
+                          alt={freelancer.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                          onError={(e) => { e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'; }}
+                        />
+                      </td>
+                    )}
+                    {isColumnVisible('name') && <td className="px-4 py-3 font-medium text-gray-900">{freelancer.name}</td>}
+                    {isColumnVisible('email') && <td className="px-4 py-3 text-gray-600">{freelancer.email}</td>}
+                    {isColumnVisible('phone') && <td className="px-4 py-3 text-gray-600">{freelancer.phone || 'N/A'}</td>}
+                    {isColumnVisible('rating') && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1">
+                          <span className="text-yellow-500">★</span>
+                          <span className="font-medium text-gray-900">{freelancer.rating.toFixed(1)}</span>
                         </div>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => fetchApplications(freelancer.freelancerId, freelancer.name)}
-                        className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
-                        disabled={loadingApplications}
-                      >
-                        {freelancer.applicationsCount || 0}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{new Date(freelancer.joinedDate).toLocaleDateString()}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button 
-                          className="px-3 py-1.5 bg-emerald-600 text-white rounded-md text-xs font-medium hover:bg-emerald-700"
-                          onClick={() => handleChat(freelancer)}
+                      </td>
+                    )}
+                    {isColumnVisible('subscribed') && (
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                          freelancer.isPremium ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {freelancer.isPremium ? 'Yes' : 'No'}
+                        </span>
+                      </td>
+                    )}
+                    {isColumnVisible('subscriptionDuration') && (
+                      <td className="px-4 py-3 text-gray-600 text-xs">
+                        {freelancer.isPremium && freelancer.subscriptionExpiryDate ? (
+                          <div>
+                            <div>Expires: {new Date(freelancer.subscriptionExpiryDate).toLocaleDateString()}</div>
+                            {freelancer.subscriptionDuration && (
+                              <div className="text-gray-500">({freelancer.subscriptionDuration} months)</div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                    )}
+                    {isColumnVisible('applications') && (
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => fetchApplications(freelancer.freelancerId, freelancer.name)}
+                          className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
+                          disabled={loadingApplications}
                         >
-                          Chat
+                          {freelancer.applicationsCount || 0}
                         </button>
-                        <button 
-                          className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700" 
-                          onClick={() => setDeleteModal({ show: true, freelancerId: freelancer.freelancerId, name: freelancer.name })}
-                          disabled={deleting === freelancer.freelancerId}
-                        >
-                          {deleting === freelancer.freelancerId ? 'Deleting...' : 'Delete'}
-                        </button>
-                      </div>
-                    </td>
+                      </td>
+                    )}
+                    {isColumnVisible('joined') && <td className="px-4 py-3 text-gray-600">{new Date(freelancer.joinedDate).toLocaleDateString()}</td>}
+                    {isColumnVisible('actions') && (
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <button 
+                            className="px-3 py-1.5 bg-emerald-600 text-white rounded-md text-xs font-medium hover:bg-emerald-700"
+                            onClick={() => handleChat(freelancer)}
+                          >
+                            Chat
+                          </button>
+                          <button 
+                            className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700" 
+                            onClick={() => setDeleteModal({ show: true, freelancerId: freelancer.freelancerId, name: freelancer.name })}
+                            disabled={deleting === freelancer.freelancerId}
+                          >
+                            {deleting === freelancer.freelancerId ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

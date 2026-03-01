@@ -23,6 +23,7 @@ import JobApplication from './components/jobApplication/JobApplication';
 import ModeratorJobListings from './pages/Moderator/JobListings';
 import ModeratorFreelancers from './pages/Moderator/Freelancers';
 import ModeratorEmployers from './pages/Moderator/Employers';
+import ModeratorApprovals from './pages/Moderator/Approvals';
 import ModeratorComplaints from './pages/Moderator/Complaints';
 import ComplaintDetail from './pages/Moderator/ComplaintDetail';
 import ModeratorQuizzes from './pages/Moderator/Quizzes';
@@ -117,6 +118,7 @@ function App() {
                     <Route path="/moderator/job-listings" element={<ProtectedRoute requiredRole="Moderator"><ModeratorJobListings /></ProtectedRoute>} />
                     <Route path="/moderator/freelancers" element={<ProtectedRoute requiredRole="Moderator"><ModeratorFreelancers /></ProtectedRoute>} />
                     <Route path="/moderator/employers" element={<ProtectedRoute requiredRole="Moderator"><ModeratorEmployers /></ProtectedRoute>} />
+                    <Route path="/moderator/approvals" element={<ProtectedRoute requiredRole="Moderator"><ModeratorApprovals /></ProtectedRoute>} />
                     <Route path="/moderator/complaints" element={<ProtectedRoute requiredRole="Moderator"><ModeratorComplaints /></ProtectedRoute>} />
                     <Route path="/moderator/complaints/:complaintId" element={<ProtectedRoute requiredRole="Moderator"><ComplaintDetail /></ProtectedRoute>} />
                     <Route path="/moderator/quizzes" element={<ProtectedRoute requiredRole="Moderator"><ModeratorQuizzes /></ProtectedRoute>} />

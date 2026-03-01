@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
+import SmartFilter from '../../components/SmartFilter';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -76,15 +77,16 @@ const ModeratorJobListings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchMode, setSearchMode] = useState('title'); // 'title' or 'company'
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [budgetSort, setBudgetSort] = useState('none'); // 'none', 'low-to-high', 'high-to-low'
   const [deleting, setDeleting] = useState(null);
   
-  // Autocomplete states
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  // SmartFilter states for columns
+  const [titleFilters, setTitleFilters] = useState([]);
+  const [companyFilters, setCompanyFilters] = useState([]);
+  const [typeFiltersColumn, setTypeFiltersColumn] = useState([]);
+  const [statusFiltersColumn, setStatusFiltersColumn] = useState([]);
   
   // Modal states
   const [applicantsModal, setApplicantsModal] = useState({ show: false, jobId: null, jobTitle: '', applicants: [] });
@@ -166,80 +168,38 @@ const ModeratorJobListings = () => {
     navigate(`/jobs/${jobId}`);
   };
 
-  // Generate autocomplete suggestions based on search term
-  const generateSuggestions = (value) => {
-    if (!value || value.trim() === '') {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-
-    const searchLower = value.toLowerCase();
-    const uniqueValues = new Set();
-    
-    // Get unique values based on search mode
-    jobs.forEach(job => {
-      const fieldValue = searchMode === 'title' ? job.title : job.companyName;
-      uniqueValues.add(fieldValue);
-    });
-
-    // Filter and rank suggestions using fuzzy matching
-    const rankedSuggestions = Array.from(uniqueValues)
-      .map(item => {
-        const itemLower = item.toLowerCase();
-        const startsWithMatch = itemLower.startsWith(searchLower);
-        const includesMatch = itemLower.includes(searchLower);
-        const distance = levenshteinDistance(searchLower, itemLower);
-        
-        // Calculate score (lower is better)
-        let score = distance;
-        if (startsWithMatch) score -= 1000; // Prioritize starts with
-        if (includesMatch) score -= 100; // Then includes
-        
-        return { item, score, distance };
-      })
-      .filter(({ distance, item }) => {
-        // Show if it's a direct match or fuzzy match within threshold
-        const threshold = Math.max(2, Math.floor(searchLower.length * 0.4));
-        return item.toLowerCase().includes(searchLower) || distance <= threshold;
-      })
-      .sort((a, b) => a.score - b.score)
-      .slice(0, 5) // Limit to 5 suggestions
-      .map(({ item }) => item);
-
-    setSuggestions(rankedSuggestions);
-    setShowSuggestions(rankedSuggestions.length > 0);
-  };
-
-  // Handle search input change
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    generateSuggestions(value);
-  };
-
-  // Handle suggestion click
-  const handleSuggestionClick = (suggestion) => {
-    setSearchTerm(suggestion);
-    setShowSuggestions(false);
-    setSuggestions([]);
-  };
-
   // Clear all filters
   const clearAllFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
     setTypeFilter('all');
     setBudgetSort('none');
-    setSuggestions([]);
-    setShowSuggestions(false);
+    setTitleFilters([]);
+    setCompanyFilters([]);
+    setTypeFiltersColumn([]);
+    setStatusFiltersColumn([]);
   };
 
   // Check if any filters are active
-  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'all' || typeFilter !== 'all' || budgetSort !== 'none';
+  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'all' || typeFilter !== 'all' || budgetSort !== 'none' ||
+    titleFilters.length > 0 || companyFilters.length > 0 || typeFiltersColumn.length > 0 || statusFiltersColumn.length > 0;
 
   // Fuzzy search filter and sort
   let filteredJobs = jobs.filter(job => {
+    // Column filters (SmartFilter)
+    if (titleFilters.length > 0 && !titleFilters.includes(job.title || '')) {
+      return false;
+    }
+    if (companyFilters.length > 0 && !companyFilters.includes(job.companyName || '')) {
+      return false;
+    }
+    if (typeFiltersColumn.length > 0 && !typeFiltersColumn.includes(job.jobType || '')) {
+      return false;
+    }
+    if (statusFiltersColumn.length > 0 && !statusFiltersColumn.includes(job.status || '')) {
+      return false;
+    }
+    
     // Status filter
     if (statusFilter !== 'all' && job.status !== statusFilter) {
       return false;
@@ -250,26 +210,29 @@ const ModeratorJobListings = () => {
       return false;
     }
 
-    // Fuzzy search
+    // Regex search across all fields
     if (searchTerm.trim() === '') {
       return true;
     }
 
-    const searchLower = searchTerm.toLowerCase();
-    const searchField = searchMode === 'title' ? job.title : job.companyName;
-    const fieldLower = searchField.toLowerCase();
-
-    // Direct match
-    if (fieldLower.includes(searchLower)) {
-      return true;
+    try {
+      const regex = new RegExp(searchTerm, 'i');
+      return (
+        regex.test(job.title || '') ||
+        regex.test(job.companyName || '') ||
+        regex.test(job.location || '') ||
+        regex.test(job.jobType || '')
+      );
+    } catch (e) {
+      // Invalid regex, fall back to includes
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        (job.title || '').toLowerCase().includes(searchLower) ||
+        (job.companyName || '').toLowerCase().includes(searchLower) ||
+        (job.location || '').toLowerCase().includes(searchLower) ||
+        (job.jobType || '').toLowerCase().includes(searchLower)
+      );
     }
-
-    // Fuzzy match using Levenshtein distance
-    // Allow up to 2 character differences for short strings, more for longer
-    const threshold = Math.max(2, Math.floor(searchLower.length * 0.3));
-    const distance = levenshteinDistance(searchLower, fieldLower);
-    
-    return distance <= threshold;
   });
 
   // Apply budget sorting
@@ -387,82 +350,19 @@ const ModeratorJobListings = () => {
         </div>
 
         {/* Search Row */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 shrink-0">
-            <label className="text-xs font-medium text-gray-500">Search by:</label>
-            <div className="flex bg-gray-100 rounded-md p-1">
-              <button
-                onClick={() => {
-                  setSearchMode('title');
-                  setSearchTerm('');
-                  setSuggestions([]);
-                  setShowSuggestions(false);
-                }}
-                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                  searchMode === 'title'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Job Title
-              </button>
-              <button
-                onClick={() => {
-                  setSearchMode('company');
-                  setSearchTerm('');
-                  setSuggestions([]);
-                  setShowSuggestions(false);
-                }}
-                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                  searchMode === 'company'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Company Name
-              </button>
-            </div>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
-
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder={`Search by ${searchMode === 'title' ? 'job title' : 'company name'}... `}
-              value={searchTerm}
-              onChange={handleSearchChange}
-              onFocus={() => {
-                if (suggestions.length > 0) {
-                  setShowSuggestions(true);
-                }
-              }}
-              onBlur={() => {
-                // Delay to allow clicking on suggestions
-                setTimeout(() => setShowSuggestions(false), 200);
-              }}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            
-            {/* Autocomplete Suggestions Dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                {suggestions.map((suggestion, index) => (
-                  <div
-                    key={index}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 border-b border-gray-100 last:border-b-0 flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <span className="flex-1">{suggestion}</span>
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <input
+            type="text"
+            placeholder="Search jobs..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
         </div>
       </div>
 
@@ -500,11 +400,55 @@ const ModeratorJobListings = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Job Title</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <div className="flex items-center gap-2">
+                      Job Title
+                      <SmartFilter
+                        label="Filter"
+                        data={jobs}
+                        field="title"
+                        selectedValues={titleFilters}
+                        onFilterChange={setTitleFilters}
+                      />
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <div className="flex items-center gap-2">
+                      Company
+                      <SmartFilter
+                        label="Filter"
+                        data={jobs}
+                        field="companyName"
+                        selectedValues={companyFilters}
+                        onFilterChange={setCompanyFilters}
+                      />
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Budget</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <div className="flex items-center gap-2">
+                      Type
+                      <SmartFilter
+                        label="Filter"
+                        data={jobs}
+                        field="jobType"
+                        selectedValues={typeFiltersColumn}
+                        onFilterChange={setTypeFiltersColumn}
+                      />
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <div className="flex items-center gap-2">
+                      Status
+                      <SmartFilter
+                        label="Filter"
+                        data={jobs}
+                        field="status"
+                        selectedValues={statusFiltersColumn}
+                        onFilterChange={setStatusFiltersColumn}
+                      />
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Posted</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Applicants</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
