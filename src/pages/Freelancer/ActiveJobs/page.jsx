@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from '../../../components/freelancer/JobDetailsModal';
-import ColumnToggle, { useColumnToggle } from '../../../components/ColumnToggle';
+import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
 import { useChatContext } from '../../../context/ChatContext';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
@@ -67,8 +67,8 @@ const FreelancerActiveJobs = () => {
   const [appSortBy, setAppSortBy] = useState('date-newest');
   const [appStatusFilter, setAppStatusFilter] = useState('all');
 
-  const cols = useColumnToggle(COLUMNS, 'active-jobs-cols');
-  const appCols = useColumnToggle(APPLICATIONS_COLUMNS, 'applications-cols');
+  const cols = useSmartColumnToggle(COLUMNS, 'active-jobs-cols');
+  const appCols = useSmartColumnToggle(APPLICATIONS_COLUMNS, 'applications-cols');
 
   useEffect(() => { 
     fetchActiveJobs(); 
@@ -308,7 +308,7 @@ const FreelancerActiveJobs = () => {
               >
                 {APPLICATIONS_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
-              <ColumnToggle columns={APPLICATIONS_COLUMNS} visible={appCols.visible} onChange={appCols.setVisible} storageKey="applications-cols" />
+              <SmartColumnToggle columns={APPLICATIONS_COLUMNS} visible={appCols.visible} onChange={appCols.setVisible} storageKey="applications-cols" />
             </div>
           </div>
 
@@ -504,7 +504,7 @@ const FreelancerActiveJobs = () => {
           >
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <ColumnToggle columns={COLUMNS} visible={cols.visible} onChange={cols.setVisible} storageKey="active-jobs-cols" />
+          <SmartColumnToggle columns={COLUMNS} visible={cols.visible} onChange={cols.setVisible} storageKey="active-jobs-cols" />
         </div>
       </div>
 

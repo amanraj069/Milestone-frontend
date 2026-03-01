@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import DashboardPage from '../../components/DashboardPage';
 import FeedbackForm from '../../components/FeedbackForm';
 import JobDetailsModal from '../../components/freelancer/JobDetailsModal';
-import ColumnToggle, { useColumnToggle } from '../../components/ColumnToggle';
+import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 import { loadJobHistory, selectJobHistory, selectJobsLoading, selectJobsError } from '../../redux/slices/jobsSlice';
 import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../redux/slices/feedbackSlice';
 import { useChatContext } from '../../context/ChatContext';
@@ -62,7 +62,7 @@ export default function FreelancerJobHistory() {
   const [sortBy, setSortBy] = useState('newest');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const cols = useColumnToggle(COLUMNS, 'job-history-cols');
+  const cols = useSmartColumnToggle(COLUMNS, 'job-history-cols');
 
   useEffect(() => { dispatch(loadJobHistory()); }, [dispatch]);
 
@@ -214,7 +214,7 @@ export default function FreelancerJobHistory() {
           >
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <ColumnToggle columns={COLUMNS} visible={cols.visible} onChange={cols.setVisible} storageKey="job-history-cols" />
+          <SmartColumnToggle columns={COLUMNS} visible={cols.visible} onChange={cols.setVisible} storageKey="job-history-cols" />
         </div>
       </div>
 

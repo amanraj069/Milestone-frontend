@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import DashboardPage from '../../../components/DashboardPage';
 import ApplicationDetailsModal from '../../../components/employer/ApplicationDetailsModal';
-import ColumnToggle, { useColumnToggle } from '../../../components/ColumnToggle';
+import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
@@ -31,7 +31,7 @@ const EmployerApplications = () => {
   const [jobFilter, setJobFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date-desc');
 
-  const cols = useColumnToggle(APP_COLUMNS, 'employer-apps-cols');
+  const cols = useSmartColumnToggle(APP_COLUMNS, 'employer-apps-cols');
 
   useEffect(() => { fetchApplications(); }, []);
 
@@ -231,7 +231,7 @@ const EmployerApplications = () => {
               <option value="premium-first">Premium First</option>
             </select>
 
-            <ColumnToggle columns={APP_COLUMNS} visible={cols.visible} onChange={cols.setVisible} storageKey="employer-apps-cols" />
+            <SmartColumnToggle columns={APP_COLUMNS} visible={cols.visible} onChange={cols.setVisible} storageKey="employer-apps-cols" />
 
             {activeFilters > 0 && (
               <button
@@ -296,9 +296,6 @@ const EmployerApplications = () => {
                             <div className="ml-3">
                               <div className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
                                 {application.freelancerName || 'Unknown'}
-                                {application.isPremium && (
-                                  <span className="text-xs bg-gradient-to-r from-amber-400 to-amber-500 text-white px-1.5 py-0.5 rounded font-bold">PRO</span>
-                                )}
                               </div>
                               <div className="text-xs text-gray-500">{application.freelancerEmail || 'No email'}</div>
                             </div>
