@@ -95,7 +95,6 @@ function App() {
                     <Route path="/jobs" element={<PublicJobListing />} />
                     <Route path="/jobs/:jobId" element={<JobDescription />} />
                     <Route path="/jobs/apply/:jobId" element={<ProtectedRoute requiredRole="Freelancer"><JobApplication /></ProtectedRoute>} />
-                    <Route path="/freelancer/:freelancerId" element={<FreelancerPublicProfile />} />
                     <Route path="/blogs" element={<BlogList />} />
                     <Route path="/blogs/:blogId" element={<BlogDetail />} />
                     
@@ -142,6 +141,7 @@ function App() {
                     <Route path="/employer/job-listings/edit/:jobId" element={<ProtectedRoute requiredRole="Employer"><EditJob /></ProtectedRoute>} />
                     <Route path="/employer/current-jobs" element={<ProtectedRoute requiredRole="Employer"><EmployerCurrentJobs /></ProtectedRoute>} />
                     <Route path="/employer/applications" element={<ProtectedRoute requiredRole="Employer"><EmployerApplications /></ProtectedRoute>} />
+                    <Route path="/freelancer/:freelancerId" element={<ProtectedRoute requiredRole="Employer"><FreelancerPublicProfile /></ProtectedRoute>} />
                     <Route path="/employer/work-history" element={<ProtectedRoute requiredRole="Employer"><EmployerWorkHistory /></ProtectedRoute>} />
                     <Route path="/employer/subscription" element={<ProtectedRoute requiredRole="Employer"><EmployerSubscription /></ProtectedRoute>} />
                     <Route path="/employer/transactions" element={<ProtectedRoute requiredRole="Employer"><EmployerTransactions /></ProtectedRoute>} />

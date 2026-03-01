@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 import Footer from '../../components/Home/Footer';
@@ -8,6 +8,7 @@ const PublicJobListing = () => {
   const auth = useAuth();
   const user = auth?.user;
   const getDashboardRoute = auth?.getDashboardRoute;
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
   const [jobs, setJobs] = useState([]);
@@ -23,6 +24,7 @@ const PublicJobListing = () => {
   const [selectedExperience, setSelectedExperience] = useState('');
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [selectedJobType, setSelectedJobType] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('');
   const [isRemote, setIsRemote] = useState(false);
 
   // Load jobs on mount
@@ -41,7 +43,7 @@ const PublicJobListing = () => {
   // Apply filters whenever dependencies change
   useEffect(() => {
     applyFiltersAndSort();
-  }, [jobs, searchTerm, sortBy, selectedExperience, selectedSkills, selectedJobType, isRemote]);
+  }, [jobs, searchTerm, sortBy, selectedExperience, selectedSkills, selectedJobType, selectedLocation, isRemote]);
 
   const loadJobs = async () => {
     try {
@@ -129,6 +131,14 @@ const PublicJobListing = () => {
     // Apply remote filter
     if (isRemote) {
       filtered = filtered.filter(job => job.remote);
+    }
+
+    // Apply location filter
+    if (selectedLocation.trim()) {
+      const locationSearch = selectedLocation.trim().toLowerCase();
+      filtered = filtered.filter(job =>
+        (job.location || '').toLowerCase().includes(locationSearch)
+      );
     }
 
     // Apply skills filter
@@ -229,7 +239,7 @@ const PublicJobListing = () => {
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent cursor-pointer border-gray-300 text-gray-600"
+                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer border-gray-300 text-gray-600"
                   >
                     <option value="date">Job type</option>
                     <option value="date">Newest First</option>
@@ -244,7 +254,7 @@ const PublicJobListing = () => {
                   <select
                     value={selectedJobType}
                     onChange={(e) => setSelectedJobType(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent cursor-pointer border-gray-300 text-gray-600"
+                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer border-gray-300 text-gray-600"
                   >
                     <option value="">All categoriers</option>
                     <option value="full-time">Full Time</option>
@@ -260,7 +270,7 @@ const PublicJobListing = () => {
                   <select
                     value={selectedExperience}
                     onChange={(e) => setSelectedExperience(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent cursor-pointer border-gray-300 text-gray-600"
+                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer border-gray-300 text-gray-600"
                   >
                     <option value="">All Levels</option>
                     <option value="Entry">Entry Level</option>
@@ -280,8 +290,8 @@ const PublicJobListing = () => {
                         onClick={() => toggleSkill(skill)}
                         className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
                           selectedSkills.includes(skill)
-                            ? 'bg-orange-100 text-orange-600 border border-orange-300'
-                            : 'bg-gray-50 text-gray-600 border border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+                            ? 'bg-blue-100 text-blue-600 border border-blue-300'
+                            : 'bg-gray-50 text-gray-600 border border-gray-200 hover:border-blue-300 hover:bg-blue-50'
                         }`}
                       >
                         {skill}
@@ -296,7 +306,9 @@ const PublicJobListing = () => {
                   <input
                     type="text"
                     placeholder="Location"
-                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent border-gray-300"
+                    value={selectedLocation}
+                    onChange={(e) => setSelectedLocation(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300"
                   />
                 </div>
 
@@ -306,7 +318,7 @@ const PublicJobListing = () => {
                   <select
                     value={isRemote ? 'remote' : 'all'}
                     onChange={(e) => setIsRemote(e.target.value === 'remote')}
-                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent cursor-pointer border-gray-300 text-gray-600"
+                    className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer border-gray-300 text-gray-600"
                   >
                     <option value="all">Remote</option>
                     <option value="remote">Remote Only</option>
@@ -314,15 +326,6 @@ const PublicJobListing = () => {
                   </select>
                 </div>
 
-                {/* Filter Jobs Button */}
-                <button
-                  onClick={() => {
-                    // Filters are already applied through useEffect
-                  }}
-                  className="w-full py-3 bg-blue-100 text-blue-600 rounded-full font-medium hover:bg-blue-400 hover:text-white transition-colors"
-                >
-                  Filter jobs
-                </button>
               </div>
             </aside>
 
@@ -349,7 +352,7 @@ const PublicJobListing = () => {
                     {filteredJobs.slice(0, visibleJobsCount).map((job) => (
                       <div
                         key={job.jobId}
-                        className="rounded-lg border p-5 hover:shadow-md transition-all duration-200 bg-white border-gray-200"
+                        className="rounded-lg border-2 p-5 hover:shadow-md hover:border-blue-600 transition-all duration-200 bg-white border-gray-200"
                       >
                         <div className="flex gap-5 min-h-[140px]">
                           {/* Company Logo - Circular */}
@@ -432,23 +435,22 @@ const PublicJobListing = () => {
 
                           {/* Right Side - Actions */}
                           <div className="flex flex-col items-end justify-between min-w-[140px]">
-                            {/* Application Count - Top Right */}
-                            <h4 className="px-2 py-1.5 text-sm font-medium text-gray-700">
+                            {/* Application Count - Top */}
+                            <div className="w-full px-4 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg text-center mb-2">
                               {job.applicationCount} applicants
-                            </h4>
+                            </div>
 
-                            {/* Bottom row: Posted Date + See More button */}
-                            <div className="flex items-center gap-3">
-                              <div className="text-xs font-medium text-gray-600">
-                                {getDaysAgo(job.postedDate)}
-                              </div>
-                              <Link
-                                to={`/jobs/${job.jobId}`}
-                                className="px-4 py-2 inline-flex items-center justify-center border-2 border-blue-600 rounded-lg text-sm sm:text-base font-semibold hover:bg-blue-600 hover:text-white transition-colors whitespace-nowrap no-underline shadow-sm hover:shadow-md bg-white text-blue-600"
-                                aria-label={`View details for ${job.title}`}
-                              >
-                                See more
-                              </Link>
+                            {/* See More button - Middle */}
+                            <button
+                              onClick={() => navigate(`/jobs/${job.jobId}`)}
+                              className="w-full border-2 border-blue-600 text-blue-600 px-4 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium mb-2"
+                            >
+                              See more
+                            </button>
+
+                            {/* Posted Date - Bottom */}
+                            <div className="w-full px-4 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg text-center">
+                              {getDaysAgo(job.postedDate)}
                             </div>
                           </div>
                         </div>
