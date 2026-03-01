@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
+import SmartSearchInput from '../../components/SmartSearchInput';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
@@ -405,13 +406,13 @@ const FreelancerPayments = () => {
           {/* Search + Sort + Columns */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
-              <div className="flex-1 relative">
-                <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                <input
-                  type="text"
-                  placeholder="Search by job title, employer, or company..."
+              <div className="flex-1">
+                <SmartSearchInput
                   value={activeSearchTerm}
-                  onChange={(e) => setActiveSearchTerm(e.target.value)}
+                  onChange={setActiveSearchTerm}
+                  dataSource={payments.filter(p => p.status === 'working')}
+                  getSearchValue={(item) => item.title || item.jobTitle || ''}
+                  placeholder="Search by job title, employer, or company..."
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -527,13 +528,13 @@ const FreelancerPayments = () => {
           {/* Search + Sort + Filter + Columns */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
-              <div className="flex-1 relative">
-                <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                <input
-                  type="text"
-                  placeholder="Search by job title, employer, or company..."
+              <div className="flex-1">
+                <SmartSearchInput
                   value={pastSearchTerm}
-                  onChange={(e) => setPastSearchTerm(e.target.value)}
+                  onChange={setPastSearchTerm}
+                  dataSource={payments.filter(p => p.status === 'finished' || p.status === 'left')}
+                  getSearchValue={(item) => item.title || item.jobTitle || ''}
+                  placeholder="Search by job title, employer, or company..."
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -607,7 +608,7 @@ const FreelancerPayments = () => {
                           <div className="text-sm font-semibold text-gray-900 mb-1">{payment.jobTitle}</div>
                           <div className="flex items-center text-xs text-gray-500">
                             <svg className="w-3.5 h-3.5 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            {payment.milestonesCount} milestones completed
+                            {payment.completedMilestones}/{payment.milestonesCount} milestones received
                           </div>
                         </td>
                       )}

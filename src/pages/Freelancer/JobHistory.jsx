@@ -5,6 +5,7 @@ import DashboardPage from '../../components/DashboardPage';
 import FeedbackForm from '../../components/FeedbackForm';
 import JobDetailsModal from '../../components/freelancer/JobDetailsModal';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
+import SmartSearchInput from '../../components/SmartSearchInput';
 import { loadJobHistory, selectJobHistory, selectJobsLoading, selectJobsError } from '../../redux/slices/jobsSlice';
 import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../redux/slices/feedbackSlice';
 import { useChatContext } from '../../context/ChatContext';
@@ -206,13 +207,13 @@ export default function FreelancerJobHistory() {
       {/* Search + Sort + Filter + Columns */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
-          <div className="flex-1 relative">
-            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <input
-              type="text"
-              placeholder="Search by job title, company, or skills..."
+          <div className="flex-1">
+            <SmartSearchInput
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={setSearchTerm}
+              dataSource={jobs || []}
+              getSearchValue={(item) => item.title || ''}
+              placeholder="Search by job title, company, or skills..."
               className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>

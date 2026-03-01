@@ -4,6 +4,7 @@ import axios from 'axios';
 import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from '../../../components/freelancer/JobDetailsModal';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
+import SmartSearchInput from '../../../components/SmartSearchInput';
 import { useChatContext } from '../../../context/ChatContext';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
@@ -291,13 +292,13 @@ const FreelancerActiveJobs = () => {
           {/* Search + Sort + Columns */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
-              <div className="flex-1 relative">
-                <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                <input
-                  type="text"
-                  placeholder="Search by job title, company, or skills..."
+              <div className="flex-1">
+                <SmartSearchInput
                   value={appSearchTerm}
-                  onChange={(e) => setAppSearchTerm(e.target.value)}
+                  onChange={setAppSearchTerm}
+                  dataSource={applications || []}
+                  getSearchValue={(item) => item.jobTitle || item.title || ''}
+                  placeholder="Search by job title, company, or skills..."
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -411,7 +412,7 @@ const FreelancerActiveJobs = () => {
                         {appCols.visible.has('actions') && (
                           <td className="px-5 py-4 text-center">
                             <button 
-                              onClick={() => navigate(`/freelancer/job/${app.jobId}`)} 
+                              onClick={() => navigate(`/jobs/${app.jobId}`)} 
                               className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
@@ -487,13 +488,13 @@ const FreelancerActiveJobs = () => {
       {/* Search + Sort + Columns */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
-          <div className="flex-1 relative">
-            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <input
-              type="text"
-              placeholder="Search by job title, company, or skills..."
+          <div className="flex-1">
+            <SmartSearchInput
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={setSearchTerm}
+              dataSource={jobs || []}
+              getSearchValue={(item) => item.title || ''}
+              placeholder="Search by job title, company, or skills..."
               className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
