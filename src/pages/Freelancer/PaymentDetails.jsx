@@ -300,7 +300,7 @@ const PaymentDetails = () => {
                     <td className="px-6 py-5 text-center">
                       {milestone.status === 'paid' ? (
                         <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-700">
-                          Paid
+                          Received
                         </span>
                       ) : milestone.requested ? (
                         <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">
