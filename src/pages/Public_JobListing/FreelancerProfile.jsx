@@ -3,7 +3,6 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useDispatch, useSelector } from 'react-redux';
 import { loadFeedbacksForUser, selectFeedbacksForUser, selectFeedbackLoading } from '../../redux/slices/feedbackSlice';
-import Footer from '../../components/Home/Footer';
 
 const FreelancerProfile = () => {
   const { freelancerId } = useParams();
@@ -102,20 +101,27 @@ const FreelancerProfile = () => {
               </Link>
             </div>
             <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate(-1)}
+                className="px-5 py-2.5 text-blue-600 font-medium hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back
+              </button>
               {user ? (
                 <Link
                   to={user.role === 'Moderator' ? '/moderator/profile' : user.role === 'Employer' ? '/employer/profile' : '/freelancer/profile'}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white rounded-lg font-medium no-underline transition-all hover:shadow-lg hover:-translate-y-0.5"
+                  className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                 >
-                  <i className="fas fa-tachometer-alt"></i>
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                  </svg>
                   Dashboard
                 </Link>
               ) : (
-                <Link 
-                  to="/login" 
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white rounded-lg font-medium no-underline transition-all hover:shadow-lg hover:-translate-y-0.5"
-                >
-                  <i className="fas fa-sign-in-alt"></i>
+                <Link to="/login" className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
                   Sign In
                 </Link>
               )}
@@ -126,17 +132,6 @@ const FreelancerProfile = () => {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 lg:px-8 py-8">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="mb-6 text-gray-600 font-medium hover:text-blue-600 transition-colors flex items-center gap-2"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back
-        </button>
-
         {/* Profile Header Card */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 pt-8 pb-24">
@@ -488,8 +483,6 @@ const FreelancerProfile = () => {
           )}
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 };
