@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
+import SmartSearchInput from '../../components/SmartSearchInput';
 
 // Delete Confirmation Modal Component
 const DeleteModal = ({ isOpen, onClose, onConfirm, blogTitle, isDeleting }) => {
@@ -86,7 +87,6 @@ const ModeratorBlogs = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchMode, setSearchMode] = useState('title');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [featuredFilter, setFeaturedFilter] = useState('all');
   const [authorFilter, setAuthorFilter] = useState('all');
@@ -154,7 +154,6 @@ const ModeratorBlogs = () => {
   const clearAllFilters = () => {
     setSearchTerm('');
     setSearchMode('title');
-    setStatusFilter('all');
     setCategoryFilter('all');
     setFeaturedFilter('all');
     setAuthorFilter('all');
@@ -163,7 +162,6 @@ const ModeratorBlogs = () => {
 
   const hasActiveFilters =
     searchTerm.trim() !== '' ||
-    statusFilter !== 'all' ||
     categoryFilter !== 'all' ||
     featuredFilter !== 'all' ||
     authorFilter !== 'all' ||
@@ -179,10 +177,11 @@ const ModeratorBlogs = () => {
           matchesSearch = blog.title?.toLowerCase().includes(query) || blog.tagline?.toLowerCase().includes(query);
         } else if (searchMode === 'author') {
           matchesSearch = blog.author?.toLowerCase().includes(query);
+        } else if (searchMode === 'category') {
+          matchesSearch = blog.category?.toLowerCase().includes(query);
         }
       }
 
-      const matchesStatus = statusFilter === 'all' || blog.status === statusFilter;
       const matchesCategory = categoryFilter === 'all' || blog.category === categoryFilter;
       const matchesAuthor = authorFilter === 'all' || blog.author === authorFilter;
       const matchesFeatured =
@@ -190,7 +189,7 @@ const ModeratorBlogs = () => {
         (featuredFilter === 'featured' && blog.featured) ||
         (featuredFilter === 'not-featured' && !blog.featured);
 
-      return matchesSearch && matchesStatus && matchesCategory && matchesAuthor && matchesFeatured;
+      return matchesSearch && matchesCategory && matchesAuthor && matchesFeatured;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -268,27 +267,14 @@ const ModeratorBlogs = () => {
 
         {/* Filters and Search */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All</option>
-                <option value="published">Published</option>
-                <option value="draft">Draft</option>
-                <option value="archived">Archived</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
+          {/* Top Row: Filters */}
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-1 min-w-[150px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All</option>
                 {categories.map((category) => (
@@ -297,12 +283,12 @@ const ModeratorBlogs = () => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Featured</label>
+            <div className="flex-1 min-w-[150px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Featured</label>
               <select
                 value={featuredFilter}
                 onChange={(e) => setFeaturedFilter(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All</option>
                 <option value="featured">Featured</option>
@@ -310,12 +296,12 @@ const ModeratorBlogs = () => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Author</label>
+            <div className="flex-1 min-w-[150px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Author</label>
               <select
                 value={authorFilter}
                 onChange={(e) => setAuthorFilter(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All</option>
                 {authors.map((author) => (
@@ -324,76 +310,86 @@ const ModeratorBlogs = () => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Sort By</label>
+            <div className="flex-1 min-w-[150px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="newest">Newest</option>
                 <option value="oldest">Oldest</option>
                 <option value="views-desc">Most Viewed</option>
                 <option value="likes-desc">Most Liked</option>
-                <option value="readtime-asc">Read Time: Low to High</option>
-                <option value="readtime-desc">Read Time: High to Low</option>
               </select>
             </div>
-
-            {hasActiveFilters && (
-              <div>
-                <label className="block text-xs font-medium text-transparent mb-1">.</label>
-                <button
-                  onClick={clearAllFilters}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
-                >
-                  Clear Filters
-                </button>
-              </div>
-            )}
           </div>
 
+          {/* Bottom Row: Search */}
           <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-gray-700">Search by:</span>
-              <div className="inline-flex rounded-md shadow-sm" role="group">
+            <div className="flex items-center gap-2 shrink-0">
+              <label className="text-xs font-medium text-gray-500">Search by:</label>
+              <div className="flex bg-gray-100 rounded-md p-1">
                 <button
-                  type="button"
-                  onClick={() => setSearchMode('title')}
-                  className={`px-4 py-2 text-sm font-medium rounded-l-lg border ${
-                    searchMode === 'title'
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  onClick={() => { setSearchMode('title'); setSearchTerm(''); }}
+                  className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                    searchMode === 'title' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   Title
                 </button>
                 <button
-                  type="button"
-                  onClick={() => setSearchMode('author')}
-                  className={`px-4 py-2 text-sm font-medium rounded-r-lg border ${
-                    searchMode === 'author'
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  onClick={() => { setSearchMode('author'); setSearchTerm(''); }}
+                  className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                    searchMode === 'author' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   Author
                 </button>
+                <button
+                  onClick={() => { setSearchMode('category'); setSearchTerm(''); }}
+                  className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                    searchMode === 'category' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Category
+                </button>
               </div>
             </div>
-            <div className="flex-1 min-w-[300px]">
-              <input
-                type="text"
+
+            <div className="flex-1 relative">
+              <SmartSearchInput
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={setSearchTerm}
+                dataSource={blogs}
+                getSearchValue={(blog) => {
+                  if (searchMode === 'title') return blog.title || '';
+                  if (searchMode === 'author') return blog.author || '';
+                  if (searchMode === 'category') return blog.category || '';
+                  return '';
+                }}
                 placeholder={
                   searchMode === 'title' 
-                    ? 'Search by title...' 
-                    : 'Search by author...'
+                    ? 'Search by title...'
+                    : searchMode === 'author'
+                    ? 'Search by author...'
+                    : 'Search by category...'
                 }
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
+
+            {hasActiveFilters && (
+              <button
+                onClick={clearAllFilters}
+                className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear Filters
+              </button>
+            )}
           </div>
         </div>
 

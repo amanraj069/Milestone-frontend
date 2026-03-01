@@ -435,13 +435,10 @@ const PublicJobListing = () => {
 
                           {/* Right Side - Actions */}
                           <div className="flex flex-col items-end justify-between min-w-[140px]">
-                            {/* Application Count - Top - Clickable for all users */}
-                            <button 
-                              onClick={() => navigate(`/jobs/${job.jobId}/applicants`)}
-                              className="w-full px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all mb-2 cursor-pointer"
-                            >
+                            {/* Application Count - Top */}
+                            <div className="w-full px-4 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg text-center mb-2">
                               {job.applicationCount} applicants
-                            </button>
+                            </div>
 
                             {/* See More button - Middle */}
                             <button
