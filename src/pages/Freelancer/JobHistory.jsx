@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import DashboardPage from '../../components/DashboardPage';
 import FeedbackForm from '../../components/FeedbackForm';
 import JobDetailsModal from '../../components/freelancer/JobDetailsModal';
-import ColumnToggle, { useColumnToggle } from '../../components/ColumnToggle';
+import ColumnToggle, { useColumnToggle } from '../../components/SmartColumnToggle';
 import { loadJobHistory, selectJobHistory, selectJobsLoading, selectJobsError } from '../../redux/slices/jobsSlice';
 import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../redux/slices/feedbackSlice';
 import { useChatContext } from '../../context/ChatContext';

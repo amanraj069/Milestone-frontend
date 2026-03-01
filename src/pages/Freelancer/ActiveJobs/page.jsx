@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from '../../../components/freelancer/JobDetailsModal';
-import ColumnToggle, { useColumnToggle } from '../../../components/ColumnToggle';
+import ColumnToggle, { useColumnToggle } from '../../../components/SmartColumnToggle';
 import { useChatContext } from '../../../context/ChatContext';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';

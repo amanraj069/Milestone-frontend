@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
-import ColumnToggle, { useColumnToggle } from '../../components/ColumnToggle';
+import ColumnToggle, { useColumnToggle } from '../../components/SmartColumnToggle';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
