@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 
@@ -86,6 +86,12 @@ const ModeratorBlogs = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
 
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [featuredFilter, setFeaturedFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date-desc');
+
 
   useEffect(() => {
     // Check for success message from navigation state
@@ -141,19 +147,79 @@ const ModeratorBlogs = () => {
     }
   };
 
+  // Get unique categories
+  const uniqueCategories = useMemo(() => {
+    const categories = [...new Set(blogs.map(b => b.category))];
+    return categories.sort();
+  }, [blogs]);
+
+  // Filter and sort blogs
+  const filteredBlogs = useMemo(() => {
+    let list = [...blogs];
+
+    // Search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      list = list.filter(b =>
+        b.title?.toLowerCase().includes(term) ||
+        b.category?.toLowerCase().includes(term) ||
+        b.excerpt?.toLowerCase().includes(term)
+      );
+    }
+
+    // Category filter
+    if (categoryFilter !== 'all') {
+      list = list.filter(b => b.category === categoryFilter);
+    }
+
+    // Featured filter
+    if (featuredFilter !== 'all') {
+      if (featuredFilter === 'featured') {
+        list = list.filter(b => b.featured);
+      } else if (featuredFilter === 'non-featured') {
+        list = list.filter(b => !b.featured);
+      }
+    }
+
+    // Sort
+    switch (sortBy) {
+      case 'date-desc':
+        list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+      case 'date-asc':
+        list.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        break;
+      case 'title-asc':
+        list.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        break;
+      case 'title-desc':
+        list.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+        break;
+      default:
+        break;
+    }
+
+    return list;
+  }, [blogs, searchTerm, categoryFilter, featuredFilter, sortBy]);
+
   // Stats calculations
   const totalBlogs = blogs.length;
   const publishedBlogs = blogs.filter(b => b.status === 'published').length;
   const featuredBlogs = blogs.filter(b => b.featured).length;
 
+  // Active filters count
+  const activeFilters = (categoryFilter !== 'all' ? 1 : 0) + 
+                        (featuredFilter !== 'all' ? 1 : 0) + 
+                        (searchTerm ? 1 : 0);
+
   const headerAction = (
     <button
-      onClick={() => navigate('/admin/blogs/create')}
+      onClick={() => navigate('/moderator/blogs/create')}
       className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
     >
       Create New Blog
     </button>
-  );
+  );  
 
   return (
     <DashboardPage title="Blogs" headerAction={headerAction}>
@@ -184,6 +250,79 @@ const ModeratorBlogs = () => {
           </div>
         </div>
 
+        {/* Filters */}
+        <div className="bg-white rounded-xl shadow-md p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Input */}
+            <div className="flex-1 min-w-[200px] relative">
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+              <input
+                type="text"
+                placeholder="Search by title, category..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+
+            {/* Category Filter */}
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white max-w-[200px]"
+            >
+              <option value="all">All Categories</option>
+              {uniqueCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+
+            {/* Featured Filter */}
+            <select
+              value={featuredFilter}
+              onChange={(e) => setFeaturedFilter(e.target.value)}
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <option value="all">All Blogs</option>
+              <option value="featured">Featured Only</option>
+              <option value="non-featured">Non-Featured</option>
+            </select>
+
+            {/* Sort By */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <option value="date-desc">Newest First</option>
+              <option value="date-asc">Oldest First</option>
+              <option value="title-asc">Title A-Z</option>
+              <option value="title-desc">Title Z-A</option>
+            </select>
+
+            {/* Clear Filters */}
+            {activeFilters > 0 && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setCategoryFilter('all');
+                  setFeaturedFilter('all');
+                }}
+                className="px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+              >
+                Clear ({activeFilters})
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Results Count */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500">
+            Showing <span className="font-semibold text-gray-700">{filteredBlogs.length}</span> of {blogs.length} blogs
+          </p>
+        </div>
+
         {/* Blog List */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -197,23 +336,32 @@ const ModeratorBlogs = () => {
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600"></div>
                 <p className="text-gray-500 mt-3">Loading blogs...</p>
               </div>
-            ) : blogs.length === 0 ? (
+            ) : filteredBlogs.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-lg font-medium text-gray-700">No blogs found</p>
-                <p className="text-gray-500 mt-1 mb-4">Create your first blog post to get started</p>
-                <button
-                  onClick={() => navigate('/admin/blogs/create')}
-                  className="inline-block px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                >
-                  Create Your First Blog
-                </button>
+                <p className="text-lg font-medium text-gray-700">
+                  {blogs.length === 0 ? 'No blogs found' : 'No blogs match your filters'}
+                </p>
+                <p className="text-gray-500 mt-1 mb-4">
+                  {blogs.length === 0 
+                    ? 'Create your first blog post to get started'
+                    : 'Try adjusting your search or filter criteria'
+                  }
+                </p>
+                {blogs.length === 0 && (
+                  <button
+                    onClick={() => navigate('/moderator/blogs/create')}
+                    className="inline-block px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    Create Your First Blog
+                  </button>
+                )}
               </div>
             ) : (
               <div className="space-y-3">
-                {blogs.map((blog) => (
+                {filteredBlogs.map((blog) => (
                   <div key={blog.blogId} className="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
                     <div className="p-4 flex justify-between items-center">
-                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/blogs/${blog.blogId}`)}>
                         <img
                           src={blog.imageUrl}
                           alt={blog.title}
@@ -221,7 +369,7 @@ const ModeratorBlogs = () => {
                           onError={(e) => { e.target.src = '/assets/blog-default.jpg'; }}
                         />
                         <div className="min-w-0">
-                          <h3 className="font-medium text-gray-900 truncate">{blog.title}</h3>
+                          <h3 className="font-medium text-gray-900 truncate hover:text-blue-600 transition-colors">{blog.title}</h3>
                           <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                             <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
                               {blog.category}
@@ -246,7 +394,13 @@ const ModeratorBlogs = () => {
                       </div>
                       <div className="flex gap-2 flex-shrink-0 ml-4">
                         <button
-                          onClick={() => navigate(`/admin/blogs/edit/${blog.blogId}`)}
+                          onClick={() => navigate(`/blogs/${blog.blogId}`)}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition-colors"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => navigate(`/moderator/blogs/edit/${blog.slug}`)}
                           className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-xs font-medium hover:bg-gray-800 transition-colors"
                         >
                           Edit
