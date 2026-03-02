@@ -8,7 +8,7 @@ const EmployerJobListings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchFeature, setSearchFeature] = useState('all');
+  const [searchFeature, setSearchFeature] = useState('jobRole');
   const [activeFilter, setActiveFilter] = useState('All Jobs');
   const [sortBy, setSortBy] = useState('newest-posted');
   const [deleteModal, setDeleteModal] = useState({ show: false, jobId: null });

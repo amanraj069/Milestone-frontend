@@ -74,26 +74,53 @@ const ModeratorComplaints = () => {
       <p className="text-gray-500 -mt-6 mb-6">View and manage all registered complaints</p>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
-          <p className="text-xs text-gray-500 mt-1">Total Complaints</p>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-exclamation-circle text-blue-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Total Complaints</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-2xl font-semibold text-amber-600">{stats.pending}</p>
-          <p className="text-xs text-gray-500 mt-1">Pending</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-hourglass-half text-yellow-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Pending</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.pending}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-2xl font-semibold text-blue-600">{stats.underReview}</p>
-          <p className="text-xs text-gray-500 mt-1">Under Review</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-search text-purple-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Under Review</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.underReview}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-2xl font-semibold text-green-600">{stats.resolved}</p>
-          <p className="text-xs text-gray-500 mt-1">Resolved</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-2xl font-semibold text-red-600">{stats.rejected}</p>
-          <p className="text-xs text-gray-500 mt-1">Rejected</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-check-circle text-emerald-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Resolved</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.resolved}</p>
+            </div>
+          </div>
         </div>
       </div>
 

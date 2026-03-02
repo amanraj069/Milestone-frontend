@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from '../../../components/employer/JobDetailsModal';
-import SmartSearchInput from '../../../components/SmartSearchInput';
 import SmartFilter from '../../../components/SmartFilter';
 import { useChatContext } from '../../../context/ChatContext';
 import axios from 'axios';
@@ -22,8 +21,8 @@ const EmployerCurrentJobs = () => {
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchFeature, setSearchFeature] = useState('name');
   const [sortBy, setSortBy] = useState('rating-high-low');
+  const [nameFilters, setNameFilters] = useState([]);
   const [jobRoleFilters, setJobRoleFilters] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedFreelancer, setSelectedFreelancer] = useState(null);
@@ -37,26 +36,29 @@ const EmployerCurrentJobs = () => {
     const searchLower = searchTerm.trim().toLowerCase();
 
     const filtered = freelancers.filter((freelancer) => {
-      const name = String(freelancer.name || '').toLowerCase();
-      const jobRole = String(freelancer.jobTitle || '').toLowerCase();
+      const name = String(freelancer.name || '');
+      const jobRole = String(freelancer.jobTitle || '');
 
-      if (!searchLower && (!jobRoleFilters || jobRoleFilters.length === 0)) return true;
+      if (!searchLower && (!jobRoleFilters || jobRoleFilters.length === 0) && (!nameFilters || nameFilters.length === 0)) return true;
 
-      if (searchFeature === 'name' && searchLower) {
-        if (!name.includes(searchLower)) return false;
+      if (searchLower) {
+        try {
+          const regex = new RegExp(searchTerm, 'i');
+          if (!regex.test(name) && !regex.test(jobRole)) return false;
+        } catch (e) {
+          const nameLower = name.toLowerCase();
+          const jobRoleLower = jobRole.toLowerCase();
+          if (!nameLower.includes(searchLower) && !jobRoleLower.includes(searchLower)) return false;
+        }
       }
-      if (searchFeature === 'jobRole' && searchLower) {
-        if (!jobRole.includes(searchLower)) return false;
-      }
 
-      if (searchLower && searchFeature === 'both') {
-        if (!(name.includes(searchLower) || jobRole.includes(searchLower))) return false;
+      if (nameFilters && nameFilters.length > 0) {
+        if (!nameFilters.includes(name)) return false;
       }
 
       // apply job role column filters if any
       if (jobRoleFilters && jobRoleFilters.length > 0) {
-        const role = String(freelancer.jobTitle || '');
-        if (!jobRoleFilters.includes(role)) return false;
+        if (!jobRoleFilters.includes(jobRole)) return false;
       }
 
       return true;
@@ -82,7 +84,7 @@ const EmployerCurrentJobs = () => {
     });
 
     setFilteredFreelancers(sorted);
-  }, [searchTerm, freelancers, searchFeature, sortBy]);
+  }, [searchTerm, freelancers, sortBy, jobRoleFilters, nameFilters]);
 
   const fetchCurrentFreelancers = async () => {
     try {
@@ -219,18 +221,20 @@ const EmployerCurrentJobs = () => {
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
             <div className="flex-1 min-w-0">
-              <SmartSearchInput
-                value={searchTerm}
-                onChange={setSearchTerm}
-                selectedFeature={searchFeature}
-                onFeatureChange={setSearchFeature}
-                dataSource={freelancers}
-                searchFields={[
-                  { key: 'name', label: 'Name', getValue: (item) => item.name || '' },
-                  { key: 'jobRole', label: 'Job Role', getValue: (item) => item.jobTitle || '' },
-                ]}
-                placeholder="Find current working freelancers..."
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by freelancer name or job role..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
             </div>
 
             <select
@@ -269,7 +273,16 @@ const EmployerCurrentJobs = () => {
                 <thead>
                   <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Freelancer
+                      <div className="flex items-center gap-2">
+                        <span>Freelancer</span>
+                        <SmartFilter
+                          label="Name"
+                          data={freelancers}
+                          valueExtractor={(it) => it.name || ''}
+                          selectedValues={nameFilters}
+                          onFilterChange={setNameFilters}
+                        />
+                      </div>
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                       <div className="flex items-center gap-2">

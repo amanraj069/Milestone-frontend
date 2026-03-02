@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
-import SmartSearchInput from '../../../components/SmartSearchInput';
 import SmartFilter from '../../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
 
@@ -12,7 +11,6 @@ const EmployerTransactions = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchFeature, setSearchFeature] = useState('name');
   const [sortBy, setSortBy] = useState('name-a-z');
   const [nameFilters, setNameFilters] = useState([]);
   const [roleFilters, setRoleFilters] = useState([]);
@@ -101,13 +99,17 @@ const EmployerTransactions = () => {
       const searchLower = searchTerm.trim().toLowerCase();
       if (!searchLower) return true;
 
-      const name = String(transaction.freelancerName || '').toLowerCase();
-      const role = String(transaction.jobTitle || '').toLowerCase();
+      const name = String(transaction.freelancerName || '');
+      const role = String(transaction.jobTitle || '');
 
-      if (searchFeature === 'name') return name.includes(searchLower);
-      if (searchFeature === 'role') return role.includes(searchLower);
-
-      return name.includes(searchLower) || role.includes(searchLower);
+      try {
+        const regex = new RegExp(searchTerm, 'i');
+        return regex.test(name) || regex.test(role);
+      } catch (e) {
+        const nameLower = name.toLowerCase();
+        const roleLower = role.toLowerCase();
+        return nameLower.includes(searchLower) || roleLower.includes(searchLower);
+      }
     })
     .filter((transaction) => {
       if (nameFilters.length > 0 && !nameFilters.includes(transaction.freelancerName)) return false;
@@ -249,18 +251,20 @@ const EmployerTransactions = () => {
         <div className="bg-white rounded-2xl shadow-lg p-5 mb-6 border border-gray-100">
           <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
             <div className="flex-1 min-w-0">
-              <SmartSearchInput
-                value={searchTerm}
-                onChange={setSearchTerm}
-                selectedFeature={searchFeature}
-                onFeatureChange={setSearchFeature}
-                dataSource={transactions}
-                searchFields={[
-                  { key: 'name', label: 'Name', getValue: (item) => item.freelancerName || '' },
-                  { key: 'role', label: 'Role', getValue: (item) => item.jobTitle || '' },
-                ]}
-                placeholder="Search transactions..."
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by freelancer name or job role..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
             </div>
 
             <div className="flex items-center gap-3">

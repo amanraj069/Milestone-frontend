@@ -22,6 +22,8 @@ const EmployerWorkHistory = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchFeature, setSearchFeature] = useState('name');
+  const [sortBy, setSortBy] = useState('recent-left');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [feedbackModal, setFeedbackModal] = useState(null); // { jobId, toUserId, toRole, counterpartyName }
   
   const navigate = useNavigate();
@@ -35,29 +37,57 @@ const EmployerWorkHistory = () => {
   }, []);
 
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredFreelancers(freelancers);
-    } else {
-      const searchLower = searchTerm.toLowerCase();
-      const filtered = freelancers.filter((f) => {
-        if (searchFeature === 'name') {
-          return f.name?.toLowerCase().includes(searchLower);
-        }
-        if (searchFeature === 'jobRole') {
-          return f.jobTitle?.toLowerCase().includes(searchLower);
-        }
-        if (searchFeature === 'location') {
-          return f.location?.toLowerCase().includes(searchLower);
-        }
-        return (
-          f.name?.toLowerCase().includes(searchLower) ||
-          f.jobTitle?.toLowerCase().includes(searchLower) ||
-          f.location?.toLowerCase().includes(searchLower)
-        );
+    // Start from base list
+    let result = Array.isArray(freelancers) ? [...freelancers] : [];
+
+    // Apply search if present
+    const searchLower = searchTerm.trim().toLowerCase();
+    if (searchLower) {
+      result = result.filter((f) => {
+        const name = String(f.name || '').toLowerCase();
+        const jobRole = String(f.jobTitle || '').toLowerCase();
+        const location = String(f.location || '').toLowerCase();
+
+        if (searchFeature === 'name') return name.includes(searchLower);
+        if (searchFeature === 'jobRole') return jobRole.includes(searchLower);
+        if (searchFeature === 'location') return location.includes(searchLower);
+
+        return name.includes(searchLower) || jobRole.includes(searchLower) || location.includes(searchLower);
       });
-      setFilteredFreelancers(filtered);
     }
-  }, [searchTerm, freelancers, searchFeature]);
+
+    // Apply status filter
+    if (statusFilter && statusFilter !== 'all') {
+      result = result.filter((f) => String(f.status || '').toLowerCase() === String(statusFilter).toLowerCase());
+    }
+
+    // Apply sorting
+    switch (sortBy) {
+      case 'recent-left':
+        // jobs that left/finished most recently
+        result = result.sort((a, b) => new Date(b.completedDate || b.endDate || 0) - new Date(a.completedDate || a.endDate || 0));
+        break;
+      case 'oldest-left':
+        result = result.sort((a, b) => new Date(a.completedDate || a.endDate || 0) - new Date(b.completedDate || b.endDate || 0));
+        break;
+      case 'rating-high-low':
+        result = result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'rating-low-high':
+        result = result.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+        break;
+      case 'name-a-z':
+        result = result.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+        break;
+      case 'name-z-a':
+        result = result.sort((a, b) => String(b.name || '').localeCompare(String(a.name || '')));
+        break;
+      default:
+        break;
+    }
+
+    setFilteredFreelancers(result);
+  }, [searchTerm, freelancers, searchFeature, sortBy, statusFilter]);
 
   // Check feedback eligibility for all completed jobs
   useEffect(() => {
@@ -185,22 +215,53 @@ const EmployerWorkHistory = () => {
           </div>
         </div>
 
-        {/* Search Bar */}
+        {/* Search Bar + Sort + Status Filter */}
         <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="max-w-2xl">
-            <SmartSearchInput
-              value={searchTerm}
-              onChange={setSearchTerm}
-              selectedFeature={searchFeature}
-              onFeatureChange={setSearchFeature}
-              dataSource={freelancers}
-              searchFields={[
-                { key: 'name', label: 'Name', getValue: (item) => item.name || '' },
-                { key: 'jobRole', label: 'Job Role', getValue: (item) => item.jobTitle || '' },
-                { key: 'location', label: 'Location', getValue: (item) => item.location || '' },
-              ]}
-              placeholder="Search work history..."
-            />
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <SmartSearchInput
+                value={searchTerm}
+                onChange={setSearchTerm}
+                selectedFeature={searchFeature}
+                onFeatureChange={setSearchFeature}
+                dataSource={freelancers}
+                searchFields={[
+                  { key: 'name', label: 'Name', getValue: (item) => item.name || '' },
+                  { key: 'jobRole', label: 'Job Role', getValue: (item) => item.jobTitle || '' },
+                  { key: 'location', label: 'Location', getValue: (item) => item.location || '' },
+                ]}
+                placeholder="Search work history..."
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="text-xs text-gray-500">Sort by</div>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="recent-left">Recent Left</option>
+                <option value="oldest-left">Oldest Left</option>
+                <option value="rating-high-low">Rating High - Low</option>
+                <option value="rating-low-high">Rating Low - High</option>
+                <option value="name-a-z">Name A - Z</option>
+                <option value="name-z-a">Name Z - A</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="text-xs text-gray-500">Filter</div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All</option>
+                <option value="left">Left Job</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
           </div>
         </div>
 
