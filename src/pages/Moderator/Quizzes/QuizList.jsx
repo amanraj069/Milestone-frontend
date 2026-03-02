@@ -139,7 +139,7 @@ export default function QuizList() {
               <p className="text-sm text-gray-500 mt-1">Manage and view quiz performance</p>
             </div>
             <button 
-              onClick={() => navigate('/admin/quizzes/new')}
+              onClick={() => navigate('/moderator/quizzes/new')}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
             >
               + Create New Quiz
@@ -176,7 +176,7 @@ export default function QuizList() {
                       </svg>
                     </button>
                     <button 
-                      onClick={() => navigate(`/admin/quizzes/${q._id}/edit`)}
+                      onClick={() => navigate(`/moderator/quizzes/${q._id}/edit`)}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
                     >
                       Edit

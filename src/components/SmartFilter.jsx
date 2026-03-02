@@ -44,10 +44,12 @@ const SmartFilter = ({
     const rect = buttonRef.current.getBoundingClientRect();
     setDropdownStyle({
       position: 'fixed',
+      // always place dropdown below the element (do not flip upwards)
       top: `${rect.bottom + 6}px`,
       left: `${rect.left}px`,
       minWidth: `${Math.max(160, rect.width)}px`,
       zIndex: 99999,
+      transformOrigin: 'top left',
     });
   }, [isOpen]);
 
@@ -142,13 +144,6 @@ const SmartFilter = ({
       <button
         ref={buttonRef}
         onClick={() => setIsOpen((s) => !s)}
-        onMouseEnter={() => {
-          clearTimeout(hoverTimeout.current);
-          setIsOpen(true);
-        }}
-        onMouseLeave={() => {
-          hoverTimeout.current = setTimeout(() => setIsOpen(false), 150);
-        }}
         className="p-0.5 text-gray-600 hover:text-gray-800 transition-colors relative flex items-center justify-center"
         aria-label={`Filter ${label}`}
         title={`Filter ${label}`}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
+import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 import { useChatContext } from '../../context/ChatContext';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
@@ -89,29 +90,20 @@ const ModeratorEmployers = () => {
     { key: 'name', label: 'Name' },
     { key: 'company', label: 'Company' },
     { key: 'email', label: 'Email' },
-    { key: 'phone', label: 'Phone' },
+    { key: 'phone', label: 'Phone', defaultVisible: false },
     { key: 'rating', label: 'Rating' },
     { key: 'subscribed', label: 'Subscribed' },
     { key: 'subDuration', label: 'Sub. Duration' },
     { key: 'jobListings', label: 'Job Listings' },
     { key: 'hired', label: 'Hired' },
-    { key: 'joined', label: 'Joined' },
+    { key: 'joined', label: 'Joined', defaultVisible: false },
     { key: 'actions', label: 'Actions' },
   ];
-  const [visibleColumns, setVisibleColumns] = useState(
-    allColumns.filter(col => col.key !== 'joined' && col.key !== 'phone').map(col => col.key)
+  const { visible: visibleColumns, setVisible: setVisibleColumns } = useSmartColumnToggle(
+    allColumns,
+    'moderator-employers-visible-columns'
   );
-  const toggleColumn = (columnKey) => {
-    setVisibleColumns(prev =>
-      prev.includes(columnKey)
-        ? prev.filter(k => k !== columnKey)
-        : [...prev, columnKey]
-    );
-  };
-  const showAllColumns = () => {
-    setVisibleColumns(allColumns.map(col => col.key));
-  };
-  const isColumnVisible = (columnKey) => visibleColumns.includes(columnKey);
+  const isColumnVisible = (columnKey) => visibleColumns.has(columnKey);
 
   useEffect(() => {
     fetchEmployers();
@@ -347,41 +339,18 @@ const ModeratorEmployers = () => {
             </div>
           )}
 
-          {/* Columns Dropdown */}
-          <div className="group relative">
+          {/* Columns Toggle */}
+          <div>
             <label className="block text-xs font-medium text-transparent mb-1">.</label>
-            <button className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-              </svg>
-              Columns
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="hidden group-hover:block absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[180px]">
-              <div className="p-2 border-b border-gray-200">
-                <button
-                  onClick={showAllColumns}
-                  className="w-full px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                >
-                  Show All
-                </button>
-              </div>
-              <div className="p-2 max-h-64 overflow-y-auto">
-                {allColumns.map(col => (
-                  <label key={col.key} className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isColumnVisible(col.key)}
-                      onChange={() => toggleColumn(col.key)}
-                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">{col.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            <SmartColumnToggle
+              columns={allColumns}
+              visible={visibleColumns}
+              onChange={setVisibleColumns}
+              label="Columns"
+              heading="Toggle Columns"
+              triggerClassName="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
+              dropdownClassName="absolute left-0 mt-1 min-w-[180px] bg-white border border-gray-200 rounded-lg shadow-lg z-20"
+            />
           </div>
 
           <div className="ml-auto text-sm text-gray-500 whitespace-nowrap">
@@ -693,7 +662,7 @@ const ModeratorEmployers = () => {
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900">{job.title}</h4>
                           <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                            <span>Budget: ${job.budget?.toLocaleString()}</span>
+                            <span>Budget: ₹{Number(job.budget || 0).toLocaleString('en-IN')}</span>
                             <span>Type: {job.jobType}</span>
                             <span>Posted: {new Date(job.postedDate).toLocaleDateString()}</span>
                           </div>

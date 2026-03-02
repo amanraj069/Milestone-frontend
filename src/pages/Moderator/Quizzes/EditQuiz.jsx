@@ -153,7 +153,7 @@ export default function EditQuiz() {
     setSaving(false);
     if (data.success) {
       alert('Quiz updated successfully!');
-      navigate('/admin/quizzes/list');
+      navigate('/moderator/quizzes/list');
     } else {
       alert('Failed: ' + JSON.stringify(data.error));
     }
@@ -467,7 +467,7 @@ export default function EditQuiz() {
           <div className="flex gap-3 pt-4 border-t border-gray-200">
             <button 
               className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors" 
-              onClick={() => navigate('/admin/quizzes/list')}
+              onClick={() => navigate('/moderator/quizzes/list')}
             >
               Cancel
             </button>
