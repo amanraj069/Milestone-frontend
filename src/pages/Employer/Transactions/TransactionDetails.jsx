@@ -155,7 +155,12 @@ const TransactionDetails = () => {
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">{transaction.jobTitle}</h2>
+              <button
+                onClick={() => navigate(`/jobs/${transaction.jobId}`)}
+                className="text-2xl font-bold text-gray-900 mb-3 hover:text-blue-700 transition-colors text-left"
+              >
+                {transaction.jobTitle}
+              </button>
               <div className="flex items-center gap-3">
                 {transaction.freelancerPicture ? (
                   <img 
@@ -169,7 +174,12 @@ const TransactionDetails = () => {
                   </div>
                 )}
                 <div>
-                  <span className="font-medium text-gray-800">{transaction.freelancerName}</span>
+                  <button
+                    onClick={() => navigate(`/freelancer/${transaction.freelancerId}`)}
+                    className="font-medium text-gray-800 hover:text-blue-700 transition-colors"
+                  >
+                    {transaction.freelancerName}
+                  </button>
                   <span className="text-gray-400 mx-2">•</span>
                   <span className="text-gray-500 text-sm">Freelancer</span>
                   <span className="ml-3">{getStatusBadge(transaction.status)}</span>

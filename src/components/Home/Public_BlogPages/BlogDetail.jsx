@@ -8,6 +8,15 @@ const BlogDetail = () => {
   const { user, getDashboardRoute } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [blog, setBlog] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [recentBlogs, setRecentBlogs] = useState([]);
+  const [featuredBlog, setFeaturedBlog] = useState(null);
+  const [comment, setComment] = useState({
+    name: '',
+    email: '',
+    message: ''
+  });
+  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
   const handleSearch = (e) => {
     e.preventDefault();

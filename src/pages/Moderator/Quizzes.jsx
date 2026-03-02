@@ -208,26 +208,42 @@ const ModeratorQuizzes = () => {
 
   return (
     <DashboardPage title="Quizzes" headerAction={headerAction}>
-      {/* Stats Cards (match freelancer layout) */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-xl shadow-md p-6 text-center">
-          <p className="text-xs text-gray-500 mb-1">Total Quizzes</p>
-          <p className="text-2xl font-bold text-blue-600">{totalQuizzes}</p>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-question-circle text-blue-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Total Quizzes</p>
+              <p className="text-2xl font-bold text-gray-800">{totalQuizzes}</p>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-6 text-center">
-          <p className="text-xs text-gray-500 mb-1">Total Questions</p>
-          <p className="text-2xl font-bold text-blue-600">{totalQuestions}</p>
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-list-ol text-yellow-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Total Questions</p>
+              <p className="text-2xl font-bold text-gray-800">{totalQuestions}</p>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-6 text-center">
-          <p className="text-xs text-gray-500 mb-1">Avg. Passing Score</p>
-          <p className="text-2xl font-bold text-blue-600">{avgPassingScore}%</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-6 text-center">
-          <p className="text-xs text-gray-500 mb-1">Total Attempts</p>
-          <p className="text-2xl font-bold text-blue-600">{quizzes.reduce((s,q) => s + (q.totalAttempts||0),0)}</p>
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-percentage text-purple-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Avg. Passing Score</p>
+              <p className="text-2xl font-bold text-gray-800">{avgPassingScore}%</p>
+            </div>
+          </div>
         </div>
       </div>
 
