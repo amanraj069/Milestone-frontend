@@ -52,6 +52,10 @@ const SmartSearchInput = ({
   onChange,
   dataSource = [],
   getSearchValue,
+  searchFields = [],
+  selectedFeature,
+  onFeatureChange,
+  defaultFeatureKey,
   placeholder = 'Search...',
   className = '',
   maxSuggestions = 5,
@@ -59,9 +63,50 @@ const SmartSearchInput = ({
 }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [internalFeature, setInternalFeature] = useState(
+    defaultFeatureKey || searchFields[0]?.key || 'default'
+  );
+
+  const featureOptions = searchFields.length > 0
+    ? searchFields
+    : [{ key: 'default', label: 'All', getValue: getSearchValue }];
+
+  const activeFeature = selectedFeature ?? internalFeature;
+  const activeFeatureIndex = Math.max(0, featureOptions.findIndex((field) => field.key === activeFeature));
+
+  const getActiveExtractor = () => {
+    const selected = featureOptions.find((field) => field.key === activeFeature);
+    return selected?.getValue || getSearchValue;
+  };
+
+  const normalizeValues = (fieldValue) => {
+    if (fieldValue === null || fieldValue === undefined) return [];
+    if (Array.isArray(fieldValue)) {
+      return fieldValue
+        .filter((item) => item !== null && item !== undefined && String(item).trim() !== '')
+        .map((item) => String(item));
+    }
+    return String(fieldValue).trim() ? [String(fieldValue)] : [];
+  };
+
+  const handleFeatureChange = (featureKey) => {
+    if (onFeatureChange) {
+      onFeatureChange(featureKey);
+    } else {
+      setInternalFeature(featureKey);
+    }
+
+    if (!value || value.trim() === '') {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setTimeout(() => generateSuggestions(value, featureKey), 0);
+  };
 
   // Generate autocomplete suggestions based on search term
-  const generateSuggestions = (searchValue) => {
+  const generateSuggestions = (searchValue, featureKeyOverride) => {
     if (!searchValue || searchValue.trim() === '') {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -70,13 +115,15 @@ const SmartSearchInput = ({
 
     const searchLower = searchValue.toLowerCase();
     const uniqueValues = new Set();
+    const featureKey = featureKeyOverride || activeFeature;
+    const selected = featureOptions.find((field) => field.key === featureKey);
+    const extractor = selected?.getValue || getActiveExtractor();
     
     // Get unique values based on getSearchValue function
     dataSource.forEach(item => {
-      const fieldValue = getSearchValue(item);
-      if (fieldValue) {
-        uniqueValues.add(fieldValue);
-      }
+      const fieldValue = extractor ? extractor(item) : getSearchValue?.(item);
+      const normalized = normalizeValues(fieldValue);
+      normalized.forEach((entry) => uniqueValues.add(entry));
     });
 
     // Filter and rank suggestions using fuzzy matching
@@ -121,39 +168,90 @@ const SmartSearchInput = ({
     setSuggestions([]);
   };
 
+  const computedPlaceholder = (() => {
+    const sel = featureOptions.find((f) => f.key === activeFeature);
+    if (!sel) return placeholder;
+    const label = (sel.label || sel.key || '').toLowerCase();
+    if (label === 'all' || label === 'default') return placeholder;
+    return `Search for ${label}...`;
+  })();
+
   return (
     <div className="relative w-full">
-      <input
-        type="text"
-        placeholder={placeholder}
-        value={value}
-        onChange={handleSearchChange}
-        onFocus={() => {
-          if (suggestions.length > 0) {
-            setShowSuggestions(true);
-          }
-        }}
-        onBlur={() => {
-          // Delay to allow clicking on suggestions
-          setTimeout(() => setShowSuggestions(false), 200);
-        }}
-        className={className || "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"}
-      />
+      <div className="flex w-full items-center gap-2">
+        {featureOptions.length > 1 && (
+          <div
+            className="relative flex p-1 rounded-md border border-gray-200 bg-gray-50 h-9"
+          >
+            <span
+              className="absolute top-1 bottom-1 rounded-md bg-blue-600 transition-transform duration-300 ease-out"
+              style={{
+                width: `calc((100% - 0.5rem) / ${featureOptions.length})`,
+                transform: `translateX(${activeFeatureIndex * 100}%)`,
+                left: '0.25rem',
+              }}
+            />
+            {featureOptions.map((field) => {
+              const selected = activeFeature === field.key;
+              return (
+                <button
+                  key={field.key}
+                  type="button"
+                  onClick={() => handleFeatureChange(field.key)}
+                  className={`relative z-10 px-3 py-0 text-xs font-semibold rounded-md whitespace-nowrap transition-colors duration-200 ${
+                    selected ? 'text-white' : 'text-gray-600 hover:text-blue-600'
+                  }`}
+                  style={{ width: `calc(100% / ${featureOptions.length})` }}
+                >
+                  {field.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="relative flex-1 group">
+          <input
+            type="text"
+            placeholder={computedPlaceholder}
+            value={value}
+            onChange={handleSearchChange}
+            onFocus={() => {
+              if (suggestions.length > 0) {
+                setShowSuggestions(true);
+              }
+            }}
+            onBlur={() => {
+              // Delay to allow clicking on suggestions
+              setTimeout(() => setShowSuggestions(false), 200);
+            }}
+            className={
+              className ||
+              "w-full border border-gray-300 rounded-md px-3 py-1.5 h-9 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all pr-8"
+            }
+          />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+            <svg className="w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
       
       {/* Autocomplete Suggestions Dropdown */}
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto py-1">
           {suggestions.map((suggestion, index) => (
             <div
               key={index}
               onClick={() => handleSuggestionClick(suggestion)}
-              className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 border-b border-gray-100 last:border-b-0 flex items-center gap-2"
+              className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 flex items-center gap-2 transition-colors"
             >
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <span className="flex-1">{suggestion}</span>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span className="flex-1 truncate">{suggestion}</span>
+              <svg className="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>

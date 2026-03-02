@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import DashboardPage from '../../../components/DashboardPage';
 import FeedbackForm from '../../../components/FeedbackForm';
+import SmartSearchInput from '../../../components/SmartSearchInput';
 import FreelancerCard from './FreelancerCard';
 import axios from 'axios';
-import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../../redux/slices/feedbackSlice';
+import { checkCanGiveFeedback } from '../../../redux/slices/feedbackSlice';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -20,6 +21,7 @@ const EmployerWorkHistory = () => {
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchFeature, setSearchFeature] = useState('name');
   const [feedbackModal, setFeedbackModal] = useState(null); // { jobId, toUserId, toRole, counterpartyName }
   
   const navigate = useNavigate();
@@ -36,13 +38,26 @@ const EmployerWorkHistory = () => {
     if (searchTerm.trim() === '') {
       setFilteredFreelancers(freelancers);
     } else {
-      const filtered = freelancers.filter(f =>
-        f.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        f.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      const searchLower = searchTerm.toLowerCase();
+      const filtered = freelancers.filter((f) => {
+        if (searchFeature === 'name') {
+          return f.name?.toLowerCase().includes(searchLower);
+        }
+        if (searchFeature === 'jobRole') {
+          return f.jobTitle?.toLowerCase().includes(searchLower);
+        }
+        if (searchFeature === 'location') {
+          return f.location?.toLowerCase().includes(searchLower);
+        }
+        return (
+          f.name?.toLowerCase().includes(searchLower) ||
+          f.jobTitle?.toLowerCase().includes(searchLower) ||
+          f.location?.toLowerCase().includes(searchLower)
+        );
+      });
       setFilteredFreelancers(filtered);
     }
-  }, [searchTerm, freelancers]);
+  }, [searchTerm, freelancers, searchFeature]);
 
   // Check feedback eligibility for all completed jobs
   useEffect(() => {
@@ -141,19 +156,20 @@ const EmployerWorkHistory = () => {
 
         {/* Search Bar */}
         <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center gap-3 max-w-lg">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                placeholder="Search freelancers, projects..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md">
-              <i className="fas fa-search"></i>
-            </button>
+          <div className="max-w-2xl">
+            <SmartSearchInput
+              value={searchTerm}
+              onChange={setSearchTerm}
+              selectedFeature={searchFeature}
+              onFeatureChange={setSearchFeature}
+              dataSource={freelancers}
+              searchFields={[
+                { key: 'name', label: 'Name', getValue: (item) => item.name || '' },
+                { key: 'jobRole', label: 'Job Role', getValue: (item) => item.jobTitle || '' },
+                { key: 'location', label: 'Location', getValue: (item) => item.location || '' },
+              ]}
+              placeholder="Search work history..."
+            />
           </div>
         </div>
 

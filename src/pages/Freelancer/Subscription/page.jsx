@@ -113,166 +113,155 @@ const FreelancerSubscription = () => {
     }
   };
 
+  const formatExpiryDate = (dateValue) => {
+    if (!dateValue) return null;
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const expiryLabel = formatExpiryDate(user?.subscriptionExpiryDate || subscription.expiryDate);
+
+  const basicFeatures = [
+    'Core functionality access',
+    'Limited project access',
+    'Basic support',
+  ];
+
+  const premiumFeatures = [
+    'Unlimited projects',
+    'Advanced analytics',
+    'Priority support',
+    'Ad-free experience',
+    'Advanced freelancing tools',
+    'Higher platform visibility',
+  ];
+
+  const isPremium = currentPlan === 'Premium';
+
   return (
     <DashboardPage title="Subscription">
-      <p className="text-gray-500 mb-8 -mt-4">Manage your subscription and unlock premium features</p>
+      <p className="text-gray-500 mb-6 -mt-4">Manage your subscription and unlock premium features</p>
 
-      <div className="max-w-5xl mx-auto space-y-8">
-        {/* Current Plan Banner */}
-        <div className={`rounded-xl p-6 shadow-md border-l-4 ${
-          currentPlan === 'Premium' 
-            ? 'bg-gradient-to-r from-indigo-600 to-blue-700 border-amber-500' 
-            : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-600'
-        }`}>
-          <div className="flex items-center gap-4">
-            <i className={`fas fa-crown text-4xl ${currentPlan === 'Premium' ? 'text-amber-400' : 'text-blue-600'}`}></i>
-            <div>
-              <h2 className={`text-lg font-semibold mb-1 ${currentPlan === 'Premium' ? 'text-white' : 'text-blue-900'}`}>
-                Your Current Plan
-              </h2>
-              <p className={`text-sm ${currentPlan === 'Premium' ? 'text-white/90' : 'text-blue-700'}`}>
-                {currentPlan} {currentDuration && currentDuration === 12 ? '(12 months)' : currentDuration ? `(${currentDuration} month${currentDuration > 1 ? 's' : ''})` : ''} - 
-                {currentPlan === 'Basic' ? ' Includes basic features. Upgrade for more!' : ' Premium features unlocked'}
-              </p>
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className={`rounded-2xl overflow-hidden border ${isPremium ? 'border-blue-300' : 'border-gray-200'} bg-white shadow-sm`}>
+          <div className={`p-6 md:p-8 ${isPremium ? 'bg-gradient-to-r from-blue-700 to-indigo-700 text-white' : 'bg-gradient-to-r from-blue-50 to-indigo-50'}`}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className={`text-xs uppercase tracking-wider font-semibold ${isPremium ? 'text-blue-100' : 'text-blue-700'}`}>Current Subscription</p>
+                <h2 className={`text-3xl font-bold mt-1 ${isPremium ? 'text-white' : 'text-gray-900'}`}>{currentPlan}</h2>
+                <p className={`text-sm mt-2 ${isPremium ? 'text-blue-100' : 'text-gray-600'}`}>
+                  {isPremium ? 'Premium tools are active to boost your freelance workflow.' : 'Upgrade to Premium for better visibility and advanced tools.'}
+                </p>
+              </div>
+              <div className={`px-3 py-1 rounded-full text-xs font-semibold ${isPremium ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'}`}>
+                Active Plan
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {currentDuration && (
+                <span className={`px-3 py-1 rounded-full text-xs ${isPremium ? 'bg-white/20 text-white' : 'bg-white text-gray-700 border border-gray-200'}`}>
+                  Duration: {currentDuration} month{currentDuration > 1 ? 's' : ''}
+                </span>
+              )}
+              {expiryLabel && (
+                <span className={`px-3 py-1 rounded-full text-xs ${isPremium ? 'bg-white/20 text-white' : 'bg-white text-gray-700 border border-gray-200'}`}>
+                  Renewal date: {expiryLabel}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Plans Section */}
-        <div className="bg-white rounded-xl shadow-md p-8">
-          <h2 className="text-center text-2xl font-semibold text-gray-900 mb-8">Choose Your Plan</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Basic Plan */}
-            <div className={`border-2 rounded-xl p-8 transition-all flex flex-col ${
-              currentPlan === 'Basic' ? 'border-green-500 bg-gradient-to-br from-green-50 to-white' : 'border-gray-300'
-            } hover:border-blue-600 hover:-translate-y-1 hover:shadow-xl`}>
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-semibold text-gray-900 mb-4">Basic</h3>
-                <div className="flex items-baseline justify-center mb-4">
-                  <span className="text-xl font-semibold text-blue-600">₹</span>
-                  <span className="text-4xl font-bold text-blue-600 mx-1">0</span>
-                  <span className="text-gray-500">/month</span>
-                </div>
-                <p className="text-sm text-gray-600">Perfect for getting started with basic functionality and essential features.</p>
-              </div>
-
-              <ul className="space-y-3 mb-8 flex-1">
-                <li className="flex items-center gap-3 text-sm text-gray-800">
-                  <i className="fas fa-check text-green-600 w-5 text-center"></i>
-                  <span>Core functionality</span>
-                </li>
-                <li className="flex items-center gap-3 text-sm text-gray-800">
-                  <i className="fas fa-check text-green-600 w-5 text-center"></i>
-                  <span>Limited project access</span>
-                </li>
-                <li className="flex items-center gap-3 text-sm text-gray-800">
-                  <i className="fas fa-check text-green-600 w-5 text-center"></i>
-                  <span>Basic support</span>
-                </li>
-                <li className="flex items-center gap-3 text-sm text-gray-400 line-through">
-                  <i className="fas fa-times text-red-500 w-5 text-center"></i>
-                  <span>Ads included</span>
-                </li>
-              </ul>
-
-              <button
-                className={`w-full px-6 py-3.5 rounded-lg text-base font-semibold transition-all ${
-                  currentPlan === 'Basic' 
-                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
-                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-0.5 hover:shadow-lg'
-                }`}
-                onClick={currentPlan === 'Premium' ? handleDowngradeClick : null}
-                disabled={currentPlan === 'Basic' || loading}
-              >
-                {currentPlan === 'Basic' ? 'Current Plan' : loading ? 'Processing...' : 'Downgrade to Basic'}
-              </button>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className={`bg-white border-2 rounded-2xl p-6 shadow-sm ${!isPremium ? 'border-blue-500' : 'border-gray-200'}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-bold text-gray-900">Basic</h3>
+              {!isPremium && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-semibold">Current</span>}
             </div>
-
-            {/* Premium Plan */}
-            <div className={`border-2 rounded-xl p-8 relative transition-all flex flex-col ${
-              currentPlan === 'Premium' ? 'border-green-500 bg-gradient-to-br from-green-50 to-white' : 'border-amber-500 bg-gradient-to-br from-amber-50 to-amber-100/30'
-            } hover:border-amber-600 hover:-translate-y-1 hover:shadow-xl`}>
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-full">
-                RECOMMENDED
-              </div>
-              
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-semibold text-gray-900 mb-4">Premium</h3>
-                <div className="flex items-baseline justify-center mb-4">
-                  <span className="text-xl font-semibold text-amber-600">₹</span>
-                  <span className="text-4xl font-bold text-amber-600 mx-1">868.61</span>
-                  <span className="text-gray-500">/month</span>
-                </div>
-                <p className="text-sm text-gray-600">Unlock your full potential with advanced tools and premium support.</p>
-              </div>
-
-              <ul className="space-y-3 mb-8 flex-1">
-                <li className="flex items-center gap-3 text-sm text-gray-800">
-                  <i className="fas fa-check text-green-600 w-5 text-center"></i>
-                  <span>All basic features</span>
-                </li>
-                <li className="flex items-center gap-3 text-sm text-gray-800">
-                  <i className="fas fa-check text-green-600 w-5 text-center"></i>
-                  <span>Unlimited projects</span>
-                </li>
-                <li className="flex items-center gap-3 text-sm text-gray-800">
-                  <i className="fas fa-check text-green-600 w-5 text-center"></i>
-                  <span>Advanced analytics</span>
-                </li>
-                <li className="flex items-center gap-3 text-sm text-gray-800">
-                  <i className="fas fa-check text-green-600 w-5 text-center"></i>
-                  <span>Priority support</span>
-                </li>
-                <li className="flex items-center gap-3 text-sm text-gray-800">
-                  <i className="fas fa-check text-green-600 w-5 text-center"></i>
-                  <span>Ad-free experience</span>
-                </li>
-                <li className="flex items-center gap-3 text-sm text-gray-800">
-                  <i className="fas fa-check text-green-600 w-5 text-center"></i>
-                  <span>Advanced tools</span>
-                </li>
-              </ul>
-
-              <button
-                className={`w-full px-6 py-3.5 rounded-lg text-base font-semibold transition-all ${
-                  currentPlan === 'Premium'
-                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(245,158,11,0.4)]'
-                }`}
-                onClick={currentPlan === 'Basic' ? handleUpgradeToPremium : null}
-                disabled={currentPlan === 'Premium' || loading}
-              >
-                {currentPlan === 'Premium' ? 'Current Plan' : loading ? 'Processing...' : 'Upgrade to Premium'}
-              </button>
+            <div className="mb-5">
+              <span className="text-4xl font-bold text-blue-600">₹0</span>
+              <span className="text-gray-500"> / month</span>
             </div>
+            <ul className="space-y-3 mb-6">
+              {basicFeatures.map((feature) => (
+                <li key={feature} className="flex items-center gap-2 text-sm text-gray-700">
+                  <i className="fas fa-check-circle text-green-600"></i>
+                  <span>{feature}</span>
+                </li>
+              ))}
+              <li className="flex items-center gap-2 text-sm text-gray-400 line-through decoration-gray-300">
+                <i className="fas fa-times-circle text-gray-300"></i>
+                <span>Advanced analytics</span>
+              </li>
+              <li className="flex items-center gap-2 text-sm text-gray-400 line-through decoration-gray-300">
+                <i className="fas fa-times-circle text-gray-300"></i>
+                <span>Priority support</span>
+              </li>
+              <li className="flex items-center gap-2 text-sm text-gray-400 line-through decoration-gray-300">
+                <i className="fas fa-times-circle text-gray-300"></i>
+                <span>Higher visibility</span>
+              </li>
+            </ul>
+            <button
+              className={`w-full py-3 rounded-lg text-sm font-semibold transition-colors ${
+                !isPremium ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+              onClick={isPremium ? handleDowngradeClick : null}
+              disabled={!isPremium || loading}
+            >
+              {!isPremium ? 'Current Plan' : loading ? 'Processing...' : 'Switch to Basic'}
+            </button>
+          </div>
+
+          <div className={`bg-white border-2 rounded-2xl p-6 shadow-sm relative ${isPremium ? 'border-blue-500' : 'border-amber-400'}`}>
+            <div className="absolute -top-3 right-5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-semibold">RECOMMENDED</div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-bold text-gray-900">Premium</h3>
+              {isPremium && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-semibold">Current</span>}
+            </div>
+            <div className="mb-5">
+              <span className="text-4xl font-bold text-amber-600">₹868</span>
+              <span className="text-gray-500"> / month</span>
+            </div>
+            <ul className="space-y-2.5 mb-6">
+              {premiumFeatures.map((feature) => (
+                <li key={feature} className="flex items-center gap-2 text-sm text-gray-700">
+                  <i className="fas fa-check-circle text-green-600"></i>
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              className={`w-full py-3 rounded-lg text-sm font-semibold transition-colors ${
+                isPremium
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600'
+              }`}
+              onClick={!isPremium ? handleUpgradeToPremium : null}
+              disabled={isPremium || loading}
+            >
+              {isPremium ? 'Current Plan' : loading ? 'Processing...' : 'Upgrade to Premium'}
+            </button>
           </div>
         </div>
 
-        {/* Billing Information */}
-        <div className="bg-white rounded-xl shadow-md p-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
-            <i className="fas fa-info-circle text-blue-600"></i>
-            Billing Information
-          </h3>
-          <ul className="space-y-4">
-            <li className="flex items-center gap-3 text-gray-700 text-sm">
-              <i className="fas fa-shield-alt text-green-600 w-5 text-center"></i>
-              Secure payment processing
-            </li>
-            <li className="flex items-center gap-3 text-gray-700 text-sm">
-              <i className="fas fa-sync-alt text-green-600 w-5 text-center"></i>
-              Cancel or change plans anytime
-            </li>
-            <li className="flex items-center gap-3 text-gray-700 text-sm">
-              <i className="fas fa-calendar text-green-600 w-5 text-center"></i>
-              Monthly billing cycles
-            </li>
-            <li className="flex items-center gap-3 text-gray-700 text-sm">
-              <i className="fas fa-headset text-green-600 w-5 text-center"></i>
-              24/7 customer support for Premium users
-            </li>
-          </ul>
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Premium freelancer benefits</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+              <p className="text-sm font-semibold text-gray-900">More Opportunities</p>
+              <p className="text-xs text-gray-600 mt-1">Get better discovery and unlock more project opportunities.</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+              <p className="text-sm font-semibold text-gray-900">Advanced Tools</p>
+              <p className="text-xs text-gray-600 mt-1">Use analytics and tools to optimize your freelance growth.</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+              <p className="text-sm font-semibold text-gray-900">Priority Support</p>
+              <p className="text-xs text-gray-600 mt-1">Get faster support when you need help with client work.</p>
+            </div>
+          </div>
         </div>
       </div>
 

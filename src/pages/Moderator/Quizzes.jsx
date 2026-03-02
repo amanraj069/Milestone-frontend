@@ -147,7 +147,7 @@ const ModeratorQuizzes = () => {
 
   const headerAction = (
     <Link 
-      to="/admin/quizzes/new" 
+      to="/moderator/quizzes/new" 
       className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
     >
       + Create Quiz
@@ -192,7 +192,7 @@ const ModeratorQuizzes = () => {
               <p className="text-lg font-medium text-gray-700">No quizzes found</p>
               <p className="text-gray-500 mt-1 mb-4">Create your first skill quiz to get started</p>
               <Link 
-                to="/admin/quizzes/new" 
+                to="/moderator/quizzes/new" 
                 className="inline-block px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
                 Create Your First Quiz
@@ -230,7 +230,7 @@ const ModeratorQuizzes = () => {
                         {expandedQuiz === q._id ? 'Hide Stats' : 'View Stats'}
                       </button>
                       <button 
-                        onClick={() => navigate(`/admin/quizzes/${q._id}/edit`)}
+                        onClick={() => navigate(`/moderator/quizzes/${q._id}/edit`)}
                         className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
                       >
                         Edit

@@ -162,15 +162,24 @@ const ComplaintDetail = () => {
   };
 
   const handleChat = () => {
-    if (!complaint?.complainantUserId) return;
-    openChatWith(complaint.complainantUserId);
+    const targetUserId =
+      complaint?.complainantUserId ||
+      (complaint?.complainantType === 'Freelancer' ? complaint?.freelancerUserId : complaint?.employerUserId) ||
+      complaint?.freelancerUserId ||
+      complaint?.employerUserId;
+    if (!targetUserId) {
+      setError('Unable to start chat. Complainant user not found.');
+      return;
+    }
+    openChatWith(targetUserId);
+    navigate('/moderator/chat');
   };
 
   // Inline rating adjustment
   const openRatingAdjust = (userType) => {
     setRatingTarget(userType);
     // Pre-populate if there's already a pending rating for this user
-    const pending = pendingRatings[type];
+    const pending = pendingRatings[userType];
     if (pending) {
       setAdjustment(pending.adjustment);
       setRatingReason(pending.reason);

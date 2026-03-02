@@ -2,13 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 
 
 function ColumnToggleTrigger({ visibleCount, label, badgeClassName, className, onClick }) {
+  const baseClassName = 'inline-flex items-center gap-2 whitespace-nowrap px-3 py-2 text-sm font-medium border rounded-lg transition-colors';
+  const defaultClassName = 'text-gray-700 bg-white border-gray-200 hover:bg-gray-50 shadow-sm';
+
   return (
     <button
       onClick={onClick}
-      className={
-        className ||
-        'inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors shadow-sm'
-      }
+      className={`${baseClassName} ${className || defaultClassName}`}
     >
       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
