@@ -45,6 +45,8 @@ const ModeratorComplaints = () => {
   // SmartFilter states
   const [columnFilters, setColumnFilters] = useState({
     complainantType: [],
+    against: [],
+    job: [],
     status: [],
     priority: [],
     type: [],
@@ -93,6 +95,9 @@ const ModeratorComplaints = () => {
   // Apply SmartFilter column filters on top of redux-filtered complaints
   const displayedComplaints = filteredComplaints.filter((c) => {
     if (columnFilters.complainantType.length > 0 && !columnFilters.complainantType.includes(c.complainantType)) return false;
+    const againstName = c.complainantType === 'Freelancer' ? c.employerName : c.freelancerName;
+    if (columnFilters.against.length > 0 && !columnFilters.against.includes(againstName)) return false;
+    if (columnFilters.job.length > 0 && !columnFilters.job.includes(c.jobTitle)) return false;
     if (columnFilters.status.length > 0 && !columnFilters.status.includes(c.status)) return false;
     if (columnFilters.priority.length > 0 && !columnFilters.priority.includes(c.priority)) return false;
     if (columnFilters.type.length > 0 && !columnFilters.type.includes(c.complaintType)) return false;
@@ -210,10 +215,33 @@ const ModeratorComplaints = () => {
                     </th>
                   )}
                   {isCol('against') && (
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Against</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        Against
+                        <SmartFilter
+                          label="Against"
+                          data={complaints}
+                          field="against"
+                          selectedValues={columnFilters.against}
+                          onFilterChange={setColFilter('against')}
+                          valueExtractor={(c) => c.complainantType === 'Freelancer' ? c.employerName : c.freelancerName}
+                        />
+                      </div>
+                    </th>
                   )}
                   {isCol('job') && (
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Job</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        Job
+                        <SmartFilter
+                          label="Job"
+                          data={complaints}
+                          field="jobTitle"
+                          selectedValues={columnFilters.job}
+                          onFilterChange={setColFilter('job')}
+                        />
+                      </div>
+                    </th>
                   )}
                   {isCol('type') && (
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
