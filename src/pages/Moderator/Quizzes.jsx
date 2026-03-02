@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
+import SmartSearchInput from '../../components/SmartSearchInput';
+import SmartFilter from '../../components/SmartFilter';
 
 const ModeratorQuizzes = () => {
   const navigate = useNavigate();
@@ -9,6 +11,40 @@ const ModeratorQuizzes = () => {
   const [expandedQuiz, setExpandedQuiz] = useState(null);
   const [attemptDetails, setAttemptDetails] = useState(null);
   const [loadingAttempts, setLoadingAttempts] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+  const [attemptFilters, setAttemptFilters] = useState({ freelancer: [], email: [], status: [], badge: [] });
+  const [dateFilter, setDateFilter] = useState('');
+  const setAttemptFilter = (field) => (values) => setAttemptFilters(prev => ({ ...prev, [field]: values }));
+
+  // Reset attempt filters when expanding a different quiz
+  const handleToggleInfo = async (quizId) => {
+    setAttemptFilters({ freelancer: [], email: [], status: [], badge: [] });
+    setDateFilter('');
+    await toggleInfo(quizId);
+  };
+
+  const filteredAttempts = useMemo(() => {
+    if (!attemptDetails?.attempts) return [];
+    return attemptDetails.attempts.filter(a => {
+      if (attemptFilters.freelancer.length > 0 && !attemptFilters.freelancer.includes(a.freelancerName)) return false;
+      if (attemptFilters.email.length > 0 && !attemptFilters.email.includes(a.email)) return false;
+      if (attemptFilters.status.length > 0) {
+        const statusLabel = a.passed ? 'Passed' : 'Failed';
+        if (!attemptFilters.status.includes(statusLabel)) return false;
+      }
+      if (attemptFilters.badge.length > 0) {
+        const badgeLabel = a.badgeAwarded ? 'Yes' : 'No';
+        if (!attemptFilters.badge.includes(badgeLabel)) return false;
+      }
+      if (dateFilter) {
+        const d = new Date(a.attemptedAt);
+        const attemptDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (attemptDate !== dateFilter) return false;
+      }
+      return true;
+    });
+  }, [attemptDetails, attemptFilters, dateFilter]);
 
   useEffect(() => { 
     fetchList(); 
@@ -145,6 +181,22 @@ const ModeratorQuizzes = () => {
     ? Math.round(quizzes.reduce((sum, q) => sum + (q.passingScore || 0), 0) / quizzes.length) 
     : 0;
 
+  const filteredQuizzes = useMemo(() => {
+    const q = quizzes.filter(item => {
+      const s = searchTerm.trim().toLowerCase();
+      if (!s) return true;
+      return (item.title || '').toLowerCase().includes(s) || (item.skillName || '').toLowerCase().includes(s);
+    });
+
+    switch (sortBy) {
+      case 'questions-desc': return [...q].sort((a,b) => (b.questions?.length||0) - (a.questions?.length||0));
+      case 'questions-asc': return [...q].sort((a,b) => (a.questions?.length||0) - (b.questions?.length||0));
+      case 'oldest': return [...q].sort((a,b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+      case 'newest':
+      default: return [...q].sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    }
+  }, [quizzes, searchTerm, sortBy]);
+
   const headerAction = (
     <Link 
       to="/moderator/quizzes/new" 
@@ -156,21 +208,26 @@ const ModeratorQuizzes = () => {
 
   return (
     <DashboardPage title="Quizzes" headerAction={headerAction}>
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total Quizzes</p>
-          <p className="text-2xl font-semibold text-gray-900">{totalQuizzes}</p>
+      {/* Stats Cards (match freelancer layout) */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="bg-white rounded-xl shadow-md p-6 text-center">
+          <p className="text-xs text-gray-500 mb-1">Total Quizzes</p>
+          <p className="text-2xl font-bold text-blue-600">{totalQuizzes}</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total Questions</p>
-          <p className="text-2xl font-semibold text-gray-900">{totalQuestions}</p>
+        <div className="bg-white rounded-xl shadow-md p-6 text-center">
+          <p className="text-xs text-gray-500 mb-1">Total Questions</p>
+          <p className="text-2xl font-bold text-blue-600">{totalQuestions}</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Avg. Passing Score</p>
-          <p className="text-2xl font-semibold text-gray-900">{avgPassingScore}%</p>
+        <div className="bg-white rounded-xl shadow-md p-6 text-center">
+          <p className="text-xs text-gray-500 mb-1">Avg. Passing Score</p>
+          <p className="text-2xl font-bold text-blue-600">{avgPassingScore}%</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-md p-6 text-center">
+          <p className="text-xs text-gray-500 mb-1">Total Attempts</p>
+          <p className="text-2xl font-bold text-blue-600">{quizzes.reduce((s,q) => s + (q.totalAttempts||0),0)}</p>
         </div>
       </div>
 
@@ -182,6 +239,32 @@ const ModeratorQuizzes = () => {
         </div>
 
         <div className="p-6">
+          {/* Search & Sort */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex-1 min-w-[200px]">
+                <SmartSearchInput
+                  value={searchTerm}
+                  onChange={setSearchTerm}
+                  dataSource={quizzes}
+                  getSearchValue={(item) => item.title || item.skillName || ''}
+                  placeholder="Search by quiz title or skill..."
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="questions-desc">Most Questions</option>
+                <option value="questions-asc">Fewest Questions</option>
+              </select>
+            </div>
+          </div>
+
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600"></div>
@@ -200,7 +283,7 @@ const ModeratorQuizzes = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {quizzes.map(q => (
+              {filteredQuizzes.map(q => (
                 <div key={q._id} className="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
                   <div className="p-4 flex justify-between items-center">
                     <div className="flex-1">
@@ -220,7 +303,7 @@ const ModeratorQuizzes = () => {
                     </div>
                     <div className="flex gap-2">
                       <button 
-                        onClick={() => toggleInfo(q._id)}
+                        onClick={() => handleToggleInfo(q._id)}
                         className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                           expandedQuiz === q._id 
                             ? 'bg-blue-600 text-white' 
@@ -285,17 +368,105 @@ const ModeratorQuizzes = () => {
                                   <thead>
                                     <tr className="bg-gray-50 border-b border-gray-200">
                                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Freelancer</th>
-                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        <div className="flex items-center gap-1.5">
+                                          Freelancer
+                                          <SmartFilter
+                                            label="Freelancer"
+                                            data={attemptDetails?.attempts || []}
+                                            field="freelancerName"
+                                            selectedValues={attemptFilters.freelancer}
+                                            onFilterChange={setAttemptFilter('freelancer')}
+                                          />
+                                        </div>
+                                      </th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        <div className="flex items-center gap-1.5">
+                                          Email
+                                          <SmartFilter
+                                            label="Email"
+                                            data={attemptDetails?.attempts || []}
+                                            field="email"
+                                            selectedValues={attemptFilters.email}
+                                            onFilterChange={setAttemptFilter('email')}
+                                          />
+                                        </div>
+                                      </th>
                                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
                                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">%</th>
-                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Badge</th>
-                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        <div className="flex items-center gap-1.5">
+                                          Status
+                                          <SmartFilter
+                                            label="Status"
+                                            data={attemptDetails?.attempts || []}
+                                            field="passed"
+                                            selectedValues={attemptFilters.status}
+                                            onFilterChange={setAttemptFilter('status')}
+                                            valueExtractor={(item) => item.passed ? 'Passed' : 'Failed'}
+                                          />
+                                        </div>
+                                      </th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        <div className="flex items-center gap-1.5">
+                                          Badge
+                                          <SmartFilter
+                                            label="Badge"
+                                            data={attemptDetails?.attempts || []}
+                                            field="badgeAwarded"
+                                            selectedValues={attemptFilters.badge}
+                                            onFilterChange={setAttemptFilter('badge')}
+                                            valueExtractor={(item) => item.badgeAwarded ? 'Yes' : 'No'}
+                                          />
+                                        </div>
+                                      </th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        <div className="flex items-center gap-1.5">
+                                          Date
+                                          <div className="relative">
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                const input = e.currentTarget.nextElementSibling;
+                                                if (input?.showPicker) input.showPicker();
+                                                else input?.click();
+                                              }}
+                                              className={`p-0.5 rounded transition-colors ${
+                                                dateFilter ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
+                                              }`}
+                                              title={dateFilter ? `Filtered: ${dateFilter}` : 'Filter by date'}
+                                            >
+                                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <rect x="3" y="4" width="18" height="18" rx="2" />
+                                                <line x1="16" y1="2" x2="16" y2="6" />
+                                                <line x1="8" y1="2" x2="8" y2="6" />
+                                                <line x1="3" y1="10" x2="21" y2="10" />
+                                              </svg>
+                                            </button>
+                                            <input
+                                              type="date"
+                                              value={dateFilter}
+                                              max={new Date().toISOString().slice(0, 10)}
+                                              onChange={(e) => setDateFilter(e.target.value)}
+                                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            {dateFilter && (
+                                              <button
+                                                type="button"
+                                                onClick={() => setDateFilter('')}
+                                                className="ml-1 text-blue-600 hover:text-blue-800 text-[10px] font-medium"
+                                                title="Clear date filter"
+                                              >
+                                                ✕
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-gray-200">
-                                    {attemptDetails.attempts.map((attempt, idx) => (
+                                    {filteredAttempts.map((attempt, idx) => (
                                       <tr key={attempt.attemptId} className="hover:bg-gray-50">
                                         <td className="px-4 py-3 text-gray-600">{idx + 1}</td>
                                         <td className="px-4 py-3 font-medium text-gray-900">{attempt.freelancerName}</td>

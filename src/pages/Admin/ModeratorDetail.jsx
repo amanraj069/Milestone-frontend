@@ -133,10 +133,6 @@ const ModeratorDetail = () => {
                 <i className="fas fa-calendar text-gray-400 text-xs"></i>
                 Joined {moderator.joinedDate ? new Date(moderator.joinedDate).toLocaleDateString() : 'N/A'}
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="text-yellow-500"><i className="fas fa-star text-xs"></i></span>
-                {moderator.rating?.toFixed(1) || '0.0'}
-              </span>
             </div>
             {moderator.aboutMe && (
               <p className="mt-3 text-sm text-gray-500">{moderator.aboutMe}</p>
@@ -219,6 +215,9 @@ const ModeratorDetail = () => {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Subject</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Raised By</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Against</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Priority</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Created</th>
@@ -227,31 +226,53 @@ const ModeratorDetail = () => {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {complaints.length > 0 ? (
-                complaints.map((c, i) => (
-                  <tr key={c.complaintId || i} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-gray-500">{i + 1}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{c.subject || '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${statusColors[c.status] || 'bg-gray-100 text-gray-600'}`}>
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${priorityColors[c.priority] || 'bg-gray-100 text-gray-600'}`}>
-                        {c.priority || '—'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString() : '—'}
-                    </td>
-                  </tr>
-                ))
+                complaints.map((c, i) => {
+                  const againstName = c.complainantType === 'Freelancer' ? c.employerName : c.freelancerName;
+                  const againstRole = c.complainantType === 'Freelancer' ? 'Employer' : 'Freelancer';
+                  return (
+                    <tr key={c.complaintId || i} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm text-gray-500">{i + 1}</td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-medium text-gray-900">{c.subject || '—'}</div>
+                        {c.jobTitle && (
+                          <div className="text-xs text-gray-400 mt-0.5">Job: {c.jobTitle}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-medium text-gray-900">{c.complainantName || '—'}</div>
+                        {c.complainantType && (
+                          <span className="text-xs text-blue-600 font-medium">{c.complainantType}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-medium text-gray-900">{againstName || '—'}</div>
+                        {againstRole && (
+                          <span className="text-xs text-purple-600 font-medium">{againstRole}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500">{c.complaintType || '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${statusColors[c.status] || 'bg-gray-100 text-gray-600'}`}>
+                          {c.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${priorityColors[c.priority] || 'bg-gray-100 text-gray-600'}`}>
+                          {c.priority || '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString() : '—'}
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan="6" className="px-4 py-12 text-center text-gray-400">
+                  <td colSpan="9" className="px-4 py-12 text-center text-gray-400">
                     No complaints recorded yet
                   </td>
                 </tr>

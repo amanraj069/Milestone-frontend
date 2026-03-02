@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import ApplicationDetailsModal from '../../../components/employer/ApplicationDetailsModal';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
-import SmartSearchInput from '../../../components/SmartSearchInput';
 import SmartFilter from '../../../components/SmartFilter';
 import axios from 'axios';
 
@@ -14,7 +13,6 @@ const APP_COLUMNS = [
   { key: 'job', label: 'Job Details' },
   { key: 'status', label: 'Status' },
   { key: 'date', label: 'Applied Date' },
-  { key: 'premium', label: 'Premium', defaultVisible: false },
   { key: 'rating', label: 'Rating', defaultVisible: false },
   { key: 'view', label: 'View' },
   { key: 'resume', label: 'Resume' },
@@ -29,13 +27,15 @@ const EmployerApplications = () => {
   const [stats, setStats] = useState({ total: 0, pending: 0, accepted: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchBy, setSearchBy] = useState('freelancer'); // 'freelancer', 'job', 'email'
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  // New filter/sort state
-  const [statusFilter, setStatusFilter] = useState([]);
-  const [jobFilter, setJobFilter] = useState([]);
+  // SmartFilter states for column-level filtering
+  const [freelancerFilters, setFreelancerFilters] = useState([]);
+  const [jobFilters, setJobFilters] = useState([]);
+  const [statusFilters, setStatusFilters] = useState([]);
+  const [dateFilters, setDateFilters] = useState([]);
+  const [ratingFilters, setRatingFilters] = useState([]);
   const [sortBy, setSortBy] = useState('date-desc');
 
   const cols = useSmartColumnToggle(APP_COLUMNS, 'employer-apps-cols');
@@ -103,34 +103,37 @@ const EmployerApplications = () => {
     setShowDetailsModal(true);
   };
 
-  const uniqueJobs = useMemo(() => {
-    const titles = [...new Set(applications.map((a) => a.jobTitle))];
-    return titles.sort();
-  }, [applications]);
-
   const filteredApplications = useMemo(() => {
     let list = [...applications];
 
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      list = list.filter((a) => {
-        if (searchBy === 'freelancer') {
-          return a.freelancerName?.toLowerCase().includes(term);
-        } else if (searchBy === 'job') {
-          return a.jobTitle?.toLowerCase().includes(term);
-        } else if (searchBy === 'email') {
-          return a.freelancerEmail?.toLowerCase().includes(term);
-        }
-        return false;
-      });
+      list = list.filter(
+        (a) =>
+          a.freelancerName?.toLowerCase().includes(term) ||
+          a.jobTitle?.toLowerCase().includes(term) ||
+          a.freelancerEmail?.toLowerCase().includes(term)
+      );
     }
 
-    if (statusFilter.length > 0) {
-      list = list.filter((a) => statusFilter.includes(a.status));
+    if (freelancerFilters.length > 0) {
+      list = list.filter((a) => freelancerFilters.includes(a.freelancerName));
     }
 
-    if (jobFilter.length > 0) {
-      list = list.filter((a) => jobFilter.includes(a.jobTitle));
+    if (jobFilters.length > 0) {
+      list = list.filter((a) => jobFilters.includes(a.jobTitle));
+    }
+
+    if (statusFilters.length > 0) {
+      list = list.filter((a) => statusFilters.includes(a.status));
+    }
+
+    if (dateFilters.length > 0) {
+      list = list.filter((a) => dateFilters.includes(new Date(a.appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })));
+    }
+
+    if (ratingFilters.length > 0) {
+      list = list.filter((a) => ratingFilters.includes(a.skillRating));
     }
 
     switch (sortBy) {
@@ -149,19 +152,12 @@ const EmployerApplications = () => {
       case 'rating-desc':
         list.sort((a, b) => (b.skillRating || 0) - (a.skillRating || 0));
         break;
-      case 'premium-first':
-        list.sort((a, b) => {
-          if (a.isPremium && !b.isPremium) return -1;
-          if (!a.isPremium && b.isPremium) return 1;
-          return new Date(a.appliedDate) - new Date(b.appliedDate);
-        });
-        break;
       default:
         break;
     }
 
     return list;
-  }, [applications, searchTerm, searchBy, statusFilter, jobFilter, sortBy]);
+  }, [applications, searchTerm, freelancerFilters, jobFilters, statusFilters, dateFilters, ratingFilters, sortBy]);
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -175,7 +171,10 @@ const EmployerApplications = () => {
 
   const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  const activeFilters = statusFilter.length + jobFilter.length + (searchTerm ? 1 : 0);
+  const activeFilters =
+    freelancerFilters.length + jobFilters.length + statusFilters.length +
+    dateFilters.length + ratingFilters.length +
+    (searchTerm ? 1 : 0);
 
   // Get the job title if filtering by specific job
   const filteredJobTitle = jobIdFilter && applications.length > 0 ? applications[0].jobTitle : null;
@@ -213,115 +212,40 @@ const EmployerApplications = () => {
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-4">
-          {/* First Row: Filters */}
-          <div className="flex items-center gap-3 mb-3">
-            <div className="relative inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white shadow-sm hover:bg-gray-50 transition-colors">
-              <span className="text-gray-600">Status:</span>
-              <span className="text-gray-700 font-medium">
-                {statusFilter.length === 0 ? 'All' : statusFilter.length === 1 ? statusFilter[0] : `${statusFilter.length} selected`}
-              </span>
-              <SmartFilter
-                label="Status"
-                data={applications}
-                field="status"
-                selectedValues={statusFilter}
-                onFilterChange={setStatusFilter}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative">
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+              <input
+                type="text"
+                placeholder="Search by name, email, or job title..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
-
-            {!jobIdFilter && (
-              <div className="relative inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white shadow-sm hover:bg-gray-50 transition-colors">
-                <span className="text-gray-600">Job:</span>
-                <span className="text-gray-700 font-medium truncate max-w-[150px]">
-                  {jobFilter.length === 0 ? 'All Jobs' : jobFilter.length === 1 ? jobFilter[0] : `${jobFilter.length} selected`}
-                </span>
-                <SmartFilter
-                  label="Job"
-                  data={applications}
-                  field="jobTitle"
-                  selectedValues={jobFilter}
-                  onFilterChange={setJobFilter}
-                />
-              </div>
-            )}
 
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="flex-1 min-w-[160px] max-w-[200px] px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
               <option value="date-desc">Newest First</option>
               <option value="date-asc">Oldest First</option>
               <option value="name-asc">Name A-Z</option>
               <option value="name-desc">Name Z-A</option>
               <option value="rating-desc">Highest Rated</option>
-              <option value="premium-first">Premium First</option>
             </select>
 
-            <div className="ml-auto flex items-center gap-3">
-              <SmartColumnToggle columns={APP_COLUMNS} visible={cols.visible} onChange={cols.setVisible} storageKey="employer-apps-cols" />
+            <SmartColumnToggle columns={APP_COLUMNS} visible={cols.visible} onChange={cols.setVisible} storageKey="employer-apps-cols" />
 
-              {activeFilters > 0 && (
-                <button
-                  onClick={() => { setSearchTerm(''); setSearchBy('freelancer'); setStatusFilter([]); setJobFilter([]); }}
-                  className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
-                >
-                  Clear ({activeFilters})
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Second Row: Search */}
-          <div className="flex items-center gap-3">
-            <div className="inline-flex items-center gap-2 whitespace-nowrap px-3 py-2 text-sm font-medium border rounded-lg text-gray-700 bg-white border-gray-200 shadow-sm">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Search By
-            </div>
-
-            <div className="inline-flex p-1 rounded-lg border border-gray-200 bg-gray-50 h-9">
+            {activeFilters > 0 && (
               <button
-                onClick={() => setSearchBy('freelancer')}
-                className={`px-3 py-0 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
-                  searchBy === 'freelancer' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-blue-600'
-                }`}
+                onClick={() => { setSearchTerm(''); setFreelancerFilters([]); setJobFilters([]); setStatusFilters([]); setDateFilters([]); setRatingFilters([]); }}
+                className="px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
               >
-                Freelancer
+                Clear ({activeFilters})
               </button>
-              <button
-                onClick={() => setSearchBy('job')}
-                className={`px-3 py-0 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
-                  searchBy === 'job' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-blue-600'
-                }`}
-              >
-                Job Title
-              </button>
-              <button
-                onClick={() => setSearchBy('email')}
-                className={`px-3 py-0 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
-                  searchBy === 'email' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-blue-600'
-                }`}
-              >
-                Email
-              </button>
-            </div>
-
-            <div className="flex-1">
-              <SmartSearchInput
-                value={searchTerm}
-                onChange={setSearchTerm}
-                dataSource={applications}
-                getSearchValue={(app) => {
-                  if (searchBy === 'freelancer') return app.freelancerName || '';
-                  if (searchBy === 'job') return app.jobTitle || '';
-                  if (searchBy === 'email') return app.freelancerEmail || '';
-                  return '';
-                }}
-                placeholder={`Search for ${searchBy}...`}
-              />
-            </div>
+            )}
           </div>
         </div>
 
@@ -348,12 +272,76 @@ const EmployerApplications = () => {
               <table className="min-w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                    {cols.visible.has('freelancer') && <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Freelancer</th>}
-                    {cols.visible.has('job') && <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Job Details</th>}
-                    {cols.visible.has('status') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>}
-                    {cols.visible.has('date') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Applied</th>}
-                    {cols.visible.has('premium') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Premium</th>}
-                    {cols.visible.has('rating') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Rating</th>}
+                    {cols.visible.has('freelancer') && (
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          Freelancer
+                          <SmartFilter
+                            label="Freelancer"
+                            data={applications}
+                            field="freelancerName"
+                            selectedValues={freelancerFilters}
+                            onFilterChange={setFreelancerFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {cols.visible.has('job') && (
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          Job Details
+                          <SmartFilter
+                            label="Job"
+                            data={applications}
+                            field="jobTitle"
+                            selectedValues={jobFilters}
+                            onFilterChange={setJobFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {cols.visible.has('status') && (
+                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <div className="flex items-center justify-center gap-2">
+                          Status
+                          <SmartFilter
+                            label="Status"
+                            data={applications}
+                            field="status"
+                            selectedValues={statusFilters}
+                            onFilterChange={setStatusFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {cols.visible.has('date') && (
+                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <div className="flex items-center justify-center gap-2">
+                          Applied
+                          <SmartFilter
+                            label="Date"
+                            data={applications}
+                            valueExtractor={(item) => new Date(item.appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            selectedValues={dateFilters}
+                            onFilterChange={setDateFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {cols.visible.has('rating') && (
+                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <div className="flex items-center justify-center gap-2">
+                          Rating
+                          <SmartFilter
+                            label="Rating"
+                            data={applications}
+                            field="skillRating"
+                            selectedValues={ratingFilters}
+                            onFilterChange={setRatingFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
                     {cols.visible.has('view') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">View</th>}
                     {cols.visible.has('resume') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Resume</th>}
                     {cols.visible.has('actions') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider" style={{ width: '140px' }}>Actions</th>}
@@ -391,15 +379,6 @@ const EmployerApplications = () => {
                       {cols.visible.has('status') && <td className="px-6 py-4 text-center">{getStatusBadge(application.status)}</td>}
                       {cols.visible.has('date') && (
                         <td className="px-6 py-4 text-center text-sm text-gray-600">{formatDate(application.appliedDate)}</td>
-                      )}
-                      {cols.visible.has('premium') && (
-                        <td className="px-6 py-4 text-center">
-                          {application.isPremium ? (
-                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-semibold">Premium</span>
-                          ) : (
-                            <span className="text-xs text-gray-400">Free</span>
-                          )}
-                        </td>
                       )}
                       {cols.visible.has('rating') && (
                         <td className="px-6 py-4 text-center">

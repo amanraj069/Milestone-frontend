@@ -22,6 +22,7 @@ const EmployerWorkHistory = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchFeature, setSearchFeature] = useState('name');
+  const [sortBy, setSortBy] = useState('date-desc');
   const [feedbackModal, setFeedbackModal] = useState(null); // { jobId, toUserId, toRole, counterpartyName }
   
   const navigate = useNavigate();
@@ -35,11 +36,12 @@ const EmployerWorkHistory = () => {
   }, []);
 
   useEffect(() => {
+    let list;
     if (searchTerm.trim() === '') {
-      setFilteredFreelancers(freelancers);
+      list = [...freelancers];
     } else {
       const searchLower = searchTerm.toLowerCase();
-      const filtered = freelancers.filter((f) => {
+      list = freelancers.filter((f) => {
         if (searchFeature === 'name') {
           return f.name?.toLowerCase().includes(searchLower);
         }
@@ -55,9 +57,35 @@ const EmployerWorkHistory = () => {
           f.location?.toLowerCase().includes(searchLower)
         );
       });
-      setFilteredFreelancers(filtered);
     }
-  }, [searchTerm, freelancers, searchFeature]);
+
+    // Apply sort
+    list = [...list];
+    switch (sortBy) {
+      case 'date-desc':
+        list.sort((a, b) => new Date(b.completedDate || b.leftDate || 0) - new Date(a.completedDate || a.leftDate || 0));
+        break;
+      case 'date-asc':
+        list.sort((a, b) => new Date(a.completedDate || a.leftDate || 0) - new Date(b.completedDate || b.leftDate || 0));
+        break;
+      case 'name-asc':
+        list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        break;
+      case 'name-desc':
+        list.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+        break;
+      case 'rating-desc':
+        list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'rating-asc':
+        list.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+        break;
+      default:
+        break;
+    }
+
+    setFilteredFreelancers(list);
+  }, [searchTerm, freelancers, searchFeature, sortBy]);
 
   // Check feedback eligibility for all completed jobs
   useEffect(() => {
@@ -156,20 +184,34 @@ const EmployerWorkHistory = () => {
 
         {/* Search Bar */}
         <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="max-w-2xl">
-            <SmartSearchInput
-              value={searchTerm}
-              onChange={setSearchTerm}
-              selectedFeature={searchFeature}
-              onFeatureChange={setSearchFeature}
-              dataSource={freelancers}
-              searchFields={[
-                { key: 'name', label: 'Name', getValue: (item) => item.name || '' },
-                { key: 'jobRole', label: 'Job Role', getValue: (item) => item.jobTitle || '' },
-                { key: 'location', label: 'Location', getValue: (item) => item.location || '' },
-              ]}
-              placeholder="Search work history..."
-            />
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <SmartSearchInput
+                value={searchTerm}
+                onChange={setSearchTerm}
+                selectedFeature={searchFeature}
+                onFeatureChange={setSearchFeature}
+                dataSource={freelancers}
+                searchFields={[
+                  { key: 'name', label: 'Name', getValue: (item) => item.name || '' },
+                  { key: 'jobRole', label: 'Job Role', getValue: (item) => item.jobTitle || '' },
+                  { key: 'location', label: 'Location', getValue: (item) => item.location || '' },
+                ]}
+                placeholder="Search work history..."
+              />
+            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 shrink-0"
+            >
+              <option value="date-desc">Newest First</option>
+              <option value="date-asc">Oldest First</option>
+              <option value="name-asc">Name A–Z</option>
+              <option value="name-desc">Name Z–A</option>
+              <option value="rating-desc">Highest Rated</option>
+              <option value="rating-asc">Lowest Rated</option>
+            </select>
           </div>
         </div>
 
@@ -201,25 +243,19 @@ const EmployerWorkHistory = () => {
         </div>
       </div>
 
-      {/* Feedback Modal */}
-      {feedbackModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <FeedbackForm
-              jobId={feedbackModal.jobId}
-              toUserId={feedbackModal.toUserId}
-              toRole={feedbackModal.toRole}
-              counterpartyName={feedbackModal.counterpartyName}
-              onSuccess={() => {
-                setFeedbackModal(null);
-                // Refresh eligibility
-                dispatch(checkCanGiveFeedback(feedbackModal.jobId));
-              }}
-              onCancel={() => setFeedbackModal(null)}
-            />
-          </div>
-        </div>
-      )}
+      {/* Feedback Drawer */}
+      <FeedbackForm
+        isOpen={!!feedbackModal}
+        jobId={feedbackModal?.jobId}
+        toUserId={feedbackModal?.toUserId}
+        toRole={feedbackModal?.toRole}
+        counterpartyName={feedbackModal?.counterpartyName}
+        onSuccess={() => {
+          setFeedbackModal(null);
+          dispatch(checkCanGiveFeedback(feedbackModal?.jobId));
+        }}
+        onCancel={() => setFeedbackModal(null)}
+      />
     </DashboardPage>
   );
 };

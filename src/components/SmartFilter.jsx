@@ -38,18 +38,21 @@ const SmartFilter = ({
     return () => document.removeEventListener('mousedown', onDocClick);
   }, []);
 
-  // compute portal position when opened
+  // compute portal position when opened — always below, never flips upward
   useLayoutEffect(() => {
     if (!isOpen || !buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom - 10;
     setDropdownStyle({
       position: 'fixed',
-      // always place dropdown below the element (do not flip upwards)
       top: `${rect.bottom + 6}px`,
       left: `${rect.left}px`,
       minWidth: `${Math.max(160, rect.width)}px`,
+      maxHeight: `${Math.max(120, spaceBelow)}px`,
       zIndex: 99999,
-      transformOrigin: 'top left',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
     });
   }, [isOpen]);
 
@@ -119,7 +122,7 @@ const SmartFilter = ({
         <button onClick={selectAll} className="text-xs text-blue-600 hover:text-blue-800 font-medium">Select All</button>
         <button onClick={clearAll} className="text-xs text-gray-500 hover:text-gray-700 font-medium">Clear</button>
       </div>
-      <div className="max-h-48 overflow-y-auto p-1">
+      <div className="overflow-y-auto flex-1 p-1">
         {filteredValues.length === 0 ? (
           <div className="px-3 py-2 text-sm text-gray-500 text-center">No matching values</div>
         ) : (
@@ -151,8 +154,8 @@ const SmartFilter = ({
         {hasSelection && (
           <span className="absolute -top-1 -right-2 bg-blue-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{selectedValues.length}</span>
         )}
-        <svg className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
         </svg>
       </button>
 

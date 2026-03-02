@@ -2,18 +2,34 @@ import React, { useState, useEffect } from 'react';
 import DashboardPage from '../../components/DashboardPage';
 import RatingAdjustmentModal from '../../components/RatingAdjustmentModal';
 import RatingHistoryModal from '../../components/RatingHistoryModal';
+import SmartFilter from '../../components/SmartFilter';
+import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+
+const COLUMNS = [
+  { key: 'user',         label: 'User',         defaultVisible: true },
+  { key: 'email',        label: 'Email',        defaultVisible: true },
+  { key: 'role',         label: 'Role',         defaultVisible: true },
+  { key: 'subscription', label: 'Subscription', defaultVisible: true },
+  { key: 'rating',       label: 'Rating',       defaultVisible: true },
+  { key: 'location',     label: 'Location',     defaultVisible: false },
+  { key: 'joined',       label: 'Joined',       defaultVisible: true },
+  { key: 'actions',      label: 'Actions',      defaultVisible: true },
+];
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [subscriptionFilter, setSubscriptionFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [columnFilters, setColumnFilters] = useState({ role: [], subscription: [], rating: [], location: [] });
+  const { visible, setVisible } = useSmartColumnToggle(COLUMNS, 'admin-users-columns');
+
+  const setColFilter = (field) => (values) =>
+    setColumnFilters((prev) => ({ ...prev, [field]: values }));
   
   // Rating adjustment modal state
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -84,8 +100,10 @@ const AdminUsers = () => {
 
   const filtered = users
     .filter((u) => {
-      if (roleFilter !== 'all' && u.role !== roleFilter) return false;
-      if (subscriptionFilter !== 'all' && u.subscription !== subscriptionFilter) return false;
+      if (columnFilters.role.length > 0 && !columnFilters.role.includes(u.role)) return false;
+      if (columnFilters.subscription.length > 0 && !columnFilters.subscription.includes(u.subscription)) return false;
+      if (columnFilters.rating.length > 0 && !columnFilters.rating.includes(u.rating)) return false;
+      if (columnFilters.location.length > 0 && !columnFilters.location.includes(u.location)) return false;
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         return u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term) || u.location?.toLowerCase().includes(term);
@@ -128,18 +146,43 @@ const AdminUsers = () => {
   return (
     <DashboardPage title="User Management">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
-          <p className="text-xs font-medium text-gray-500 uppercase">Total</p>
-          <p className="text-2xl font-bold text-gray-900">{users.length}</p>
-        </div>
-        {Object.entries(roleCounts).map(([role, count]) => (
-          <div key={role} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
-            <p className="text-xs font-medium text-gray-500 uppercase">{role}s</p>
-            <p className="text-2xl font-bold text-gray-900">{count}</p>
+      {(() => {
+        const roleIconMap = {
+          Freelancer: { iconBg: 'bg-blue-100',   iconColor: 'text-blue-600',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /> },
+          Employer:   { iconBg: 'bg-green-100',  iconColor: 'text-green-600',  icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /> },
+          Moderator:  { iconBg: 'bg-orange-100', iconColor: 'text-orange-600', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /> },
+          Admin:      { iconBg: 'bg-red-100',    iconColor: 'text-red-600',    icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" /> },
+        };
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+              <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500">Total</p>
+                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+              </div>
+            </div>
+            {Object.entries(roleCounts).map(([role, count]) => {
+              const ri = roleIconMap[role] || { iconBg: 'bg-gray-100', iconColor: 'text-gray-600', icon: null };
+              return (
+                <div key={role} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+                  <div className={`w-11 h-11 rounded-xl ${ri.iconBg} flex items-center justify-center flex-shrink-0`}>
+                    <svg className={`w-5 h-5 ${ri.iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">{ri.icon}</svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">{role}s</p>
+                    <p className="text-2xl font-bold text-gray-900">{count}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
@@ -153,130 +196,225 @@ const AdminUsers = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
           </div>
+          {/* Single consolidated sort dropdown */}
           <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
+            value={`${sortBy}_${sortOrder}`}
+            onChange={(e) => {
+              const [field, order] = e.target.value.split('_');
+              setSortBy(field);
+              setSortOrder(order);
+            }}
             className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
           >
-            <option value="all">All Roles</option>
-            <option value="Freelancer">Freelancer</option>
-            <option value="Employer">Employer</option>
-            <option value="Moderator">Moderator</option>
-            <option value="Admin">Admin</option>
+            <option value="date_desc">Date (Newest First)</option>
+            <option value="date_asc">Date (Oldest First)</option>
+            <option value="name_asc">Name (A–Z)</option>
+            <option value="name_desc">Name (Z–A)</option>
+            <option value="rating_desc">Rating (Highest)</option>
+            <option value="rating_asc">Rating (Lowest)</option>
           </select>
-          <select
-            value={subscriptionFilter}
-            onChange={(e) => setSubscriptionFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Subscriptions</option>
-            <option value="Basic">Basic</option>
-            <option value="Premium">Premium</option>
-          </select>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="date">Sort by Date</option>
-            <option value="name">Sort by Name</option>
-            <option value="rating">Sort by Rating</option>
-          </select>
-          <button
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
-          >
-            <i className={`fas fa-sort-amount-${sortOrder === 'asc' ? 'up' : 'down'}`}></i>
-          </button>
+          {/* Column visibility toggle */}
+          <SmartColumnToggle
+            columns={COLUMNS}
+            visible={visible}
+            onChange={setVisible}
+            storageKey="admin-users-columns"
+            label="Columns"
+          />
         </div>
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-[calc(90vh-20rem)] flex flex-col">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">User</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Role</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Subscription</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Rating</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Location</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Joined</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                {visible.has('user') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">User</th>
+                )}
+                {visible.has('email') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+                )}
+                {visible.has('role') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <div className="flex items-center gap-1.5">
+                      Role
+                      <SmartFilter
+                        label="Role"
+                        data={users}
+                        field="role"
+                        selectedValues={columnFilters.role}
+                        onFilterChange={setColFilter('role')}
+                      />
+                    </div>
+                  </th>
+                )}
+                {visible.has('subscription') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <div className="flex items-center gap-1.5">
+                      Subscription
+                      <SmartFilter
+                        label="Subscription"
+                        data={users}
+                        field="subscription"
+                        selectedValues={columnFilters.subscription}
+                        onFilterChange={setColFilter('subscription')}
+                      />
+                    </div>
+                  </th>
+                )}
+                {visible.has('rating') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <div className="flex items-center gap-1.5">
+                      Rating
+                      <SmartFilter
+                        label="Rating"
+                        data={users}
+                        field="rating"
+                        selectedValues={columnFilters.rating}
+                        onFilterChange={setColFilter('rating')}
+                        valueFormatter={(v) => `★ ${Number(v).toFixed(1)}`}
+                      />
+                    </div>
+                  </th>
+                )}
+                {visible.has('location') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <div className="flex items-center gap-1.5">
+                      Location
+                      <SmartFilter
+                        label="Location"
+                        data={users}
+                        field="location"
+                        selectedValues={columnFilters.location}
+                        onFilterChange={setColFilter('location')}
+                      />
+                    </div>
+                  </th>
+                )}
+                {visible.has('joined') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Joined</th>
+                )}
+                {visible.has('actions') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.length > 0 ? (
                 filtered.map((u) => (
                   <tr key={u.userId} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
-                          <img
-                            src={u.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'}
-                            alt={u.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => { e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'; }}
-                          />
+                    {visible.has('user') && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
+                            <img
+                              src={u.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'}
+                              alt={u.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'; }}
+                            />
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900 text-sm">{u.name || 'N/A'}</span>
+                          </div>
                         </div>
-                        <span className="font-medium text-gray-900 text-sm">{u.name || 'N/A'}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{u.email}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${roleColors[u.role] || 'bg-gray-100 text-gray-600'}`}>
-                        {u.role}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        u.subscription === 'Premium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {u.subscription === 'Premium' && <i className="fas fa-crown mr-1 text-[10px]"></i>}
-                        {u.subscription}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className="text-yellow-500"><i className="fas fa-star text-[10px] mr-1"></i></span>
-                      {u.rating?.toFixed(1) || 'N/A'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{u.location || 'N/A'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleAdjustRating(u)}
-                          className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-200 transition-colors inline-flex items-center gap-1"
-                          title="Adjust Rating"
-                        >
-                          <i className="fas fa-adjust"></i>
-                          Rating
-                        </button>
-                        <button
-                          onClick={() => handleViewHistory(u)}
-                          className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 transition-colors inline-flex items-center gap-1"
-                          title="View Rating History"
-                        >
-                          <i className="fas fa-history"></i>
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(u.userId)}
-                          className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200 transition-colors"
-                          title="Delete User"
-                        >
-                          <i className="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </td>
+                      </td>
+                    )}
+                    {visible.has('email') && (
+                      <td className="px-4 py-3 text-sm text-gray-600">{u.email}</td>
+                    )}
+                    {visible.has('role') && (
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${roleColors[u.role] || 'bg-gray-100 text-gray-600'}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                    )}
+                    {visible.has('subscription') && (
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          u.subscription === 'Premium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {u.subscription === 'Premium' && <i className="fas fa-crown mr-1 text-[10px]"></i>}
+                          {u.subscription}
+                        </span>
+                      </td>
+                    )}
+                    {visible.has('rating') && (
+                      <td className="px-4 py-3 text-sm">
+                        {(u.role === 'Moderator' || u.role === 'Admin')
+                          ? <span className="text-gray-300 text-xs">—</span>
+                          : <><span className="text-yellow-500"><i className="fas fa-star text-[10px] mr-1"></i></span>{u.rating?.toFixed(1) || 'N/A'}</>
+                        }
+                      </td>
+                    )}
+                    {visible.has('location') && (
+                      <td className="px-4 py-3 text-sm text-gray-500">{u.location || 'N/A'}</td>
+                    )}
+                    {visible.has('joined') && (
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}
+                      </td>
+                    )}
+                    {visible.has('actions') && (
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                          {
+                            (u.role === 'Moderator' || u.role === 'Admin') ? (
+                              <>
+                                <button
+                                  disabled
+                                  title="Unavailable for this role"
+                                  className="px-3 py-1.5 bg-gray-100 text-gray-300 rounded-lg text-xs font-medium cursor-not-allowed inline-flex items-center gap-1"
+                                >
+                                  <i className="fas fa-adjust"></i>
+                                  Rating
+                                </button>
+                                <button
+                                  disabled
+                                  title="Unavailable for this role"
+                                  className="px-3 py-1.5 bg-gray-100 text-gray-300 rounded-lg text-xs font-medium cursor-not-allowed inline-flex items-center gap-1"
+                                >
+                                  <i className="fas fa-history"></i>
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleAdjustRating(u)}
+                                  className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-200 transition-colors inline-flex items-center gap-1"
+                                  title="Adjust Rating"
+                                >
+                                  <i className="fas fa-adjust"></i>
+                                  Rating
+                                </button>
+                                <button
+                                  onClick={() => handleViewHistory(u)}
+                                  className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors inline-flex items-center gap-1"
+                                  title="View Rating History"
+                                >
+                                  <i className="fas fa-history"></i>
+                                </button>
+                              </>
+                            )
+                          }
+                          <button
+                            onClick={() => setDeleteConfirm(u.userId)}
+                            className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200 transition-colors"
+                            title="Delete User"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="px-4 py-12 text-center text-gray-400">
+                  <td colSpan={visible.size} className="px-4 py-12 text-center text-gray-400">
                     No users found
                   </td>
                 </tr>
@@ -284,7 +422,7 @@ const AdminUsers = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500">
+        <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500 mt-auto">
           Showing {filtered.length} of {users.length} users
         </div>
       </div>
