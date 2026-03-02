@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import ApplicationDetailsModal from '../../../components/employer/ApplicationDetailsModal';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
@@ -19,6 +20,9 @@ const APP_COLUMNS = [
 ];
 
 const EmployerApplications = () => {
+  const [searchParams] = useSearchParams();
+  const jobIdFilter = searchParams.get('jobId'); // Get jobId from URL query
+  
   const [applications, setApplications] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, accepted: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
@@ -26,7 +30,7 @@ const EmployerApplications = () => {
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  // SmartFilter states
+  // SmartFilter states for column-level filtering
   const [freelancerFilters, setFreelancerFilters] = useState([]);
   const [jobFilters, setJobFilters] = useState([]);
   const [statusFilters, setStatusFilters] = useState([]);
@@ -36,15 +40,30 @@ const EmployerApplications = () => {
 
   const cols = useSmartColumnToggle(APP_COLUMNS, 'employer-apps-cols');
 
-  useEffect(() => { fetchApplications(); }, []);
+  useEffect(() => { fetchApplications(); }, [jobIdFilter]);
 
   const fetchApplications = async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_BASE_URL}/api/employer/job_applications/api/data`, { withCredentials: true });
       if (response.data.success) {
-        setApplications(response.data.data.applications);
-        setStats(response.data.data.stats);
+        let allApplications = response.data.data.applications;
+        
+        // Filter by jobId if provided in URL
+        if (jobIdFilter) {
+          allApplications = allApplications.filter(app => app.jobId === jobIdFilter);
+        }
+        
+        setApplications(allApplications);
+        
+        // Calculate statistics based on filtered applications
+        const filteredStats = {
+          total: allApplications.length,
+          pending: allApplications.filter(app => app.status === 'Pending').length,
+          accepted: allApplications.filter(app => app.status === 'Accepted').length,
+          rejected: allApplications.filter(app => app.status === 'Rejected').length,
+        };
+        setStats(filteredStats);
       }
     } catch (error) {
       console.error('Error fetching applications:', error);
@@ -157,8 +176,11 @@ const EmployerApplications = () => {
     dateFilters.length + ratingFilters.length +
     (searchTerm ? 1 : 0);
 
+  // Get the job title if filtering by specific job
+  const filteredJobTitle = jobIdFilter && applications.length > 0 ? applications[0].jobTitle : null;
+
   return (
-    <DashboardPage title="Applications">
+    <DashboardPage title={filteredJobTitle ? `Applications for ${filteredJobTitle}` : "Applications"}>
       <div className="space-y-6">
         <p className="text-gray-600">Review and manage applications for your job listings</p>
 
@@ -190,8 +212,8 @@ const EmployerApplications = () => {
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex-1 min-w-[200px] relative">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative">
               <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
               <input
                 type="text"

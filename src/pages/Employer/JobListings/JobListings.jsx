@@ -220,25 +220,39 @@ const EmployerJobListings = () => {
                       </div>
                     </div>
 
-                    <div className="flex-shrink-0 flex flex-col gap-2">
-                      <button
-                        onClick={() => navigate(`/jobs/${job.jobId}`)}
-                        className="border-2 border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium"
-                      >
-                        View Details
-                      </button>
-                      <button
-                        onClick={() => navigate(`/employer/job-listings/edit/${job.jobId}`)}
-                        className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all font-medium"
-                      >
-                        <i className="fas fa-edit"></i> Edit
-                      </button>
-                      <button
-                        onClick={() => setDeleteModal({ show: true, jobId: job.jobId })}
-                        className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all font-medium"
-                      >
-                        <i className="fas fa-trash"></i> Delete
-                      </button>
+                    <div className="flex-shrink-0 flex gap-2">
+                      {/* Left Side: Applicants */}
+                      <div className="flex items-start">
+                        <button
+                          onClick={() => navigate(`/employer/applications?jobId=${job.jobId}`)}
+                          className="border-2 border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-semibold whitespace-nowrap flex items-center gap-2"
+                        >
+                          <i className="fas fa-users"></i>
+                          <span className="text-lg">{job.applicationCount || 0}</span>
+                          <span>applicants</span>
+                        </button>
+                      </div>
+                      {/* Right Side: View, Edit, Delete */}
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => navigate(`/jobs/${job.jobId}`)}
+                          className="w-32 border-2 border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => navigate(`/employer/job-listings/edit/${job.jobId}`)}
+                          className="w-32 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all font-medium"
+                        >
+                          <i className="fas fa-edit mr-2"></i>Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteModal({ show: true, jobId: job.jobId })}
+                          className="w-32 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all font-medium"
+                        >
+                          <i className="fas fa-trash mr-2"></i>Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
