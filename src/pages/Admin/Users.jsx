@@ -291,7 +291,9 @@ const AdminUsers = () => {
                               onError={(e) => { e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'; }}
                             />
                           </div>
-                          <span className="font-medium text-gray-900 text-sm">{u.name || 'N/A'}</span>
+                          <div>
+                            <span className="font-medium text-gray-900 text-sm">{u.name || 'N/A'}</span>
+                          </div>
                         </div>
                       </td>
                     )}
@@ -317,8 +319,10 @@ const AdminUsers = () => {
                     )}
                     {visible.has('rating') && (
                       <td className="px-4 py-3 text-sm">
-                        <span className="text-yellow-500"><i className="fas fa-star text-[10px] mr-1"></i></span>
-                        {u.rating?.toFixed(1) || 'N/A'}
+                        {(u.role === 'Moderator' || u.role === 'Admin')
+                          ? <span className="text-gray-300 text-xs">—</span>
+                          : <><span className="text-yellow-500"><i className="fas fa-star text-[10px] mr-1"></i></span>{u.rating?.toFixed(1) || 'N/A'}</>
+                        }
                       </td>
                     )}
                     {visible.has('location') && (
@@ -330,23 +334,47 @@ const AdminUsers = () => {
                       </td>
                     )}
                     {visible.has('actions') && (
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleAdjustRating(u)}
-                            className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-200 transition-colors inline-flex items-center gap-1"
-                            title="Adjust Rating"
-                          >
-                            <i className="fas fa-adjust"></i>
-                            Rating
-                          </button>
-                          <button
-                            onClick={() => handleViewHistory(u)}
-                            className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 transition-colors inline-flex items-center gap-1"
-                            title="View Rating History"
-                          >
-                            <i className="fas fa-history"></i>
-                          </button>
+                          {
+                            (u.role === 'Moderator' || u.role === 'Admin') ? (
+                              <>
+                                <button
+                                  disabled
+                                  title="Unavailable for this role"
+                                  className="px-3 py-1.5 bg-gray-100 text-gray-300 rounded-lg text-xs font-medium cursor-not-allowed inline-flex items-center gap-1"
+                                >
+                                  <i className="fas fa-adjust"></i>
+                                  Rating
+                                </button>
+                                <button
+                                  disabled
+                                  title="Unavailable for this role"
+                                  className="px-3 py-1.5 bg-gray-100 text-gray-300 rounded-lg text-xs font-medium cursor-not-allowed inline-flex items-center gap-1"
+                                >
+                                  <i className="fas fa-history"></i>
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleAdjustRating(u)}
+                                  className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-xs font-medium hover:bg-purple-200 transition-colors inline-flex items-center gap-1"
+                                  title="Adjust Rating"
+                                >
+                                  <i className="fas fa-adjust"></i>
+                                  Rating
+                                </button>
+                                <button
+                                  onClick={() => handleViewHistory(u)}
+                                  className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors inline-flex items-center gap-1"
+                                  title="View Rating History"
+                                >
+                                  <i className="fas fa-history"></i>
+                                </button>
+                              </>
+                            )
+                          }
                           <button
                             onClick={() => setDeleteConfirm(u.userId)}
                             className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200 transition-colors"

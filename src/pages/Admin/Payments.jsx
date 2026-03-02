@@ -1,15 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import DashboardPage from '../../components/DashboardPage';
+import SmartFilter from '../../components/SmartFilter';
+import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+
+const COLUMNS = [
+  { key: 'job',        label: 'Job',        defaultVisible: true },
+  { key: 'milestone',  label: 'Milestone',  defaultVisible: true },
+  { key: 'employer',   label: 'Employer',   defaultVisible: true },
+  { key: 'freelancer', label: 'Freelancer', defaultVisible: true },
+  { key: 'amount',     label: 'Amount',     defaultVisible: true },
+  { key: 'status',     label: 'Status',     defaultVisible: true },
+  { key: 'date',       label: 'Date',       defaultVisible: true },
+];
+
+const SORT_OPTIONS = [
+  { value: 'date-desc',   label: 'Date: Newest First' },
+  { value: 'date-asc',    label: 'Date: Oldest First' },
+  { value: 'amount-desc', label: 'Amount: Highest First' },
+  { value: 'amount-asc',  label: 'Amount: Lowest First' },
+  { value: 'job-asc',     label: 'Job: A → Z' },
+  { value: 'job-desc',    label: 'Job: Z → A' },
+];
 
 const AdminPayments = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [sortKey, setSortKey] = useState('date-desc');
+  const { visible, setVisible } = useSmartColumnToggle(COLUMNS, 'admin-payments-columns');
+
+  // Per-column SmartFilter state
+  const [jobFilters,        setJobFilters]        = useState([]);
+  const [milestoneFilters,  setMilestoneFilters]  = useState([]);
+  const [employerFilters,   setEmployerFilters]   = useState([]);
+  const [freelancerFilters, setFreelancerFilters] = useState([]);
+  const [statusFilters,     setStatusFilters]     = useState([]);
 
   useEffect(() => {
     const fetchPayments = async () => {
@@ -30,13 +57,21 @@ const AdminPayments = () => {
 
   const formatCurrency = (val) => `₹${(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  const hasActiveFilters =
+    jobFilters.length || milestoneFilters.length || employerFilters.length ||
+    freelancerFilters.length || statusFilters.length;
+
+  const clearAllFilters = () => {
+    setJobFilters([]);
+    setMilestoneFilters([]);
+    setEmployerFilters([]);
+    setFreelancerFilters([]);
+    setStatusFilters([]);
+  };
+
+  const [sortField, sortDir] = sortKey.split('-');
+
   const filtered = payments
-    .filter((p) => {
-      if (filter === 'paid') return p.status === 'Paid';
-      if (filter === 'pending') return p.status === 'Pending';
-      if (filter === 'in-progress') return p.status === 'In Progress';
-      return true;
-    })
     .filter((p) => {
       if (!searchTerm) return true;
       const term = searchTerm.toLowerCase();
@@ -47,12 +82,17 @@ const AdminPayments = () => {
         p.companyName?.toLowerCase().includes(term)
       );
     })
+    .filter((p) => !jobFilters.length        || jobFilters.includes(p.jobTitle))
+    .filter((p) => !milestoneFilters.length  || milestoneFilters.includes(p.milestoneDescription))
+    .filter((p) => !employerFilters.length   || employerFilters.includes(p.employerName))
+    .filter((p) => !freelancerFilters.length || freelancerFilters.includes(p.freelancerName))
+    .filter((p) => !statusFilters.length     || statusFilters.includes(p.status))
     .sort((a, b) => {
       let cmp = 0;
-      if (sortBy === 'date') cmp = new Date(a.date) - new Date(b.date);
-      else if (sortBy === 'amount') cmp = a.amount - b.amount;
-      else if (sortBy === 'job') cmp = (a.jobTitle || '').localeCompare(b.jobTitle || '');
-      return sortOrder === 'desc' ? -cmp : cmp;
+      if (sortField === 'date')   cmp = new Date(a.date) - new Date(b.date);
+      if (sortField === 'amount') cmp = (a.amount || 0) - (b.amount || 0);
+      if (sortField === 'job')    cmp = (a.jobTitle || '').localeCompare(b.jobTitle || '');
+      return sortDir === 'desc' ? -cmp : cmp;
     });
 
   const totalPaid = payments.filter(p => p.status === 'Paid').reduce((s, p) => s + p.amount, 0);
@@ -92,9 +132,9 @@ const AdminPayments = () => {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Toolbar */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex-1 min-w-[200px]">
             <input
               type="text"
@@ -105,30 +145,32 @@ const AdminPayments = () => {
             />
           </div>
           <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
           >
-            <option value="all">All Status</option>
-            <option value="paid">Paid</option>
-            <option value="pending">Pending</option>
-            <option value="in-progress">In Progress</option>
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="date">Sort by Date</option>
-            <option value="amount">Sort by Amount</option>
-            <option value="job">Sort by Job</option>
-          </select>
-          <button
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
-          >
-            <i className={`fas fa-sort-amount-${sortOrder === 'asc' ? 'up' : 'down'}`}></i>
-          </button>
+          <SmartColumnToggle
+            columns={COLUMNS}
+            visible={visible}
+            onChange={setVisible}
+            storageKey="admin-payments-columns"
+            label="Columns"
+          />
+          {hasActiveFilters > 0 && (
+            <button
+              onClick={clearAllFilters}
+              className="px-3 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1.5"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear Filters
+            </button>
+          )}
         </div>
       </div>
 
@@ -138,48 +180,131 @@ const AdminPayments = () => {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Job</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Milestone</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Employer</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Freelancer</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Amount</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                {visible.has('job') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <div className="flex items-center gap-1.5">
+                      Job
+                      <SmartFilter
+                        label="Job"
+                        data={payments}
+                        field="jobTitle"
+                        selectedValues={jobFilters}
+                        onFilterChange={setJobFilters}
+                      />
+                    </div>
+                  </th>
+                )}
+                {visible.has('milestone') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <div className="flex items-center gap-1.5">
+                      Milestone
+                      <SmartFilter
+                        label="Milestone"
+                        data={payments}
+                        field="milestoneDescription"
+                        selectedValues={milestoneFilters}
+                        onFilterChange={setMilestoneFilters}
+                      />
+                    </div>
+                  </th>
+                )}
+                {visible.has('employer') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <div className="flex items-center gap-1.5">
+                      Employer
+                      <SmartFilter
+                        label="Employer"
+                        data={payments}
+                        field="employerName"
+                        selectedValues={employerFilters}
+                        onFilterChange={setEmployerFilters}
+                      />
+                    </div>
+                  </th>
+                )}
+                {visible.has('freelancer') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <div className="flex items-center gap-1.5">
+                      Freelancer
+                      <SmartFilter
+                        label="Freelancer"
+                        data={payments}
+                        field="freelancerName"
+                        selectedValues={freelancerFilters}
+                        onFilterChange={setFreelancerFilters}
+                      />
+                    </div>
+                  </th>
+                )}
+                {visible.has('amount') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Amount</th>
+                )}
+                {visible.has('status') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <div className="flex items-center gap-1.5">
+                      Status
+                      <SmartFilter
+                        label="Status"
+                        data={payments}
+                        field="status"
+                        selectedValues={statusFilters}
+                        onFilterChange={setStatusFilters}
+                      />
+                    </div>
+                  </th>
+                )}
+                {visible.has('date') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.length > 0 ? (
                 filtered.map((payment, i) => (
                   <tr key={i} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900 text-sm truncate max-w-[180px]">{payment.jobTitle}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-sm text-gray-600 truncate max-w-[150px]">{payment.milestoneDescription}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-sm text-gray-900">{payment.employerName}</p>
-                      <p className="text-xs text-gray-500">{payment.companyName}</p>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{payment.freelancerName}</td>
-                    <td className="px-4 py-3 text-sm font-bold text-gray-900">{formatCurrency(payment.amount)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        payment.status === 'Paid' ? 'bg-green-100 text-green-700' :
-                        payment.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-                        'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {payment.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {payment.date ? new Date(payment.date).toLocaleDateString() : 'N/A'}
-                    </td>
+                    {visible.has('job') && (
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-gray-900 text-sm truncate max-w-[180px]">{payment.jobTitle}</p>
+                      </td>
+                    )}
+                    {visible.has('milestone') && (
+                      <td className="px-4 py-3">
+                        <p className="text-sm text-gray-600 truncate max-w-[150px]">{payment.milestoneDescription}</p>
+                      </td>
+                    )}
+                    {visible.has('employer') && (
+                      <td className="px-4 py-3">
+                        <p className="text-sm text-gray-900">{payment.employerName}</p>
+                        <p className="text-xs text-gray-500">{payment.companyName}</p>
+                      </td>
+                    )}
+                    {visible.has('freelancer') && (
+                      <td className="px-4 py-3 text-sm text-gray-900">{payment.freelancerName}</td>
+                    )}
+                    {visible.has('amount') && (
+                      <td className="px-4 py-3 text-sm font-bold text-gray-900">{formatCurrency(payment.amount)}</td>
+                    )}
+                    {visible.has('status') && (
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          payment.status === 'Paid' ? 'bg-green-100 text-green-700' :
+                          payment.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
+                          'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {payment.status}
+                        </span>
+                      </td>
+                    )}
+                    {visible.has('date') && (
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {payment.date ? new Date(payment.date).toLocaleDateString() : 'N/A'}
+                      </td>
+                    )}
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="px-4 py-12 text-center text-gray-400">
+                  <td colSpan={visible.size} className="px-4 py-12 text-center text-gray-400">
                     No payments found
                   </td>
                 </tr>

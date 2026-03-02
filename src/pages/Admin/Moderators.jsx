@@ -2,185 +2,208 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import { useChatContext } from '../../context/ChatContext';
+import SmartFilter from '../../components/SmartFilter';
+import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
+// ── Column definitions ──────────────────────────────────────────────────────
+const MOD_COLUMNS = [
+  { key: 'photo',    label: 'Photo',    defaultVisible: true },
+  { key: 'name',     label: 'Name',     defaultVisible: true },
+  { key: 'email',    label: 'Email',    defaultVisible: true },
+  { key: 'location', label: 'Location', defaultVisible: true },
+  { key: 'joined',   label: 'Joined',   defaultVisible: true },
+  { key: 'actions',  label: 'Actions',  defaultVisible: true },
+];
+
+
+// ── Sort option sets ──────────────────────────────────────────────────────────
+const MOD_SORT_OPTIONS = [
+  { value: 'date_desc',   label: 'Date (Newest First)' },
+  { value: 'date_asc',    label: 'Date (Oldest First)' },
+  { value: 'name_asc',    label: 'Name (A–Z)' },
+  { value: 'name_desc',   label: 'Name (Z–A)' },
+];
+
+
+// ── Shared small components ───────────────────────────────────────────────────
+const AVATAR_FALLBACK = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png';
+
+const Avatar = ({ src, name }) => (
+  <img src={src || AVATAR_FALLBACK} alt={name}
+    className="w-10 h-10 rounded-full object-cover border border-gray-200"
+    onError={(e) => { e.target.src = AVATAR_FALLBACK; }} />
+);
+
+// ── Main Component ────────────────────────────────────────────────────────────
 const AdminModerators = () => {
-  const [moderators, setModerators] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const { openChatWith } = useChatContext();
 
-  useEffect(() => {
-    fetchModerators();
-  }, []);
+  // ── Moderators state ──
+  const [moderators, setModerators]       = useState([]);
+  const [modLoading, setModLoading]       = useState(true);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [modSearch, setModSearch]         = useState('');
+  const [modSort, setModSort]             = useState('date_desc');
+  const [modFilters, setModFilters]       = useState({ location: [] });
+  const { visible: modVisible, setVisible: setModVisible } = useSmartColumnToggle(MOD_COLUMNS, 'admin-moderators-columns');
+
+  // ── Fetching ──────────────────────────────────────────────────────────────
+  useEffect(() => { fetchModerators(); }, []);
 
   const fetchModerators = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/admin/moderators`, { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) setModerators(data.moderators);
-      }
-    } catch (error) {
-      console.error('Error fetching moderators:', error);
-    } finally {
-      setLoading(false);
-    }
+      if (res.ok) { const d = await res.json(); if (d.success) setModerators(d.moderators); }
+    } catch (e) { console.error(e); } finally { setModLoading(false); }
   };
 
-  const handleDelete = async (moderatorId) => {
+  const handleDeleteModerator = async (moderatorId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/moderators/${moderatorId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (res.ok) {
-        setModerators(moderators.filter(m => m.moderatorId !== moderatorId));
-        setDeleteConfirm(null);
-      }
-    } catch (error) {
-      console.error('Error deleting moderator:', error);
-    }
+      const res = await fetch(`${API_BASE}/api/admin/moderators/${moderatorId}`, { method: 'DELETE', credentials: 'include' });
+      if (res.ok) { setModerators((prev) => prev.filter((m) => m.moderatorId !== moderatorId)); setDeleteConfirm(null); }
+    } catch (e) { console.error(e); }
   };
 
-  const filtered = moderators.filter((m) => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return m.name?.toLowerCase().includes(term) || m.email?.toLowerCase().includes(term) || m.location?.toLowerCase().includes(term);
-  });
+  // ── Sort + filter helper ──────────────────────────────────────────────────
+  const applySortAndFilter = (data, sortStr, search, searchFields, filters, labelMap = {}) => {
+    const [field, dir] = sortStr.split('_');
+    const term = search.toLowerCase();
+    return data
+      .filter((item) => {
+        if (term && !searchFields.some((f) => (item[f] || '').toLowerCase().includes(term))) return false;
+        return Object.entries(filters).every(([k, vals]) => {
+          if (!vals.length) return true;
+          const val = labelMap[k] ? labelMap[k](item) : item[k];
+          return vals.includes(val);
+        });
+      })
+      .sort((a, b) => {
+        let cmp = 0;
+        if (field === 'date')         cmp = new Date(a.joinedDate) - new Date(b.joinedDate);
+        else if (field === 'name')    cmp = (a.name || '').localeCompare(b.name || '');
+        else if (field === 'rating')  cmp = (a.rating || 0) - (b.rating || 0);
+        else if (field === 'applications') cmp = (a.applicationsCount || 0) - (b.applicationsCount || 0);
+        else if (field === 'jobs')    cmp = (a.jobListingsCount || 0) - (b.jobListingsCount || 0);
+        else if (field === 'hired')   cmp = (a.hiredCount || 0) - (b.hiredCount || 0);
+        return dir === 'desc' ? -cmp : cmp;
+      });
+  };
 
-  const totalResolved = moderators[0]?.complaintsResolved || 0;
-  const totalComplaints = moderators[0]?.totalComplaints || 0;
+  const filteredMods = applySortAndFilter(moderators, modSort, modSearch, ['name', 'email', 'location'], modFilters);
 
-  if (loading) {
-    return (
-      <DashboardPage title="Moderator Management">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mb-3"></div>
-          <p className="text-gray-500">Loading moderators...</p>
-        </div>
-      </DashboardPage>
-    );
-  }
+  // ── Derived stats ──────────────────────────────────────────────────────────
+  const totalResolved   = moderators.reduce((s, m) => s + (m.complaintsResolved || 0), 0);
+  const totalComplaints = moderators.reduce((s, m) => s + (m.totalComplaints || 0), 0);
+  const blogsCreated    = moderators.reduce((s, m) => s + (m.blogsCreated || 0), 0);
+
+  const LoadingSpinner = () => (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+      <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mb-3"></div>
+      <p className="text-gray-500 text-sm">Loading…</p>
+    </div>
+  );
+
+  const ClearFiltersBtn = ({ filters, onClear }) =>
+    Object.values(filters).some((v) => v.length > 0) ? (
+      <button onClick={onClear}
+        className="px-3 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1.5">
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        Clear Filters
+      </button>
+    ) : null;
 
   return (
     <DashboardPage title="Moderator Management">
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Moderators</p>
-          <p className="text-2xl font-bold text-gray-900">{moderators.length}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Complaints Resolved</p>
-          <p className="text-2xl font-bold text-green-600">{totalResolved}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Complaints</p>
-          <p className="text-2xl font-bold text-orange-600">{totalComplaints}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Blogs Created</p>
-          <p className="text-2xl font-bold text-blue-600">{moderators[0]?.blogsCreated || 0}</p>
-        </div>
-      </div>
 
-      {/* Search */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex-1 min-w-[200px]">
-            <input
-              type="text"
-              placeholder="Search by name, email, or location..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-            />
+      {/* ══════════════════ MODERATORS ══════════════════ */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {[
+              { label: 'Total Moderators',    value: moderators.length, color: 'text-gray-900' },
+              { label: 'Complaints Resolved', value: totalResolved,     color: 'text-green-600' },
+              { label: 'Total Complaints',    value: totalComplaints,   color: 'text-orange-600' },
+              { label: 'Blogs Created',       value: blogsCreated,      color: 'text-blue-600' },
+            ].map((s) => (
+              <div key={s.label} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{s.label}</p>
+                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+              </div>
+            ))}
           </div>
-          <div className="text-sm text-gray-500">
-            Showing: {filtered.length} of {moderators.length}
-          </div>
-        </div>
-      </div>
 
-      {/* Moderators Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Photo</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Rating</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Location</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Joined</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.length > 0 ? (
-                filtered.map((mod) => (
-                  <tr
-                    key={mod.moderatorId}
-                    className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/admin/moderators/${mod.moderatorId}`)}
-                  >
-                    <td className="px-4 py-3">
-                      <img
-                        src={mod.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'}
-                        alt={mod.name}
-                        className="w-10 h-10 rounded-full object-cover border border-gray-200"
-                        onError={(e) => { e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'; }}
-                      />
-                    </td>
-                    <td className="px-4 py-3 font-medium text-gray-900 text-sm">{mod.name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{mod.email}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex items-center gap-1">
-                        <span className="text-yellow-500"><i className="fas fa-star text-[10px]"></i></span>
-                        <span className="font-medium text-gray-900">{mod.rating?.toFixed(1) || '0.0'}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{mod.location && mod.location !== 'N/A' ? mod.location : '—'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {mod.joinedDate ? new Date(mod.joinedDate).toLocaleDateString() : 'N/A'}
-                    </td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openChatWith(mod.userId)}
-                          className="px-3 py-1.5 bg-emerald-600 text-white rounded-md text-xs font-medium hover:bg-emerald-700 transition-colors"
-                        >
-                          Chat
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(mod.moderatorId)}
-                          className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700 transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="7" className="px-4 py-12 text-center text-gray-400">
-                    No moderators found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500">
-          Showing {filtered.length} of {moderators.length} moderators
-        </div>
-      </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex-1 min-w-[200px]">
+                <input type="text" placeholder="Search by name, email, or location..."
+                  value={modSearch} onChange={(e) => setModSearch(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" />
+              </div>
+              <select value={modSort} onChange={(e) => setModSort(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white">
+                {MOD_SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <SmartColumnToggle columns={MOD_COLUMNS} visible={modVisible} onChange={setModVisible} storageKey="admin-moderators-columns" label="Columns" />
+              <ClearFiltersBtn filters={modFilters} onClear={() => setModFilters({ location: [] })} />
+            </div>
+          </div>
+
+          {modLoading ? <LoadingSpinner /> : (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      {modVisible.has('photo')    && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Photo</th>}
+                      {modVisible.has('name')     && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Name</th>}
+                      {modVisible.has('email')    && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>}
+                      {modVisible.has('location') && (
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                          <div className="flex items-center gap-1.5">Location
+                            <SmartFilter label="Location" data={moderators} field="location" selectedValues={modFilters.location}
+                              onFilterChange={(v) => setModFilters((p) => ({ ...p, location: v }))} />
+                          </div>
+                        </th>
+                      )}
+                      {modVisible.has('joined')   && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Joined</th>}
+                      {modVisible.has('actions')  && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredMods.length > 0 ? filteredMods.map((mod) => (
+                      <tr key={mod.moderatorId} className="hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/admin/moderators/${mod.moderatorId}`)}>
+                        {modVisible.has('photo')    && <td className="px-4 py-3"><Avatar src={mod.picture} name={mod.name} /></td>}
+                        {modVisible.has('name')     && <td className="px-4 py-3 font-medium text-gray-900 text-sm">{mod.name}</td>}
+                        {modVisible.has('email')    && <td className="px-4 py-3 text-sm text-gray-600">{mod.email}</td>}
+                        {modVisible.has('location') && <td className="px-4 py-3 text-sm text-gray-600">{mod.location && mod.location !== 'N/A' ? mod.location : '—'}</td>}
+                        {modVisible.has('joined')   && <td className="px-4 py-3 text-sm text-gray-500">{mod.joinedDate ? new Date(mod.joinedDate).toLocaleDateString() : 'N/A'}</td>}
+                        {modVisible.has('actions')  && (
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex gap-2">
+                              <button onClick={() => openChatWith(mod.userId)}
+                                className="px-3 py-1.5 bg-emerald-600 text-white rounded-md text-xs font-medium hover:bg-emerald-700 transition-colors">Chat</button>
+                              <button onClick={() => setDeleteConfirm(mod.moderatorId)}
+                                className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700 transition-colors">Delete</button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    )) : (
+                      <tr><td colSpan={modVisible.size} className="px-4 py-12 text-center text-gray-400">No moderators found</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500">
+                Showing {filteredMods.length} of {moderators.length} moderators
+              </div>
+            </div>
+          )}
+
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
@@ -189,18 +212,10 @@ const AdminModerators = () => {
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Moderator</h3>
             <p className="text-sm text-gray-600 mb-4">This will permanently delete this moderator and their user account. This action cannot be undone.</p>
             <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
-              >
-                Delete
-              </button>
+              <button onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">Cancel</button>
+              <button onClick={() => handleDeleteModerator(deleteConfirm)}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">Delete</button>
             </div>
           </div>
         </div>
