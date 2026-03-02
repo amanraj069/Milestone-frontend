@@ -267,12 +267,12 @@ const ComplaintDetail = () => {
 
     return (
       <div className="flex-1">
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-gray-900 text-base">{name}</span>
             <span className={`px-2 py-0.5 rounded text-sm font-medium ${badgeClass}`}>{badgeLabel}</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {pendingRating && (
               <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
                 {pendingRating.adjustment > 0 ? '+' : ''}{pendingRating.adjustment.toFixed(1)} pending
@@ -281,47 +281,49 @@ const ComplaintDetail = () => {
             <span className="text-base font-bold text-amber-500">
               {displayRating?.toFixed(1) || 'N/A'} <span className="text-amber-400">&#9733;</span>
             </span>
+            {!isExpanded && !isComplaintClosed && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openRatingAdjust(type)}
+                  className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
+                >
+                  {pendingRating ? 'Modify' : 'Adjust'}
+                </button>
+                {pendingRating && (
+                  <button
+                    type="button"
+                    onClick={() => setPendingRatings(prev => ({ ...prev, [type]: null }))}
+                    className="px-3 py-1.5 bg-white text-red-600 border border-red-300 rounded-md text-sm font-medium hover:bg-red-50 transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleViewHistory(type)}
+                  className="px-3 py-1.5 bg-white text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  History
+                </button>
+              </div>
+            )}
+            {isComplaintClosed && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleViewHistory(type)}
+                  className="px-3 py-1.5 bg-white text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  History
+                </button>
+                <span className="text-sm text-gray-500">Closed</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {!isExpanded && !isComplaintClosed ? (
-          <div className="flex gap-2 mt-2">
-            <button
-              type="button"
-              onClick={() => openRatingAdjust(type)}
-              className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
-            >
-              {pendingRating ? 'Modify Adjustment' : 'Adjust Rating'}
-            </button>
-            {pendingRating && (
-              <button
-                type="button"
-                onClick={() => setPendingRatings(prev => ({ ...prev, [type]: null }))}
-                className="px-3 py-1.5 bg-white text-red-600 border border-red-300 rounded-md text-sm font-medium hover:bg-red-50 transition-colors"
-              >
-                Clear
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => handleViewHistory(type)}
-              className="px-3 py-1.5 bg-white text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
-            >
-              History
-            </button>
-          </div>
-        ) : isComplaintClosed ? (
-          <div className="mt-2 flex gap-2">
-            <button
-              type="button"
-              onClick={() => handleViewHistory(type)}
-              className="px-3 py-1.5 bg-white text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
-            >
-              History
-            </button>
-            <span className="text-sm text-gray-500 self-center">Rating adjustment disabled (complaint closed)</span>
-          </div>
-        ) : isExpanded ? (
+        {isExpanded ? (
           <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-3">
             {/* +/- Controls */}
             <div className="flex items-center gap-3">
