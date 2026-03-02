@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
+import SmartSearchInput from '../../components/SmartSearchInput';
 
 // Delete Confirmation Modal Component
 const DeleteModal = ({ isOpen, onClose, onConfirm, blogTitle, isDeleting }) => {
@@ -88,6 +89,7 @@ const ModeratorBlogs = () => {
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchBy, setSearchBy] = useState('title');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [featuredFilter, setFeaturedFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date-desc');
@@ -157,14 +159,16 @@ const ModeratorBlogs = () => {
   const filteredBlogs = useMemo(() => {
     let list = [...blogs];
 
-    // Search filter
+    // Search filter based on selected field
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      list = list.filter(b =>
-        b.title?.toLowerCase().includes(term) ||
-        b.category?.toLowerCase().includes(term) ||
-        b.excerpt?.toLowerCase().includes(term)
-      );
+      if (searchBy === 'title') {
+        list = list.filter(b => b.title?.toLowerCase().includes(term));
+      } else if (searchBy === 'category') {
+        list = list.filter(b => b.category?.toLowerCase().includes(term));
+      } else if (searchBy === 'content') {
+        list = list.filter(b => b.excerpt?.toLowerCase().includes(term));
+      }
     }
 
     // Category filter
@@ -200,7 +204,7 @@ const ModeratorBlogs = () => {
     }
 
     return list;
-  }, [blogs, searchTerm, categoryFilter, featuredFilter, sortBy]);
+  }, [blogs, searchTerm, searchBy, categoryFilter, featuredFilter, sortBy]);
 
   // Stats calculations
   const totalBlogs = blogs.length;
@@ -251,25 +255,14 @@ const ModeratorBlogs = () => {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-md p-4">
+        <div className="bg-white rounded-xl shadow-md p-4 space-y-4">
+          {/* Top Row - Filter Controls */}
           <div className="flex flex-wrap items-center gap-3">
-            {/* Search Input */}
-            <div className="flex-1 min-w-[200px] relative">
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-              <input
-                type="text"
-                placeholder="Search by title, category..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
-            </div>
-
             {/* Category Filter */}
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white max-w-[200px]"
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[160px]"
             >
               <option value="all">All Categories</option>
               {uniqueCategories.map(cat => (
@@ -281,10 +274,10 @@ const ModeratorBlogs = () => {
             <select
               value={featuredFilter}
               onChange={(e) => setFeaturedFilter(e.target.value)}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[160px]"
             >
-              <option value="all">All Blogs</option>
-              <option value="featured">Featured Only</option>
+              <option value="all">All</option>
+              <option value="featured">Featured</option>
               <option value="non-featured">Non-Featured</option>
             </select>
 
@@ -292,7 +285,7 @@ const ModeratorBlogs = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[160px]"
             >
               <option value="date-desc">Newest First</option>
               <option value="date-asc">Oldest First</option>
@@ -300,27 +293,73 @@ const ModeratorBlogs = () => {
               <option value="title-desc">Title Z-A</option>
             </select>
 
+            {/* Showing Count */}
+            <div className="ml-auto text-sm text-gray-600 font-medium">
+              Showing: <span className="text-gray-900">{filteredBlogs.length}</span> of <span className="text-gray-900">{blogs.length}</span>
+            </div>
+          </div>
+
+          {/* Bottom Row - Search */}
+          <div className="flex items-center gap-3">
+            {/* Custom Tab Buttons */}
+            <div className="inline-flex p-1 rounded-lg border border-gray-200 bg-gray-50 h-9">
+              <button
+                onClick={() => setSearchBy('title')}
+                className={`px-3 py-0 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
+                  searchBy === 'title' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-blue-600'
+                }`}
+              >
+                Title
+              </button>
+              <button
+                onClick={() => setSearchBy('category')}
+                className={`px-3 py-0 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
+                  searchBy === 'category' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-blue-600'
+                }`}
+              >
+                Category
+              </button>
+              <button
+                onClick={() => setSearchBy('content')}
+                className={`px-3 py-0 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
+                  searchBy === 'content' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-blue-600'
+                }`}
+              >
+                Content
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="flex-1">
+              <SmartSearchInput
+                value={searchTerm}
+                onChange={setSearchTerm}
+                dataSource={blogs || []}
+                getSearchValue={(item) => {
+                  if (searchBy === 'title') return item.title || '';
+                  if (searchBy === 'category') return item.category || '';
+                  if (searchBy === 'content') return item.excerpt || '';
+                  return '';
+                }}
+                placeholder={`Search for ${searchBy}...`}
+              />
+            </div>
+
             {/* Clear Filters */}
             {activeFilters > 0 && (
               <button
                 onClick={() => {
                   setSearchTerm('');
+                  setSearchBy('title');
                   setCategoryFilter('all');
                   setFeaturedFilter('all');
                 }}
-                className="px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
               >
                 Clear ({activeFilters})
               </button>
             )}
           </div>
-        </div>
-
-        {/* Results Count */}
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            Showing <span className="font-semibold text-gray-700">{filteredBlogs.length}</span> of {blogs.length} blogs
-          </p>
         </div>
 
         {/* Blog List */}

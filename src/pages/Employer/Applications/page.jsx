@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import ApplicationDetailsModal from '../../../components/employer/ApplicationDetailsModal';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
+import SmartSearchInput from '../../../components/SmartSearchInput';
+import SmartFilter from '../../../components/SmartFilter';
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
@@ -27,12 +29,13 @@ const EmployerApplications = () => {
   const [stats, setStats] = useState({ total: 0, pending: 0, accepted: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchBy, setSearchBy] = useState('freelancer'); // 'freelancer', 'job', 'email'
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   // New filter/sort state
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [jobFilter, setJobFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState([]);
+  const [jobFilter, setJobFilter] = useState([]);
   const [sortBy, setSortBy] = useState('date-desc');
 
   const cols = useSmartColumnToggle(APP_COLUMNS, 'employer-apps-cols');
@@ -110,20 +113,24 @@ const EmployerApplications = () => {
 
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      list = list.filter(
-        (a) =>
-          a.freelancerName?.toLowerCase().includes(term) ||
-          a.jobTitle?.toLowerCase().includes(term) ||
-          a.freelancerEmail?.toLowerCase().includes(term)
-      );
+      list = list.filter((a) => {
+        if (searchBy === 'freelancer') {
+          return a.freelancerName?.toLowerCase().includes(term);
+        } else if (searchBy === 'job') {
+          return a.jobTitle?.toLowerCase().includes(term);
+        } else if (searchBy === 'email') {
+          return a.freelancerEmail?.toLowerCase().includes(term);
+        }
+        return false;
+      });
     }
 
-    if (statusFilter !== 'all') {
-      list = list.filter((a) => a.status === statusFilter);
+    if (statusFilter.length > 0) {
+      list = list.filter((a) => statusFilter.includes(a.status));
     }
 
-    if (jobFilter !== 'all') {
-      list = list.filter((a) => a.jobTitle === jobFilter);
+    if (jobFilter.length > 0) {
+      list = list.filter((a) => jobFilter.includes(a.jobTitle));
     }
 
     switch (sortBy) {
@@ -154,7 +161,7 @@ const EmployerApplications = () => {
     }
 
     return list;
-  }, [applications, searchTerm, statusFilter, jobFilter, sortBy]);
+  }, [applications, searchTerm, searchBy, statusFilter, jobFilter, sortBy]);
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -168,7 +175,7 @@ const EmployerApplications = () => {
 
   const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  const activeFilters = (statusFilter !== 'all' ? 1 : 0) + (jobFilter !== 'all' ? 1 : 0) + (searchTerm ? 1 : 0);
+  const activeFilters = statusFilter.length + jobFilter.length + (searchTerm ? 1 : 0);
 
   // Get the job title if filtering by specific job
   const filteredJobTitle = jobIdFilter && applications.length > 0 ? applications[0].jobTitle : null;
@@ -206,46 +213,42 @@ const EmployerApplications = () => {
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex-1 min-w-[200px] relative">
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-              <input
-                type="text"
-                placeholder="Search by name, email, or job title..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          {/* First Row: Filters */}
+          <div className="flex items-center gap-3 mb-3">
+            <div className="relative inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white shadow-sm hover:bg-gray-50 transition-colors">
+              <span className="text-gray-600">Status:</span>
+              <span className="text-gray-700 font-medium">
+                {statusFilter.length === 0 ? 'All' : statusFilter.length === 1 ? statusFilter[0] : `${statusFilter.length} selected`}
+              </span>
+              <SmartFilter
+                label="Status"
+                data={applications}
+                field="status"
+                selectedValues={statusFilter}
+                onFilterChange={setStatusFilter}
               />
             </div>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              <option value="all">All Statuses</option>
-              <option value="Pending">Pending</option>
-              <option value="Accepted">Accepted</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-
             {!jobIdFilter && (
-              <select
-                value={jobFilter}
-                onChange={(e) => setJobFilter(e.target.value)}
-                className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white max-w-[200px]"
-              >
-                <option value="all">All Jobs</option>
-                {uniqueJobs.map((j) => (
-                  <option key={j} value={j}>{j}</option>
-                ))}
-              </select>
+              <div className="relative inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white shadow-sm hover:bg-gray-50 transition-colors">
+                <span className="text-gray-600">Job:</span>
+                <span className="text-gray-700 font-medium truncate max-w-[150px]">
+                  {jobFilter.length === 0 ? 'All Jobs' : jobFilter.length === 1 ? jobFilter[0] : `${jobFilter.length} selected`}
+                </span>
+                <SmartFilter
+                  label="Job"
+                  data={applications}
+                  field="jobTitle"
+                  selectedValues={jobFilter}
+                  onFilterChange={setJobFilter}
+                />
+              </div>
             )}
 
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="flex-1 min-w-[160px] max-w-[200px] px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
             >
               <option value="date-desc">Newest First</option>
               <option value="date-asc">Oldest First</option>
@@ -255,16 +258,70 @@ const EmployerApplications = () => {
               <option value="premium-first">Premium First</option>
             </select>
 
-            <SmartColumnToggle columns={APP_COLUMNS} visible={cols.visible} onChange={cols.setVisible} storageKey="employer-apps-cols" />
+            <div className="ml-auto flex items-center gap-3">
+              <SmartColumnToggle columns={APP_COLUMNS} visible={cols.visible} onChange={cols.setVisible} storageKey="employer-apps-cols" />
 
-            {activeFilters > 0 && (
+              {activeFilters > 0 && (
+                <button
+                  onClick={() => { setSearchTerm(''); setSearchBy('freelancer'); setStatusFilter([]); setJobFilter([]); }}
+                  className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                >
+                  Clear ({activeFilters})
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Second Row: Search */}
+          <div className="flex items-center gap-3">
+            <div className="inline-flex items-center gap-2 whitespace-nowrap px-3 py-2 text-sm font-medium border rounded-lg text-gray-700 bg-white border-gray-200 shadow-sm">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Search By
+            </div>
+
+            <div className="inline-flex p-1 rounded-lg border border-gray-200 bg-gray-50 h-9">
               <button
-                onClick={() => { setSearchTerm(''); setStatusFilter('all'); setJobFilter('all'); }}
-                className="px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                onClick={() => setSearchBy('freelancer')}
+                className={`px-3 py-0 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
+                  searchBy === 'freelancer' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-blue-600'
+                }`}
               >
-                Clear ({activeFilters})
+                Freelancer
               </button>
-            )}
+              <button
+                onClick={() => setSearchBy('job')}
+                className={`px-3 py-0 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
+                  searchBy === 'job' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-blue-600'
+                }`}
+              >
+                Job Title
+              </button>
+              <button
+                onClick={() => setSearchBy('email')}
+                className={`px-3 py-0 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
+                  searchBy === 'email' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-blue-600'
+                }`}
+              >
+                Email
+              </button>
+            </div>
+
+            <div className="flex-1">
+              <SmartSearchInput
+                value={searchTerm}
+                onChange={setSearchTerm}
+                dataSource={applications}
+                getSearchValue={(app) => {
+                  if (searchBy === 'freelancer') return app.freelancerName || '';
+                  if (searchBy === 'job') return app.jobTitle || '';
+                  if (searchBy === 'email') return app.freelancerEmail || '';
+                  return '';
+                }}
+                placeholder={`Search for ${searchBy}...`}
+              />
+            </div>
           </div>
         </div>
 
