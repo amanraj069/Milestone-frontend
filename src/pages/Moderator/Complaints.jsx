@@ -1,14 +1,27 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   fetchComplaints, 
-  setFilters, 
   setSearchTerm, 
   setSortBy, 
-  toggleSortOrder 
+  setSortOrder 
 } from '../../redux/slices/complaintsSlice';
 import DashboardPage from '../../components/DashboardPage';
+import SmartFilter from '../../components/SmartFilter';
+import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
+
+const COLUMNS = [
+  { key: 'filedBy',   label: 'Filed By',  defaultVisible: true },
+  { key: 'against',   label: 'Against',   defaultVisible: true },
+  { key: 'job',       label: 'Job',       defaultVisible: true },
+  { key: 'type',      label: 'Type',      defaultVisible: true },
+  { key: 'priority',  label: 'Priority',  defaultVisible: true },
+  { key: 'subject',   label: 'Subject',   defaultVisible: true },
+  { key: 'status',    label: 'Status',    defaultVisible: true },
+  { key: 'created',   label: 'Created',   defaultVisible: true },
+  { key: 'action',    label: 'Action',    defaultVisible: true },
+];
 
 const ModeratorComplaints = () => {
   const navigate = useNavigate();
@@ -16,14 +29,30 @@ const ModeratorComplaints = () => {
   
   const { 
     filteredComplaints, 
-    filters, 
     searchTerm: reduxSearchTerm, 
     sortBy, 
     sortOrder, 
     stats, 
+    complaints,
     loading, 
     error 
   } = useSelector(state => state.complaints);
+
+  // Column visibility
+  const { visible, setVisible } = useSmartColumnToggle(COLUMNS, 'moderator-complaints-columns');
+  const isCol = (key) => visible.has(key);
+
+  // SmartFilter states
+  const [columnFilters, setColumnFilters] = useState({
+    complainantType: [],
+    against: [],
+    job: [],
+    status: [],
+    priority: [],
+    type: [],
+  });
+  const setColFilter = (field) => (values) =>
+    setColumnFilters((prev) => ({ ...prev, [field]: values }));
 
   useEffect(() => {
     dispatch(fetchComplaints());
@@ -33,20 +62,14 @@ const ModeratorComplaints = () => {
     navigate(`/moderator/complaints/${complaintId}`);
   };
 
-  const handleFilterChange = (filterType, value) => {
-    dispatch(setFilters({ [filterType]: value }));
-  };
-
   const handleSearchChange = (value) => {
     dispatch(setSearchTerm(value));
   };
 
-  const handleSortChange = (field) => {
-    if (sortBy === field) {
-      dispatch(toggleSortOrder());
-    } else {
-      dispatch(setSortBy(field));
-    }
+  const handleSortDropdownChange = (value) => {
+    const [field, order] = value.split('_');
+    dispatch(setSortBy(field));
+    dispatch(setSortOrder(order));
   };
 
   const getStatusBadgeClass = (status) => {
@@ -69,111 +92,109 @@ const ModeratorComplaints = () => {
     }
   };
 
+  // Apply SmartFilter column filters on top of redux-filtered complaints
+  const displayedComplaints = filteredComplaints.filter((c) => {
+    if (columnFilters.complainantType.length > 0 && !columnFilters.complainantType.includes(c.complainantType)) return false;
+    const againstName = c.complainantType === 'Freelancer' ? c.employerName : c.freelancerName;
+    if (columnFilters.against.length > 0 && !columnFilters.against.includes(againstName)) return false;
+    if (columnFilters.job.length > 0 && !columnFilters.job.includes(c.jobTitle)) return false;
+    if (columnFilters.status.length > 0 && !columnFilters.status.includes(c.status)) return false;
+    if (columnFilters.priority.length > 0 && !columnFilters.priority.includes(c.priority)) return false;
+    if (columnFilters.type.length > 0 && !columnFilters.type.includes(c.complaintType)) return false;
+    return true;
+  });
+
   return (
     <DashboardPage title="Complaints">
       <p className="text-gray-500 -mt-6 mb-6">View and manage all registered complaints</p>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
-          <p className="text-xs text-gray-500 mt-1">Total Complaints</p>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-exclamation-circle text-blue-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Total Complaints</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-2xl font-semibold text-amber-600">{stats.pending}</p>
-          <p className="text-xs text-gray-500 mt-1">Pending</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-hourglass-half text-yellow-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Pending</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.pending}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-2xl font-semibold text-blue-600">{stats.underReview}</p>
-          <p className="text-xs text-gray-500 mt-1">Under Review</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-search text-purple-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Under Review</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.underReview}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-2xl font-semibold text-green-600">{stats.resolved}</p>
-          <p className="text-xs text-gray-500 mt-1">Resolved</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-2xl font-semibold text-red-600">{stats.rejected}</p>
-          <p className="text-xs text-gray-500 mt-1">Rejected</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-check-circle text-emerald-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Resolved</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.resolved}</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Search Bar and Filters */}
+      {/* Search + Sort + Column Toggle */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="flex-1">
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Search */}
+          <div className="flex-1 min-w-[200px]">
             <input
               type="text"
               placeholder="Search by subject, name, type, or job..."
               value={reduxSearchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          <span className="text-sm text-gray-500 whitespace-nowrap">
-            Showing: {filteredComplaints.length} of {stats.total}
-          </span>
-        </div>
-        
-        {/* Filters and Sorting */}
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Complainant:</label>
-            <select 
-              value={filters.complainantType} 
-              onChange={(e) => handleFilterChange('complainantType', e.target.value)}
-              className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
-            >
-              <option value="All">All</option>
-              <option value="Freelancer">Freelancer</option>
-              <option value="Employer">Employer</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Status:</label>
-            <select 
-              value={filters.status} 
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
-            >
-              <option value="All">All</option>
-              <option value="Pending">Pending</option>
-              <option value="Under Review">Under Review</option>
-              <option value="Resolved">Resolved</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Priority:</label>
-            <select 
-              value={filters.priority} 
-              onChange={(e) => handleFilterChange('priority', e.target.value)}
-              className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
-            >
-              <option value="All">All</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Sort By:</label>
-            <select 
-              value={sortBy} 
-              onChange={(e) => dispatch(setSortBy(e.target.value))}
-              className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
-            >
-              <option value="date">Date</option>
-              <option value="priority">Priority</option>
-              <option value="status">Status</option>
-              <option value="complainant">Complainant</option>
-            </select>
-          </div>
-          <button 
-            onClick={() => dispatch(toggleSortOrder())}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+          {/* Sort By */}
+          <select
+            value={`${sortBy}_${sortOrder}`}
+            onChange={(e) => handleSortDropdownChange(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
           >
-            {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-          </button>
+            <option value="date_desc">Date (Newest First)</option>
+            <option value="date_asc">Date (Oldest First)</option>
+            <option value="priority_desc">Priority (High → Low)</option>
+            <option value="priority_asc">Priority (Low → High)</option>
+            <option value="status_asc">Status (A–Z)</option>
+            <option value="status_desc">Status (Z–A)</option>
+            <option value="complainant_asc">Complainant (A–Z)</option>
+            <option value="complainant_desc">Complainant (Z–A)</option>
+          </select>
+          {/* Column Toggle */}
+          <SmartColumnToggle
+            columns={COLUMNS}
+            visible={visible}
+            onChange={setVisible}
+            storageKey="moderator-complaints-columns"
+            label="Columns"
+          />
         </div>
       </div>
 
@@ -199,98 +220,185 @@ const ModeratorComplaints = () => {
         </div>
       )}
 
-      {/* No Complaints State */}
-      {!loading && !error && filteredComplaints.length === 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <p className="text-lg font-medium text-gray-700 mb-1">No complaints found</p>
-          <p className="text-gray-500">There are no complaints matching your filters.</p>
-        </div>
-      )}
-
-      {/* Complaints Table */}
-      {!loading && !error && filteredComplaints.length > 0 && (
+      {/* Complaints Table — always shown so SmartFilter dropdowns remain accessible */}
+      {!loading && !error && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSortChange('complainant')}
-                  >
-                    Filed By {sortBy === 'complainant' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Against</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Job</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSortChange('priority')}
-                  >
-                    Priority {sortBy === 'priority' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSortChange('status')}
-                  >
-                    Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSortChange('date')}
-                  >
-                    Created {sortBy === 'date' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                  {isCol('filedBy') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        Filed By
+                        <SmartFilter
+                          label="Complainant"
+                          data={complaints}
+                          field="complainantType"
+                          selectedValues={columnFilters.complainantType}
+                          onFilterChange={setColFilter('complainantType')}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {isCol('against') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        Against
+                        <SmartFilter
+                          label="Against"
+                          data={complaints}
+                          field="against"
+                          selectedValues={columnFilters.against}
+                          onFilterChange={setColFilter('against')}
+                          valueExtractor={(c) => c.complainantType === 'Freelancer' ? c.employerName : c.freelancerName}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {isCol('job') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        Job
+                        <SmartFilter
+                          label="Job"
+                          data={complaints}
+                          field="jobTitle"
+                          selectedValues={columnFilters.job}
+                          onFilterChange={setColFilter('job')}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {isCol('type') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        Type
+                        <SmartFilter
+                          label="Type"
+                          data={complaints}
+                          field="complaintType"
+                          selectedValues={columnFilters.type}
+                          onFilterChange={setColFilter('type')}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {isCol('priority') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        Priority
+                        <SmartFilter
+                          label="Priority"
+                          data={complaints}
+                          field="priority"
+                          selectedValues={columnFilters.priority}
+                          onFilterChange={setColFilter('priority')}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {isCol('subject') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Subject</th>
+                  )}
+                  {isCol('status') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        Status
+                        <SmartFilter
+                          label="Status"
+                          data={complaints}
+                          field="status"
+                          selectedValues={columnFilters.status}
+                          onFilterChange={setColFilter('status')}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {isCol('created') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Created</th>
+                  )}
+                  {isCol('action') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Action</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredComplaints.map((complaint) => (
+                {displayedComplaints.length > 0 ? (
+                  displayedComplaints.map((complaint) => (
                   <tr key={complaint.complaintId} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div>
-                        <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium mb-1 ${
-                          complaint.complainantType === 'Freelancer' 
-                            ? 'bg-cyan-100 text-cyan-700' 
-                            : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {complaint.complainantType}
+                    {isCol('filedBy') && (
+                      <td className="px-4 py-3">
+                        <div>
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium mb-1 ${
+                            complaint.complainantType === 'Freelancer' 
+                              ? 'bg-cyan-100 text-cyan-700' 
+                              : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {complaint.complainantType}
+                          </span>
+                          <p className="text-gray-900">{complaint.complainantName}</p>
+                        </div>
+                      </td>
+                    )}
+                    {isCol('against') && (
+                      <td className="px-4 py-3 text-gray-600">
+                        {complaint.complainantType === 'Freelancer' ? complaint.employerName : complaint.freelancerName}
+                      </td>
+                    )}
+                    {isCol('job') && (
+                      <td className="px-4 py-3 text-gray-600 max-w-[150px] truncate">{complaint.jobTitle}</td>
+                    )}
+                    {isCol('type') && (
+                      <td className="px-4 py-3 text-gray-600">{complaint.complaintType}</td>
+                    )}
+                    {isCol('priority') && (
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getPriorityBadgeClass(complaint.priority)}`}>
+                          {complaint.priority}
                         </span>
-                        <p className="text-gray-900">{complaint.complainantName}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {complaint.complainantType === 'Freelancer' ? complaint.employerName : complaint.freelancerName}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 max-w-[150px] truncate">{complaint.jobTitle}</td>
-                    <td className="px-4 py-3 text-gray-600">{complaint.complaintType}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getPriorityBadgeClass(complaint.priority)}`}>
-                        {complaint.priority}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 max-w-[180px] truncate">{complaint.subject}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getStatusBadgeClass(complaint.status)}`}>
-                        {complaint.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {new Date(complaint.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => handleViewComplaint(complaint.complaintId)}
-                        className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-xs font-medium hover:bg-gray-800 transition-colors"
-                      >
-                        View
-                      </button>
+                      </td>
+                    )}
+                    {isCol('subject') && (
+                      <td className="px-4 py-3 text-gray-600 max-w-[180px] truncate">{complaint.subject}</td>
+                    )}
+                    {isCol('status') && (
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getStatusBadgeClass(complaint.status)}`}>
+                          {complaint.status}
+                        </span>
+                      </td>
+                    )}
+                    {isCol('created') && (
+                      <td className="px-4 py-3 text-gray-600">
+                        {new Date(complaint.createdAt).toLocaleDateString()}
+                      </td>
+                    )}
+                    {isCol('action') && (
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => handleViewComplaint(complaint.complaintId)}
+                          className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-xs font-medium hover:bg-gray-800 transition-colors"
+                        >
+                          View
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={visible.size} className="px-4 py-12 text-center text-gray-400">
+                      No complaints found matching your filters
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
+          </div>
+          {/* Showing x of x — under the table */}
+          <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500">
+            Showing {displayedComplaints.length} of {stats.total} complaints
           </div>
         </div>
       )}

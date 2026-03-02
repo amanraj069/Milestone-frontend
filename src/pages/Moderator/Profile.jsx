@@ -146,21 +146,59 @@ const ModeratorProfile = () => {
     'Payment Management',
   ];
 
+  const avgRatingValue = Number(dashboardStats?.avgRating);
+  const successRateValue = Number(dashboardStats?.successRate);
+
   return (
     <DashboardPage title="Moderator Profile" headerAction={headerAction}>
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total Users</p>
-          <p className="text-2xl font-semibold text-gray-900">
-            {dashboardStats?.totalUsers ?? <span className="text-gray-300">--</span>}
-          </p>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-users text-blue-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Total Users</p>
+              <p className="text-2xl font-bold text-gray-800">{dashboardStats?.totalUsers ?? '--'}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Active Jobs</p>
-          <p className="text-2xl font-semibold text-gray-900">
-            {dashboardStats?.activeJobs ?? <span className="text-gray-300">--</span>}
-          </p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-briefcase text-yellow-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Active Jobs</p>
+              <p className="text-2xl font-bold text-gray-800">{dashboardStats?.activeJobs ?? '--'}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-star text-purple-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Avg. Rating</p>
+              <p className="text-2xl font-bold text-gray-800">{Number.isFinite(avgRatingValue) ? avgRatingValue.toFixed(1) : '0.0'}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-check-circle text-emerald-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Success Rate</p>
+              <p className="text-2xl font-bold text-gray-800">{Number.isFinite(successRateValue) ? `${Math.round(successRateValue)}%` : '0%'}</p>
+            </div>
+          </div>
         </div>
       </div>
 

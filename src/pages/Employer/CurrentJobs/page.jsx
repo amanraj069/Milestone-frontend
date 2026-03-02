@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from '../../../components/employer/JobDetailsModal';
+import SmartFilter from '../../../components/SmartFilter';
 import { useChatContext } from '../../../context/ChatContext';
 import axios from 'axios';
 
@@ -20,6 +21,9 @@ const EmployerCurrentJobs = () => {
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('rating-high-low');
+  const [nameFilters, setNameFilters] = useState([]);
+  const [jobRoleFilters, setJobRoleFilters] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedFreelancer, setSelectedFreelancer] = useState(null);
   const [showJobModal, setShowJobModal] = useState(false);
@@ -29,16 +33,58 @@ const EmployerCurrentJobs = () => {
   }, []);
 
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredFreelancers(freelancers);
-    } else {
-      const filtered = freelancers.filter(f =>
-        f.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        f.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredFreelancers(filtered);
-    }
-  }, [searchTerm, freelancers]);
+    const searchLower = searchTerm.trim().toLowerCase();
+
+    const filtered = freelancers.filter((freelancer) => {
+      const name = String(freelancer.name || '');
+      const jobRole = String(freelancer.jobTitle || '');
+
+      if (!searchLower && (!jobRoleFilters || jobRoleFilters.length === 0) && (!nameFilters || nameFilters.length === 0)) return true;
+
+      if (searchLower) {
+        try {
+          const regex = new RegExp(searchTerm, 'i');
+          if (!regex.test(name) && !regex.test(jobRole)) return false;
+        } catch (e) {
+          const nameLower = name.toLowerCase();
+          const jobRoleLower = jobRole.toLowerCase();
+          if (!nameLower.includes(searchLower) && !jobRoleLower.includes(searchLower)) return false;
+        }
+      }
+
+      if (nameFilters && nameFilters.length > 0) {
+        if (!nameFilters.includes(name)) return false;
+      }
+
+      // apply job role column filters if any
+      if (jobRoleFilters && jobRoleFilters.length > 0) {
+        if (!jobRoleFilters.includes(jobRole)) return false;
+      }
+
+      return true;
+    });
+
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'rating-high-low':
+          return (b.rating || 0) - (a.rating || 0);
+        case 'rating-low-high':
+          return (a.rating || 0) - (b.rating || 0);
+        case 'working-since-oldest':
+          return (b.daysSinceStart || 0) - (a.daysSinceStart || 0);
+        case 'working-since-newest':
+          return (a.daysSinceStart || 0) - (b.daysSinceStart || 0);
+        case 'name-a-z':
+          return String(a.name || '').localeCompare(String(b.name || ''));
+        case 'name-z-a':
+          return String(b.name || '').localeCompare(String(a.name || ''));
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredFreelancers(sorted);
+  }, [searchTerm, freelancers, sortBy, jobRoleFilters, nameFilters]);
 
   const fetchCurrentFreelancers = async () => {
     try {
@@ -92,10 +138,29 @@ const EmployerCurrentJobs = () => {
     navigate('/employer/complaint', { state: { freelancer } });
   };
 
-  const formatDays = (days) => {
-    if (days === 0) return 'Since 0 days';
-    if (days === 1) return 'Since 1 day';
-    return `Since ${days} days`;
+  const formatDays = (startOrDays) => {
+    // If a number of days was passed, use it directly
+    if (typeof startOrDays === 'number' && !Number.isNaN(startOrDays)) {
+      const days = Math.max(0, Math.floor(startOrDays));
+      if (days === 0) return 'Since 0 days';
+      if (days === 1) return 'Since 1 day';
+      return `Since ${days} days`;
+    }
+
+    // If a date string/object was passed, compute days since that date
+    const dateVal = startOrDays || null;
+    const parsed = dateVal ? new Date(dateVal) : null;
+    if (parsed && !Number.isNaN(parsed.getTime())) {
+      const now = new Date();
+      // difference in full days
+      const diffMs = now.setHours(0,0,0,0) - parsed.setHours(0,0,0,0);
+      const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+      if (diffDays === 0) return 'Since 0 days';
+      if (diffDays === 1) return 'Since 1 day';
+      return `Since ${diffDays} days`;
+    }
+
+    return 'Since N/A';
   };
 
   return (
@@ -154,19 +219,37 @@ const EmployerCurrentJobs = () => {
 
         {/* Search Bar */}
         <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                placeholder="Find current working freelancers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
+            <div className="flex-1 min-w-0">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by freelancer name or job role..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
             </div>
-            <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
-              <i className="fas fa-search"></i>
-            </button>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Sort current jobs"
+            >
+              <option value="rating-high-low">Rating High-Low</option>
+              <option value="rating-low-high">Rating Low-High</option>
+              <option value="working-since-oldest">Working Since Oldest First</option>
+              <option value="working-since-newest">Working Since Newest First</option>
+              <option value="name-a-z">Name A-Z</option>
+              <option value="name-z-a">Name Z-A</option>
+            </select>
           </div>
         </div>
 
@@ -190,10 +273,28 @@ const EmployerCurrentJobs = () => {
                 <thead>
                   <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Freelancer
+                      <div className="flex items-center gap-2">
+                        <span>Freelancer</span>
+                        <SmartFilter
+                          label="Name"
+                          data={freelancers}
+                          valueExtractor={(it) => it.name || ''}
+                          selectedValues={nameFilters}
+                          onFilterChange={setNameFilters}
+                        />
+                      </div>
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Job Details
+                      <div className="flex items-center gap-2">
+                        <span>Job Details</span>
+                        <SmartFilter
+                          label="Job Role"
+                          data={freelancers}
+                          valueExtractor={(it) => it.jobTitle}
+                          selectedValues={jobRoleFilters}
+                          onFilterChange={setJobRoleFilters}
+                        />
+                      </div>
                     </th>
                     <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
                       Chat
@@ -254,7 +355,7 @@ const EmployerCurrentJobs = () => {
                         </div>
                         <div className="flex items-center text-sm text-gray-500">
                           <i className="fas fa-calendar-alt text-blue-600 mr-2"></i>
-                          {formatDays(freelancer.daysSinceStart)}
+                          {formatDays(freelancer.startDate || freelancer.hiredDate || freelancer.daysSinceStart || freelancer.startedAt)}
                         </div>
                       </td>
 

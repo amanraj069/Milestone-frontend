@@ -80,10 +80,8 @@ const ModeratorFreelancers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleting, setDeleting] = useState(null);
 
-  // Filter states
-  const [ratingSort, setRatingSort] = useState('none'); // 'none', 'high-to-low', 'low-to-high'
-  const [subscriptionFilter, setSubscriptionFilter] = useState('all'); // 'all', 'premium', 'basic'
-  const [workingFilter, setWorkingFilter] = useState('all'); // 'all', 'working', 'not-working'
+  // Sort state (replaces multiple dropdown filters)
+  const [sortBy, setSortBy] = useState('recent'); // 'recent','oldest','name-az','name-za','rating-high-low','rating-low-high'
 
   // Column-level SmartFilter states
   const [nameFilters, setNameFilters] = useState([]);
@@ -199,9 +197,7 @@ const ModeratorFreelancers = () => {
   // Clear all filters
   const clearAllFilters = () => {
     setSearchTerm('');
-    setRatingSort('none');
-    setSubscriptionFilter('all');
-    setWorkingFilter('all');
+    setSortBy('recent');
     setNameFilters([]);
     setEmailFilters([]);
     setPhoneFilters([]);
@@ -210,19 +206,14 @@ const ModeratorFreelancers = () => {
     setDurationFilters([]);
   };
 
-  const hasActiveFilters = searchTerm !== '' || ratingSort !== 'none' || subscriptionFilter !== 'all' || workingFilter !== 'all' ||
+  const hasActiveFilters = searchTerm !== '' ||
     nameFilters.length > 0 || emailFilters.length > 0 || phoneFilters.length > 0 || 
     ratingFilters.length > 0 || subscribedFilters.length > 0 || durationFilters.length > 0;
 
   // Filter and sort freelancers
   let filteredFreelancers = freelancers.filter(freelancer => {
     // Subscription filter
-    if (subscriptionFilter === 'premium' && !freelancer.isPremium) return false;
-    if (subscriptionFilter === 'basic' && freelancer.isPremium) return false;
-
-    // Working status filter
-    if (workingFilter === 'working' && !freelancer.isCurrentlyWorking) return false;
-    if (workingFilter === 'not-working' && freelancer.isCurrentlyWorking) return false;
+    // (top-level subscription/working filters removed — use column filters)
 
     // Column SmartFilter filters
     if (nameFilters.length > 0 && !nameFilters.includes(freelancer.name)) return false;
@@ -255,17 +246,33 @@ const ModeratorFreelancers = () => {
     }
   });
 
-  // Apply rating sorting
-  if (ratingSort === 'high-to-low') {
-    filteredFreelancers = [...filteredFreelancers].sort((a, b) => b.rating - a.rating);
-  } else if (ratingSort === 'low-to-high') {
-    filteredFreelancers = [...filteredFreelancers].sort((a, b) => a.rating - b.rating);
+  // Apply sorting
+  if (sortBy === 'rating-high-low') {
+    filteredFreelancers = [...filteredFreelancers].sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
+  } else if (sortBy === 'rating-low-high') {
+    filteredFreelancers = [...filteredFreelancers].sort((a, b) => (Number(a.rating) || 0) - (Number(b.rating) || 0));
+  } else if (sortBy === 'name-az') {
+    filteredFreelancers = [...filteredFreelancers].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  } else if (sortBy === 'name-za') {
+    filteredFreelancers = [...filteredFreelancers].sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+  } else if (sortBy === 'recent') {
+    filteredFreelancers = [...filteredFreelancers].sort((a, b) => new Date(b.joinedDate || 0) - new Date(a.joinedDate || 0));
+  } else if (sortBy === 'oldest') {
+    filteredFreelancers = [...filteredFreelancers].sort((a, b) => new Date(a.joinedDate || 0) - new Date(b.joinedDate || 0));
   }
 
   // Calculate statistics
   const totalFreelancers = freelancers.length;
   const currentlyWorking = freelancers.filter(f => f.isCurrentlyWorking).length;
   const premiumUsers = freelancers.filter(f => f.isPremium).length;
+  const avgRating = totalFreelancers > 0 ? (freelancers.reduce((s, f) => s + (f.rating || 0), 0) / totalFreelancers).toFixed(1) : '0.0';
+  const avgDays = totalFreelancers > 0 ? Math.round(freelancers.reduce((s, f) => {
+    const jd = f.joinedDate ? new Date(f.joinedDate) : null;
+    if (!jd || Number.isNaN(jd.getTime())) return s + 0;
+    const diffMs = (new Date()).setHours(0,0,0,0) - jd.setHours(0,0,0,0);
+    return s + Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+  }, 0) / totalFreelancers) : 0;
+  const successRate = totalFreelancers > 0 ? Math.round((currentlyWorking / totalFreelancers) * 100) : 0;
 
   const content = (
     <div className="space-y-6">
@@ -275,112 +282,109 @@ const ModeratorFreelancers = () => {
       <p className="text-gray-500 -mt-6">View and manage all registered freelancers</p>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Freelancers</p>
-          <p className="text-2xl font-semibold text-gray-900">{totalFreelancers}</p>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-users text-blue-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Total Freelancers</p>
+              <p className="text-2xl font-bold text-gray-800">{totalFreelancers}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Currently Working</p>
-          <p className="text-2xl font-semibold text-gray-900">{currentlyWorking}</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-star text-yellow-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Average Rating</p>
+              <p className="text-2xl font-bold text-gray-800">{avgRating}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Premium Users</p>
-          <p className="text-2xl font-semibold text-gray-900">{premiumUsers}</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-calendar-alt text-purple-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Days Average</p>
+              <p className="text-2xl font-bold text-gray-800">{avgDays}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-check-circle text-emerald-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Success Rate</p>
+              <p className="text-2xl font-bold text-gray-800">{successRate}%</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Filters and Search */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-4">
-        {/* Filters Row */}
-        <div className="flex flex-wrap items-center gap-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Sort by Rating</label>
-            <select
-              value={ratingSort}
-              onChange={(e) => setRatingSort(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="none">Default</option>
-              <option value="high-to-low">High to Low</option>
-              <option value="low-to-high">Low to High</option>
-            </select>
+        {/* Compact filters row (kept empty for spacing) */}
+          <div className="flex items-center gap-4">
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Subscription Type</label>
-            <select
-              value={subscriptionFilter}
-              onChange={(e) => setSubscriptionFilter(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All</option>
-              <option value="premium">Premium</option>
-              <option value="basic">Basic</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Working Status</label>
-            <select
-              value={workingFilter}
-              onChange={(e) => setWorkingFilter(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All</option>
-              <option value="working">Currently Working</option>
-              <option value="not-working">Not Working</option>
-            </select>
-          </div>
-
-          {hasActiveFilters && (
-            <div>
-              <label className="block text-xs font-medium text-transparent mb-1">.</label>
-              <button
-                onClick={clearAllFilters}
-                className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Clear Filters
-              </button>
+        {/* Search Row with Sort and Column Toggle */}
+        <div className="relative flex items-center gap-4">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </div>
-          )}
+            <input
+              type="text"
+              placeholder="Search freelancers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
 
-          {/* Columns Toggle */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Columns</label>
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-gray-500">Sort By</div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="recent">Recent Joined</option>
+              <option value="oldest">Oldest Joined</option>
+              <option value="name-az">Name A - Z</option>
+              <option value="name-za">Name Z - A</option>
+              <option value="rating-high-low">Rating High - Low</option>
+              <option value="rating-low-high">Rating Low - High</option>
+            </select>
+
             <SmartColumnToggle
               columns={allColumns}
               visible={visibleColumns}
               onChange={setVisibleColumns}
-              label="Columns"
-              heading="Toggle Columns"
-              triggerClassName="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
-              dropdownClassName="absolute right-0 mt-1 w-56 bg-white border border-gray-300 rounded-md shadow-lg z-20"
+              storageKey="moderator-freelancers-visible-columns"
             />
-          </div>
 
-          <div className="ml-auto text-sm text-gray-500 whitespace-nowrap">
-            Showing: {filteredFreelancers.length} of {totalFreelancers}
+            <button
+              onClick={clearAllFilters}
+              disabled={!hasActiveFilters}
+              className={`px-3 py-2 ml-2 rounded-md text-sm font-medium border ${hasActiveFilters ? 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'}`}
+            >
+              Clear Filters
+            </button>
           </div>
-        </div>
-
-        {/* Search Row */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            placeholder="Search freelancers..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
         </div>
       </div>
 
@@ -509,9 +513,9 @@ const ModeratorFreelancers = () => {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredFreelancers.map((freelancer) => (
-                  <tr 
-                    key={freelancer.freelancerId} 
-                    className={`hover:bg-gray-50 ${freelancer.isCurrentlyWorking ? 'bg-green-400/20' : ''}`}
+                  <tr
+                    key={freelancer.freelancerId}
+                    className={`${freelancer.isCurrentlyWorking ? 'bg-green-400/20 hover:bg-green-400/20' : 'hover:bg-gray-50'}`}
                   >
                     {isColumnVisible('photo') && (
                       <td className="px-4 py-3">
@@ -593,6 +597,8 @@ const ModeratorFreelancers = () => {
               </tbody>
             </table>
           </div>
+          {/* Showing count moved to table footer */}
+          <div className="px-4 py-3 text-sm text-gray-600">Showing: {filteredFreelancers.length} of {totalFreelancers}</div>
         </div>
       )}
 

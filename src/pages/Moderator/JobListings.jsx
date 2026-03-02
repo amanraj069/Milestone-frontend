@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
+import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -77,9 +78,7 @@ const ModeratorJobListings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [budgetSort, setBudgetSort] = useState('none'); // 'none', 'low-to-high', 'high-to-low'
+  const [sortBy, setSortBy] = useState('recent'); // 'recent','oldest','budget-high-low','budget-low-high','applicants-high-low','applicants-low-high'
   const [deleting, setDeleting] = useState(null);
   
   // SmartFilter states for columns
@@ -87,6 +86,20 @@ const ModeratorJobListings = () => {
   const [companyFilters, setCompanyFilters] = useState([]);
   const [typeFiltersColumn, setTypeFiltersColumn] = useState([]);
   const [statusFiltersColumn, setStatusFiltersColumn] = useState([]);
+
+  // Column toggle (persistent)
+  const columnsDef = [
+    { key: 'title', label: 'Job Title', defaultVisible: true },
+    { key: 'company', label: 'Company', defaultVisible: true },
+    { key: 'budget', label: 'Budget', defaultVisible: true },
+    { key: 'type', label: 'Type', defaultVisible: true },
+    { key: 'status', label: 'Status', defaultVisible: true },
+    { key: 'posted', label: 'Posted', defaultVisible: true },
+    { key: 'applicants', label: 'Applicants', defaultVisible: true },
+    { key: 'actions', label: 'Actions', defaultVisible: true },
+  ];
+
+  const { visible: visibleColumns, setVisible: setVisibleColumns } = useSmartColumnToggle(columnsDef, 'moderator_job_listings_columns');
   
   // Modal states
   const [applicantsModal, setApplicantsModal] = useState({ show: false, jobId: null, jobTitle: '', applicants: [] });
@@ -171,9 +184,7 @@ const ModeratorJobListings = () => {
   // Clear all filters
   const clearAllFilters = () => {
     setSearchTerm('');
-    setStatusFilter('all');
-    setTypeFilter('all');
-    setBudgetSort('none');
+    setSortBy('recent');
     setTitleFilters([]);
     setCompanyFilters([]);
     setTypeFiltersColumn([]);
@@ -181,7 +192,7 @@ const ModeratorJobListings = () => {
   };
 
   // Check if any filters are active
-  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'all' || typeFilter !== 'all' || budgetSort !== 'none' ||
+  const hasActiveFilters = searchTerm !== '' || sortBy !== 'recent' ||
     titleFilters.length > 0 || companyFilters.length > 0 || typeFiltersColumn.length > 0 || statusFiltersColumn.length > 0;
 
   // Fuzzy search filter and sort
@@ -200,15 +211,7 @@ const ModeratorJobListings = () => {
       return false;
     }
     
-    // Status filter
-    if (statusFilter !== 'all' && job.status !== statusFilter) {
-      return false;
-    }
-
-    // Type filter
-    if (typeFilter !== 'all' && job.jobType !== typeFilter) {
-      return false;
-    }
+    // (status/type filters removed — use column filters)
 
     // Regex search across all fields
     if (searchTerm.trim() === '') {
@@ -235,11 +238,19 @@ const ModeratorJobListings = () => {
     }
   });
 
-  // Apply budget sorting
-  if (budgetSort === 'low-to-high') {
+  // Apply sorting
+  if (sortBy === 'budget-low-high') {
     filteredJobs = [...filteredJobs].sort((a, b) => (Number(a.budget) || 0) - (Number(b.budget) || 0));
-  } else if (budgetSort === 'high-to-low') {
+  } else if (sortBy === 'budget-high-low') {
     filteredJobs = [...filteredJobs].sort((a, b) => (Number(b.budget) || 0) - (Number(a.budget) || 0));
+  } else if (sortBy === 'applicants-high-low') {
+    filteredJobs = [...filteredJobs].sort((a, b) => (Number(b.applicantsCount) || 0) - (Number(a.applicantsCount) || 0));
+  } else if (sortBy === 'applicants-low-high') {
+    filteredJobs = [...filteredJobs].sort((a, b) => (Number(a.applicantsCount) || 0) - (Number(b.applicantsCount) || 0));
+  } else if (sortBy === 'recent') {
+    filteredJobs = [...filteredJobs].sort((a, b) => new Date(b.postedDate) - new Date(a.postedDate));
+  } else if (sortBy === 'oldest') {
+    filteredJobs = [...filteredJobs].sort((a, b) => new Date(a.postedDate) - new Date(b.postedDate));
   }
 
   const totalJobs = jobs.length;
@@ -264,105 +275,110 @@ const ModeratorJobListings = () => {
       <p className="text-gray-500 -mt-6">View and manage all job postings</p>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Jobs</p>
-          <p className="text-2xl font-semibold text-gray-900">{totalJobs}</p>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-briefcase text-blue-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Total Jobs</p>
+              <p className="text-2xl font-bold text-gray-800">{totalJobs}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Budget</p>
-          <p className="text-2xl font-semibold text-gray-900">Rs.{totalBudget.toFixed(2)}</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-wallet text-yellow-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Total Budget</p>
+              <p className="text-xl font-bold text-gray-800">Rs.{totalBudget.toFixed(2)}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Open Jobs</p>
-          <p className="text-2xl font-semibold text-gray-900">{openJobs}</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-list-alt text-purple-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Open Jobs</p>
+              <p className="text-2xl font-bold text-gray-800">{openJobs}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Companies Hiring</p>
-          <p className="text-2xl font-semibold text-gray-900">{companiesHiring}</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-building text-emerald-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Companies Hiring</p>
+              <p className="text-2xl font-bold text-gray-800">{companiesHiring}</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Filters and Search Bar */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-4">
-        {/* Filters Row */}
-        <div className="flex flex-wrap items-center gap-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Status Filter</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Status</option>
-              <option value="open">Open</option>
-              <option value="closed">Closed</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Type Filter</label>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Types</option>
-              <option value="full-time">Full-time</option>
-              <option value="part-time">Part-time</option>
-              <option value="contract">Contract</option>
-              <option value="freelance">Freelance</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Sort by Budget</label>
-            <select
-              value={budgetSort}
-              onChange={(e) => setBudgetSort(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="none">Default</option>
-              <option value="low-to-high">Low to High</option>
-              <option value="high-to-low">High to Low</option>
-            </select>
-          </div>
-
-          {hasActiveFilters && (
-            <div>
-              <label className="block text-xs font-medium text-transparent mb-1">.</label>
-              <button
-                onClick={clearAllFilters}
-                className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Clear Filters
-              </button>
-            </div>
-          )}
-
-          <div className="ml-auto text-sm text-gray-500 whitespace-nowrap">
-            Showing: {filteredJobs.length} of {totalJobs}
-          </div>
+        {/* Filters Row (kept empty for spacing) */}
+        <div className="flex items-center gap-4">
         </div>
 
-        {/* Search Row */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+        {/* Search Row with Sort and Column Toggle */}
+        <div className="relative flex items-center gap-4">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Search jobs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
           </div>
-          <input
-            type="text"
-            placeholder="Search jobs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-gray-500">Sort By</div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="recent">Recent Posted</option>
+              <option value="oldest">Oldest Posted</option>
+              <option value="budget-high-low">Budget High - Low</option>
+              <option value="budget-low-high">Budget Low - High</option>
+              <option value="applicants-high-low">Applicants High - Low</option>
+              <option value="applicants-low-high">Applicants Low - High</option>
+            </select>
+
+            {/* Column toggle */}
+            <SmartColumnToggle
+              columns={columnsDef}
+              visible={visibleColumns}
+              onChange={setVisibleColumns}
+              storageKey="moderator_job_listings_columns"
+            />
+
+            <button
+              onClick={clearAllFilters}
+              disabled={!hasActiveFilters}
+              className={`px-3 py-2 ml-2 rounded-md text-sm font-medium border ${hasActiveFilters ? 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'}`}
+            >
+              Clear Filters
+            </button>
+          </div>
         </div>
       </div>
 
@@ -386,9 +402,7 @@ const ModeratorJobListings = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-lg font-medium text-gray-700 mb-1">No jobs found</p>
           <p className="text-gray-500">
-            {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' 
-              ? 'No jobs match your filters.' 
-              : 'There are no job listings.'}
+            {hasActiveFilters ? 'No jobs match your filters.' : 'There are no job listings.'}
           </p>
         </div>
       )}
@@ -399,112 +413,153 @@ const ModeratorJobListings = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    <div className="flex items-center gap-2">
-                      Job Title
-                      <SmartFilter
-                        label="Filter"
-                        data={jobs}
-                        field="title"
-                        selectedValues={titleFilters}
-                        onFilterChange={setTitleFilters}
-                      />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    <div className="flex items-center gap-2">
-                      Company
-                      <SmartFilter
-                        label="Filter"
-                        data={jobs}
-                        field="companyName"
-                        selectedValues={companyFilters}
-                        onFilterChange={setCompanyFilters}
-                      />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Budget</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    <div className="flex items-center gap-2">
-                      Type
-                      <SmartFilter
-                        label="Filter"
-                        data={jobs}
-                        field="jobType"
-                        selectedValues={typeFiltersColumn}
-                        onFilterChange={setTypeFiltersColumn}
-                      />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    <div className="flex items-center gap-2">
-                      Status
-                      <SmartFilter
-                        label="Filter"
-                        data={jobs}
-                        field="status"
-                        selectedValues={statusFiltersColumn}
-                        onFilterChange={setStatusFiltersColumn}
-                      />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Posted</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Applicants</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    {visibleColumns.has('title') && (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <div className="flex items-center gap-2">
+                          Job Title
+                          <SmartFilter
+                            label="Filter"
+                            data={jobs}
+                            field="title"
+                            selectedValues={titleFilters}
+                            onFilterChange={setTitleFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
+
+                    {visibleColumns.has('company') && (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <div className="flex items-center gap-2">
+                          Company
+                          <SmartFilter
+                            label="Filter"
+                            data={jobs}
+                            field="companyName"
+                            selectedValues={companyFilters}
+                            onFilterChange={setCompanyFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
+
+                    {visibleColumns.has('budget') && (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Budget</th>
+                    )}
+
+                    {visibleColumns.has('type') && (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <div className="flex items-center gap-2">
+                          Type
+                          <SmartFilter
+                            label="Filter"
+                            data={jobs}
+                            field="jobType"
+                            selectedValues={typeFiltersColumn}
+                            onFilterChange={setTypeFiltersColumn}
+                          />
+                        </div>
+                      </th>
+                    )}
+
+                    {visibleColumns.has('status') && (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <div className="flex items-center gap-2">
+                          Status
+                          <SmartFilter
+                            label="Filter"
+                            data={jobs}
+                            field="status"
+                            selectedValues={statusFiltersColumn}
+                            onFilterChange={setStatusFiltersColumn}
+                          />
+                        </div>
+                      </th>
+                    )}
+
+                    {visibleColumns.has('posted') && (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Posted</th>
+                    )}
+
+                    {visibleColumns.has('applicants') && (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Applicants</th>
+                    )}
+
+                    {visibleColumns.has('actions') && (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    )}
+                  </tr>
+                </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredJobs.map((job) => (
                   <tr key={job.jobId} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{job.title}</td>
-                    <td className="px-4 py-3 text-gray-600">{job.companyName}</td>
-                    <td className="px-4 py-3 text-gray-600">Rs.{Number(job.budget || 0).toFixed(2)}</td>
-                    <td className="px-4 py-3 text-gray-600">
-                      <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">{job.jobType}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                        job.status === 'open' || job.status === 'active' ? 'bg-green-100 text-green-700' : 
-                        job.status === 'closed' ? 'bg-red-100 text-red-700' :
-                        job.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                        'bg-amber-100 text-amber-700'
-                      }`}>
-                        {job.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{new Date(job.postedDate).toLocaleDateString()}</td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => fetchApplicants(job.jobId, job.title)}
-                        className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
-                        disabled={loadingApplicants}
-                      >
-                        {job.applicantsCount || 0}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button 
-                          className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-xs font-medium hover:bg-gray-800" 
-                          onClick={() => handleViewJob(job.jobId)}
+                    {visibleColumns.has('title') && (
+                      <td className="px-4 py-3 font-medium text-gray-900">{job.title}</td>
+                    )}
+                    {visibleColumns.has('company') && (
+                      <td className="px-4 py-3 text-gray-600">{job.companyName}</td>
+                    )}
+                    {visibleColumns.has('budget') && (
+                      <td className="px-4 py-3 text-gray-600">Rs.{Number(job.budget || 0).toFixed(2)}</td>
+                    )}
+                    {visibleColumns.has('type') && (
+                      <td className="px-4 py-3 text-gray-600">
+                        <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">{job.jobType}</span>
+                      </td>
+                    )}
+                    {visibleColumns.has('status') && (
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                          job.status === 'open' || job.status === 'active' ? 'bg-green-100 text-green-700' : 
+                          job.status === 'closed' ? 'bg-red-100 text-red-700' :
+                          job.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {job.status}
+                        </span>
+                      </td>
+                    )}
+                    {visibleColumns.has('posted') && (
+                      <td className="px-4 py-3 text-gray-600">{new Date(job.postedDate).toLocaleDateString()}</td>
+                    )}
+                    {visibleColumns.has('applicants') && (
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => fetchApplicants(job.jobId, job.title)}
+                          className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
+                          disabled={loadingApplicants}
                         >
-                          View
+                          {job.applicantsCount || 0}
                         </button>
-                        <button 
-                          className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700" 
-                          onClick={() => setDeleteModal({ show: true, jobId: job.jobId, jobTitle: job.title })}
-                          disabled={deleting === job.jobId}
-                        >
-                          {deleting === job.jobId ? 'Deleting...' : 'Delete'}
-                        </button>
-                      </div>
-                    </td>
+                      </td>
+                    )}
+                    {visibleColumns.has('actions') && (
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <button 
+                            className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-xs font-medium hover:bg-gray-800" 
+                            onClick={() => handleViewJob(job.jobId)}
+                          >
+                            View
+                          </button>
+                          <button 
+                            className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700" 
+                            onClick={() => setDeleteModal({ show: true, jobId: job.jobId, jobTitle: job.title })}
+                            disabled={deleting === job.jobId}
+                          >
+                            {deleting === job.jobId ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          {/* Showing count moved to table footer */}
+          <div className="px-4 py-3 text-sm text-gray-600">Showing: {filteredJobs.length} of {totalJobs}</div>
         </div>
       )}
 

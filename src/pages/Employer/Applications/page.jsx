@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import ApplicationDetailsModal from '../../../components/employer/ApplicationDetailsModal';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
@@ -19,6 +20,9 @@ const APP_COLUMNS = [
 ];
 
 const EmployerApplications = () => {
+  const [searchParams] = useSearchParams();
+  const jobIdFilter = searchParams.get('jobId'); // Get jobId from URL query
+  
   const [applications, setApplications] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, accepted: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
@@ -26,7 +30,7 @@ const EmployerApplications = () => {
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  // SmartFilter states
+  // SmartFilter states for column-level filtering
   const [freelancerFilters, setFreelancerFilters] = useState([]);
   const [jobFilters, setJobFilters] = useState([]);
   const [statusFilters, setStatusFilters] = useState([]);
@@ -36,15 +40,30 @@ const EmployerApplications = () => {
 
   const cols = useSmartColumnToggle(APP_COLUMNS, 'employer-apps-cols');
 
-  useEffect(() => { fetchApplications(); }, []);
+  useEffect(() => { fetchApplications(); }, [jobIdFilter]);
 
   const fetchApplications = async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_BASE_URL}/api/employer/job_applications/api/data`, { withCredentials: true });
       if (response.data.success) {
-        setApplications(response.data.data.applications);
-        setStats(response.data.data.stats);
+        let allApplications = response.data.data.applications;
+        
+        // Filter by jobId if provided in URL
+        if (jobIdFilter) {
+          allApplications = allApplications.filter(app => app.jobId === jobIdFilter);
+        }
+        
+        setApplications(allApplications);
+        
+        // Calculate statistics based on filtered applications
+        const filteredStats = {
+          total: allApplications.length,
+          pending: allApplications.filter(app => app.status === 'Pending').length,
+          accepted: allApplications.filter(app => app.status === 'Accepted').length,
+          rejected: allApplications.filter(app => app.status === 'Rejected').length,
+        };
+        setStats(filteredStats);
       }
     } catch (error) {
       console.error('Error fetching applications:', error);
@@ -157,41 +176,67 @@ const EmployerApplications = () => {
     dateFilters.length + ratingFilters.length +
     (searchTerm ? 1 : 0);
 
+  // Get the job title if filtering by specific job
+  const filteredJobTitle = jobIdFilter && applications.length > 0 ? applications[0].jobTitle : null;
+
   return (
-    <DashboardPage title="Applications">
+    <DashboardPage title={filteredJobTitle ? `Applications for ${filteredJobTitle}` : "Applications"}>
       <div className="space-y-6">
         <p className="text-gray-600">Review and manage applications for your job listings</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-xl p-5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-blue-100">Total</p><p className="text-2xl font-bold mt-1">{stats.total}</p></div>
-              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center"><i className="fas fa-file-alt text-lg"></i></div>
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-file-alt text-blue-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Total</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+              </div>
             </div>
           </div>
-          <div className="rounded-xl p-5 bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-amber-100">Pending</p><p className="text-2xl font-bold mt-1">{stats.pending}</p></div>
-              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center"><i className="fas fa-clock text-lg"></i></div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-clock text-amber-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Pending</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.pending}</p>
+              </div>
             </div>
           </div>
-          <div className="rounded-xl p-5 bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-green-100">Accepted</p><p className="text-2xl font-bold mt-1">{stats.accepted}</p></div>
-              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center"><i className="fas fa-check-circle text-lg"></i></div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-check-circle text-green-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Accepted</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.accepted}</p>
+              </div>
             </div>
           </div>
-          <div className="rounded-xl p-5 bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-red-100">Rejected</p><p className="text-2xl font-bold mt-1">{stats.rejected}</p></div>
-              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center"><i className="fas fa-times-circle text-lg"></i></div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-times-circle text-red-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Rejected</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.rejected}</p>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex-1 min-w-[200px] relative">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative">
               <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
               <input
                 type="text"
