@@ -157,28 +157,51 @@ const EmployerApplications = () => {
         <p className="text-gray-600">Review and manage applications for your job listings</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-xl p-5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-blue-100">Total</p><p className="text-2xl font-bold mt-1">{stats.total}</p></div>
-              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center"><i className="fas fa-file-alt text-lg"></i></div>
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-file-alt text-blue-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Total</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+              </div>
             </div>
           </div>
-          <div className="rounded-xl p-5 bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-amber-100">Pending</p><p className="text-2xl font-bold mt-1">{stats.pending}</p></div>
-              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center"><i className="fas fa-clock text-lg"></i></div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-clock text-amber-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Pending</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.pending}</p>
+              </div>
             </div>
           </div>
-          <div className="rounded-xl p-5 bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-green-100">Accepted</p><p className="text-2xl font-bold mt-1">{stats.accepted}</p></div>
-              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center"><i className="fas fa-check-circle text-lg"></i></div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-check-circle text-green-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Accepted</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.accepted}</p>
+              </div>
             </div>
           </div>
-          <div className="rounded-xl p-5 bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-red-100">Rejected</p><p className="text-2xl font-bold mt-1">{stats.rejected}</p></div>
-              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center"><i className="fas fa-times-circle text-lg"></i></div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-times-circle text-red-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Rejected</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.rejected}</p>
+              </div>
             </div>
           </div>
         </div>

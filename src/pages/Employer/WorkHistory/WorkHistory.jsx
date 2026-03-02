@@ -136,21 +136,52 @@ const EmployerWorkHistory = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white rounded-xl shadow-md p-6 text-center">
-            <div className="text-4xl font-bold text-blue-600 mb-2">{stats.total}</div>
-            <div className="text-gray-600 text-sm">Completed Projects</div>
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-briefcase text-blue-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Completed Projects</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-xl shadow-md p-6 text-center">
-            <div className="text-4xl font-bold text-blue-600 mb-2">{stats.avgRating}</div>
-            <div className="text-gray-600 text-sm">Average Rating</div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-star text-yellow-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Average Rating</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.avgRating}</p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-xl shadow-md p-6 text-center">
-            <div className="text-4xl font-bold text-blue-600 mb-2">{stats.avgDays}</div>
-            <div className="text-gray-600 text-sm">Days Average</div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-calendar-alt text-purple-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Days Average</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.avgDays}</p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-xl shadow-md p-6 text-center">
-            <div className="text-4xl font-bold text-blue-600 mb-2">{stats.successRate}%</div>
-            <div className="text-gray-600 text-sm">Success Rate</div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-check-circle text-green-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Success Rate</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.successRate}%</p>
+              </div>
+            </div>
           </div>
         </div>
 
