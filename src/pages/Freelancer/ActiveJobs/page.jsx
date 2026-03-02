@@ -67,8 +67,7 @@ const FreelancerActiveJobs = () => {
   const [appsError, setAppsError] = useState(null);
   const [appSearchTerm, setAppSearchTerm] = useState('');
   const [appSortBy, setAppSortBy] = useState('date-newest');
-  const [appColumnFilters, setAppColumnFilters] = useState({ status: [], jobType: [] });
-  const [appDateFilter, setAppDateFilter] = useState('');
+  const [appColumnFilters, setAppColumnFilters] = useState({ status: [], jobType: [], appliedDate: [] });
 
   const setAppColFilter = (field) => (values) =>
     setAppColumnFilters((prev) => ({ ...prev, [field]: values }));
@@ -156,11 +155,11 @@ const FreelancerActiveJobs = () => {
     if (appColumnFilters.jobType.length > 0) {
       list = list.filter(a => appColumnFilters.jobType.includes(a.jobType));
     }
-    if (appDateFilter) {
+    if (appColumnFilters.appliedDate.length > 0) {
       list = list.filter(a => {
         const d = new Date(a.appliedDate);
-        const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        return local === appDateFilter;
+        const formatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return appColumnFilters.appliedDate.includes(formatted);
       });
     }
     if (appSearchTerm) {
@@ -180,7 +179,7 @@ const FreelancerActiveJobs = () => {
       case 'status':      sorted.sort((a, b) => a.status.localeCompare(b.status)); break;
     }
     return sorted;
-  }, [applications, appSearchTerm, appSortBy, appColumnFilters, appDateFilter]);
+  }, [applications, appSearchTerm, appSortBy, appColumnFilters]);
 
   return (
     <DashboardPage title="My Jobs">
@@ -312,7 +311,7 @@ const FreelancerActiveJobs = () => {
               <div className="text-center py-16">
                 <p className="text-gray-800 font-medium mb-1">No matching applications</p>
                 <p className="text-gray-500 text-sm mb-3">Try adjusting your filters or search criteria</p>
-                <button onClick={() => { setAppSearchTerm(''); setAppSortBy('date-newest'); setAppColumnFilters({ status: [], jobType: [] }); setAppDateFilter(''); }} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
+                <button onClick={() => { setAppSearchTerm(''); setAppSortBy('date-newest'); setAppColumnFilters({ status: [], jobType: [], appliedDate: [] }); }} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -338,44 +337,17 @@ const FreelancerActiveJobs = () => {
                         <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
                           <div className="flex items-center justify-center gap-1.5">
                             Applied Date
-                            <div className="relative">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  const input = e.currentTarget.nextElementSibling;
-                                  if (input?.showPicker) input.showPicker();
-                                  else input?.click();
-                                }}
-                                className={`p-0.5 rounded transition-colors ${
-                                  appDateFilter ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
-                                }`}
-                                title={appDateFilter ? `Filtered: ${appDateFilter}` : 'Filter by date'}
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <rect x="3" y="4" width="18" height="18" rx="2" />
-                                  <line x1="16" y1="2" x2="16" y2="6" />
-                                  <line x1="8" y1="2" x2="8" y2="6" />
-                                  <line x1="3" y1="10" x2="21" y2="10" />
-                                </svg>
-                              </button>
-                              <input
-                                type="date"
-                                value={appDateFilter}
-                                max={new Date().toISOString().slice(0, 10)}
-                                onChange={(e) => setAppDateFilter(e.target.value)}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                              />
-                              {appDateFilter && (
-                                <button
-                                  type="button"
-                                  onClick={() => setAppDateFilter('')}
-                                  className="ml-1 text-blue-600 hover:text-blue-800 text-[10px] font-medium"
-                                  title="Clear date filter"
-                                >
-                                  ✕
-                                </button>
-                              )}
-                            </div>
+                            <SmartFilter
+                              label="Applied Date"
+                              data={applications}
+                              field="appliedDate"
+                              selectedValues={appColumnFilters.appliedDate}
+                              onFilterChange={setAppColFilter('appliedDate')}
+                              valueExtractor={(item) => {
+                                const d = new Date(item.appliedDate);
+                                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                              }}
+                            />
                           </div>
                         </th>
                       )}
@@ -468,7 +440,7 @@ const FreelancerActiveJobs = () => {
                 </table>
                 {/* Showing x of x — just below the table */}
                 <div className="px-5 py-2.5 border-t border-gray-100 bg-gray-50">
-                  <p className="text-xs text-gray-400 text-right">
+                  <p className="text-xs text-gray-400 text-left">
                     Showing {processedApplications.length} of {applications.length} application{applications.length !== 1 ? 's' : ''}
                   </p>
                 </div>

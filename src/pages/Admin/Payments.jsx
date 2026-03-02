@@ -114,22 +114,22 @@ const AdminPayments = () => {
     <DashboardPage title="All Payments">
       {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-xs font-medium text-gray-500 uppercase mb-1">Total Transactions</p>
-          <p className="text-2xl font-bold text-gray-900">{payments.length}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 border-l-4 border-l-green-500">
-          <p className="text-xs font-medium text-gray-500 uppercase mb-1">Paid</p>
-          <p className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-yellow-200 p-4 border-l-4 border-l-yellow-500">
-          <p className="text-xs font-medium text-gray-500 uppercase mb-1">Pending</p>
-          <p className="text-2xl font-bold text-yellow-600">{formatCurrency(totalPending)}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-blue-200 p-4 border-l-4 border-l-blue-500">
-          <p className="text-xs font-medium text-gray-500 uppercase mb-1">In Progress</p>
-          <p className="text-2xl font-bold text-blue-600">{formatCurrency(totalInProgress)}</p>
-        </div>
+        {[
+          { label: 'Total Transactions', value: payments.length,          iconBg: 'bg-blue-100',   iconColor: 'text-blue-600',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
+          { label: 'Paid',              value: formatCurrency(totalPaid), iconBg: 'bg-green-100',  iconColor: 'text-green-600',  icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /> },
+          { label: 'Pending',           value: formatCurrency(totalPending), iconBg: 'bg-orange-100', iconColor: 'text-orange-600', icon: <><circle cx="12" cy="12" r="10" strokeWidth={2} /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2" /></> },
+          { label: 'In Progress',       value: formatCurrency(totalInProgress), iconBg: 'bg-blue-100', iconColor: 'text-blue-500', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /> },
+        ].map((s) => (
+          <div key={s.label} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+            <div className={`w-11 h-11 rounded-xl ${s.iconBg} flex items-center justify-center flex-shrink-0`}>
+              <svg className={`w-5 h-5 ${s.iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">{s.icon}</svg>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500">{s.label}</p>
+              <p className="text-2xl font-bold text-gray-900">{s.value}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Toolbar */}
