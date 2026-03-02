@@ -301,6 +301,13 @@ const ModeratorBlogs = () => {
 
           {/* Bottom Row - Search */}
           <div className="flex items-center gap-3">
+            <div className="inline-flex items-center gap-2 whitespace-nowrap px-3 py-2 text-sm font-medium border rounded-lg text-gray-700 bg-white border-gray-200 shadow-sm">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Search By
+            </div>
+
             {/* Custom Tab Buttons */}
             <div className="inline-flex p-1 rounded-lg border border-gray-200 bg-gray-50 h-9">
               <button
