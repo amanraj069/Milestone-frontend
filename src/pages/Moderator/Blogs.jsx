@@ -240,17 +240,40 @@ const ModeratorBlogs = () => {
       <div className="space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total Blogs</p>
-            <p className="text-2xl font-semibold text-gray-900">{totalBlogs}</p>
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-pen-nib text-blue-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Total Blogs</p>
+                <p className="text-2xl font-bold text-gray-800">{totalBlogs}</p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Published</p>
-            <p className="text-2xl font-semibold text-gray-900">{publishedBlogs}</p>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-globe text-yellow-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Published</p>
+                <p className="text-2xl font-bold text-gray-800">{publishedBlogs}</p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Featured</p>
-            <p className="text-2xl font-semibold text-gray-900">{featuredBlogs}</p>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-star text-purple-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Featured</p>
+                <p className="text-2xl font-bold text-gray-800">{featuredBlogs}</p>
+              </div>
+            </div>
           </div>
         </div>
 

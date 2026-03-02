@@ -130,18 +130,19 @@ const EmployerSubscription = () => {
   const expiryLabel = formatExpiryDate(user?.subscriptionExpiryDate || subscriptionState.expiryDate);
 
   const basicFeatures = [
-    'Post up to 3 jobs per month',
-    'Basic applicant management',
-    'Standard support',
+    'Standard listing visibility for posted jobs',
+    'Basic applicant list and shortlisting tools',
+    'Regular support response priority',
   ];
 
   const premiumFeatures = [
     'Unlimited job postings',
-    'Advanced applicant filtering',
-    'Priority job listing',
-    'Detailed analytics & insights',
+    'Sponsored job posting for higher visibility',
+    'Advanced applicant filtering and scoring',
+    'Priority ranking in candidate discovery',
+    'Detailed analytics & hiring funnel insights',
     'Premium support (24/7)',
-    'Custom branding options',
+    'Faster moderation for urgent hiring updates',
   ];
 
   const isPremium = currentPlan === 'Premium';
@@ -254,19 +255,23 @@ const EmployerSubscription = () => {
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Why teams choose Premium</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Premium impact for employers</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
-              <p className="text-sm font-semibold text-gray-900">Faster Hiring</p>
-              <p className="text-xs text-gray-600 mt-1">Prioritized listings and advanced filters reduce hiring time.</p>
+              <p className="text-sm font-semibold text-gray-900">Sponsored Reach</p>
+              <p className="text-xs text-gray-600 mt-1">Sponsored posts appear more prominently so quality freelancers find your role faster.</p>
             </div>
             <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
-              <p className="text-sm font-semibold text-gray-900">Better Insights</p>
-              <p className="text-xs text-gray-600 mt-1">Track application quality and listing performance clearly.</p>
+              <p className="text-sm font-semibold text-gray-900">Smarter Screening</p>
+              <p className="text-xs text-gray-600 mt-1">Filter and compare applicants by more dimensions for better shortlisting decisions.</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+              <p className="text-sm font-semibold text-gray-900">Hiring Analytics</p>
+              <p className="text-xs text-gray-600 mt-1">Track listing conversion and applicant quality trends to improve each new posting.</p>
             </div>
             <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
               <p className="text-sm font-semibold text-gray-900">Priority Support</p>
-              <p className="text-xs text-gray-600 mt-1">Get quicker support responses for urgent hiring needs.</p>
+              <p className="text-xs text-gray-600 mt-1">Get faster issue resolution when project timelines are tight.</p>
             </div>
           </div>
         </div>

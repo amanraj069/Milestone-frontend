@@ -4,8 +4,8 @@ import DashboardLayout from './DashboardLayout';
 const DashboardPage = ({ title, headerAction, children }) => {
   return (
     <DashboardLayout>
-      <div className="p-12">
-        <div className="max-w-7xl mx-auto">
+      <div className="px-6 sm:px-8 lg:px-12 py-8">
+        <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-5xl font-bold text-gray-800">{title}</h1>
             {headerAction}

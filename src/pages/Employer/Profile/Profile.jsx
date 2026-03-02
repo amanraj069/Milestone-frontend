@@ -185,17 +185,28 @@ const EmployerProfile = () => {
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
-            <div className="text-4xl font-bold text-blue-600">
-              {dashboardStats !== null ? dashboardStats.activeJobs : <span className="animate-pulse">0</span>}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-briefcase text-blue-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Active Jobs</p>
+                <p className="text-2xl font-bold text-gray-800">{dashboardStats !== null ? dashboardStats.activeJobs : <span className="animate-pulse">0</span>}</p>
+              </div>
             </div>
-            <div className="text-sm text-gray-600 mt-2 font-medium">ACTIVE JOBS</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
-            <div className="text-4xl font-bold text-blue-600">
-              {dashboardStats !== null ? dashboardStats.currentFreelancers : <span className="animate-pulse">0</span>}
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-users text-green-600 text-xl"></i>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1">Active Freelancers</p>
+                <p className="text-2xl font-bold text-gray-800">{dashboardStats !== null ? dashboardStats.currentFreelancers : <span className="animate-pulse">0</span>}</p>
+              </div>
             </div>
-            <div className="text-sm text-gray-600 mt-2 font-medium">ACTIVE FREELANCERS</div>
           </div>
         </div>
 

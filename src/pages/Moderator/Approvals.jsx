@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
+import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -39,6 +40,20 @@ const ModeratorApprovals = () => {
   // Modal states
   const [confirmModal, setConfirmModal] = useState({ show: false, userId: null, name: '', action: '' });
   const [detailsModal, setDetailsModal] = useState({ show: false, employer: null });
+  const [sortBy, setSortBy] = useState('recent');
+
+  const allColumns = [
+    { key: 'name', label: 'Name' },
+    { key: 'company', label: 'Company' },
+    { key: 'location', label: 'Location' },
+    { key: 'phone', label: 'Phone' },
+    { key: 'status', label: 'Status' },
+    { key: 'registered', label: 'Registered' },
+    { key: 'actions', label: 'Actions' },
+  ];
+
+  const { visible: visibleColumns, setVisible: setVisibleColumns } = useSmartColumnToggle(allColumns, 'moderator-approvals-visible-columns');
+  const isColumnVisible = (k) => visibleColumns.has(k);
 
   useEffect(() => {
     fetchEmployers();
@@ -194,77 +209,107 @@ const ModeratorApprovals = () => {
       <p className="text-gray-500 -mt-6">Review and approve employer registrations</p>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Employers</p>
-          <p className="text-2xl font-semibold text-gray-900">{totalEmployers}</p>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-users text-blue-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Total Employers</p>
+              <p className="text-2xl font-bold text-gray-800">{totalEmployers}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Pending Approval</p>
-          <p className="text-2xl font-semibold text-yellow-600">{pendingCount}</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-hourglass-half text-yellow-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Pending Approval</p>
+              <p className="text-2xl font-bold text-gray-800">{pendingCount}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Approved</p>
-          <p className="text-2xl font-semibold text-green-600">{approvedCount}</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-check-circle text-purple-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Approved</p>
+              <p className="text-2xl font-bold text-gray-800">{approvedCount}</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Rejected</p>
-          <p className="text-2xl font-semibold text-red-600">{rejectedCount}</p>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-times-circle text-emerald-600 text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Rejected</p>
+              <p className="text-2xl font-bold text-gray-800">{rejectedCount}</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Filters and Search Bar */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-4">
-        {/* Filters Row */}
+        {/* Top Status Filter (kept) */}
         <div className="flex flex-wrap items-center gap-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Status Filter</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
-
-          {hasActiveFilters && (
-            <div>
-              <label className="block text-xs font-medium text-transparent mb-1">.</label>
-              <button
-                onClick={clearAllFilters}
-                className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Clear Filters
-              </button>
-            </div>
-          )}
-
-          <div className="ml-auto text-sm text-gray-500 whitespace-nowrap">
-            Showing: {filteredEmployers.length} of {totalEmployers}
-          </div>
         </div>
 
-        {/* Search Row */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+        {/* Search Row with Sort and Column Toggle */}
+        <div className="relative flex items-center gap-4">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Search employers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
           </div>
-          <input
-            type="text"
-            placeholder="Search employers..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-gray-500">Sort By</div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="recent">Recently Registered</option>
+              <option value="oldest">Oldest Registered</option>
+              <option value="name-az">Name A - Z</option>
+              <option value="name-za">Name Z - A</option>
+            </select>
+
+            <SmartColumnToggle
+              columns={allColumns}
+              visible={visibleColumns}
+              onChange={setVisibleColumns}
+              storageKey="moderator-approvals-visible-columns"
+            />
+
+            <button
+              onClick={clearAllFilters}
+              disabled={!hasActiveFilters}
+              className={`px-3 py-2 ml-2 rounded-md text-sm font-medium border ${hasActiveFilters ? 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'}`}
+            >
+              Clear Filters
+            </button>
+          </div>
         </div>
       </div>
 
@@ -291,133 +336,173 @@ const ModeratorApprovals = () => {
             <table className="w-full text-sm table-auto">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-left">
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">
-                    <div className="flex items-center gap-2">
-                      Name
-                      <SmartFilter
-                        label="Name"
-                        data={employers}
-                        field="name"
-                        selectedValues={nameFilters}
-                        onFilterChange={setNameFilters}
-                      />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">
-                    <div className="flex items-center gap-2">
-                      Company
-                      <SmartFilter
-                        label="Company"
-                        data={employers}
-                        field="companyName"
-                        selectedValues={companyFilters}
-                        onFilterChange={setCompanyFilters}
-                      />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">
-                    <div className="flex items-center gap-2">
-                      Location
-                      <SmartFilter
-                        label="Location"
-                        data={employers}
-                        field="location"
-                        selectedValues={locationFilters}
-                        onFilterChange={setLocationFilters}
-                      />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Phone</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">
-                    <div className="flex items-center gap-2">
-                      Status
-                      <SmartFilter
-                        label="Status"
-                        data={employers}
-                        field="approvalStatus"
-                        selectedValues={statusFiltersColumn}
-                        onFilterChange={setStatusFiltersColumn}
-                      />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Registered</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">Actions</th>
+                  {isColumnVisible('name') && (
+                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">
+                      <div className="flex items-center gap-2">
+                        Name
+                        <SmartFilter
+                          label="Name"
+                          data={employers}
+                          field="name"
+                          selectedValues={nameFilters}
+                          onFilterChange={setNameFilters}
+                        />
+                      </div>
+                    </th>
+                  )}
+
+                  {isColumnVisible('company') && (
+                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">
+                      <div className="flex items-center gap-2">
+                        Company
+                        <SmartFilter
+                          label="Company"
+                          data={employers}
+                          field="companyName"
+                          selectedValues={companyFilters}
+                          onFilterChange={setCompanyFilters}
+                        />
+                      </div>
+                    </th>
+                  )}
+
+                  {isColumnVisible('location') && (
+                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">
+                      <div className="flex items-center gap-2">
+                        Location
+                        <SmartFilter
+                          label="Location"
+                          data={employers}
+                          field="location"
+                          selectedValues={locationFilters}
+                          onFilterChange={setLocationFilters}
+                        />
+                      </div>
+                    </th>
+                  )}
+
+                  {isColumnVisible('phone') && (
+                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Phone</th>
+                  )}
+
+                  {isColumnVisible('status') && (
+                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">
+                      <div className="flex items-center gap-2">
+                        Status
+                        <SmartFilter
+                          label="Status"
+                          data={employers}
+                          field="approvalStatus"
+                          selectedValues={statusFiltersColumn}
+                          onFilterChange={setStatusFiltersColumn}
+                        />
+                      </div>
+                    </th>
+                  )}
+
+                  {isColumnVisible('registered') && (
+                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Registered</th>
+                  )}
+
+                  {isColumnVisible('actions') && (
+                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredEmployers.length > 0 ? (
                   filteredEmployers.map((employer) => (
                     <tr key={employer.userId} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 align-top">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <img
-                            src={employer.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'}
-                            alt={employer.name}
-                            className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
-                            onError={(e) => { e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'; }}
-                          />
-                          <div className="min-w-0">
-                            <div className="font-medium text-gray-900 truncate max-w-[200px]">{employer.name}</div>
-                            <div className="text-xs text-gray-500 truncate max-w-[200px]">{employer.email}</div>
+                      {isColumnVisible('name') && (
+                        <td className="px-4 py-3 align-top">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img
+                              src={employer.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'}
+                              alt={employer.name}
+                              className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                              onError={(e) => { e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'; }}
+                            />
+                            <div className="min-w-0">
+                              <div className="font-medium text-gray-900 truncate max-w-[200px]">{employer.name}</div>
+                              <div className="text-xs text-gray-500 truncate max-w-[200px]">{employer.email}</div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 truncate max-w-[180px]">{employer.companyName || 'N/A'}</td>
-                      <td className="px-4 py-3 text-gray-600 truncate max-w-[150px]">{employer.location || 'N/A'}</td>
-                      <td className="px-4 py-3 text-gray-600 text-sm whitespace-nowrap">{employer.phone || 'N/A'}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          employer.approvalStatus === 'Approved' ? 'bg-green-100 text-green-700' : 
-                          employer.approvalStatus === 'Rejected' ? 'bg-red-100 text-red-700' : 
-                          'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {employer.approvalStatus}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 text-sm whitespace-nowrap">
-                        {new Date(employer.registeredAt || Date.now()).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex justify-center gap-2">
-                           <button 
-                            onClick={() => setDetailsModal({ show: true, employer })}
-                            className="bg-gray-100 text-gray-600 hover:bg-gray-200 px-3 py-1.5 rounded text-xs transition-colors border border-gray-200 shadow-sm"
-                          >
-                            Details
-                          </button>
+                        </td>
+                      )}
 
-                          {employer.approvalStatus === 'Pending' && (
-                            <>
-                              <button
+                      {isColumnVisible('company') && (
+                        <td className="px-4 py-3 text-gray-600 truncate max-w-[180px]">{employer.companyName || 'N/A'}</td>
+                      )}
+
+                      {isColumnVisible('location') && (
+                        <td className="px-4 py-3 text-gray-600 truncate max-w-[150px]">{employer.location || 'N/A'}</td>
+                      )}
+
+                      {isColumnVisible('phone') && (
+                        <td className="px-4 py-3 text-gray-600 text-sm whitespace-nowrap">{employer.phone || 'N/A'}</td>
+                      )}
+
+                      {isColumnVisible('status') && (
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            employer.approvalStatus === 'Approved' ? 'bg-green-100 text-green-700' : 
+                            employer.approvalStatus === 'Rejected' ? 'bg-red-100 text-red-700' : 
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {employer.approvalStatus}
+                          </span>
+                        </td>
+                      )}
+
+                      {isColumnVisible('registered') && (
+                        <td className="px-4 py-3 text-gray-600 text-sm whitespace-nowrap">
+                          {new Date(employer.registeredAt || Date.now()).toLocaleDateString()}
+                        </td>
+                      )}
+
+                      {isColumnVisible('actions') && (
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex justify-center gap-2">
+                            <button 
+                              onClick={() => setDetailsModal({ show: true, employer })}
+                              className="bg-gray-100 text-gray-600 hover:bg-gray-200 px-3 py-1.5 rounded text-xs transition-colors border border-gray-200 shadow-sm"
+                            >
+                              Details
+                            </button>
+
+                            {employer.approvalStatus === 'Pending' && (
+                              <>
+                                <button
+                                  onClick={() => setConfirmModal({ show: true, userId: employer.userId, name: employer.name, action: 'approve' })}
+                                  disabled={processing === employer.userId}
+                                  className="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => setConfirmModal({ show: true, userId: employer.userId, name: employer.name, action: 'reject' })}
+                                  disabled={processing === employer.userId}
+                                  className="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            {employer.approvalStatus === 'Approved' && (
+                              <span className="text-xs text-gray-400 italic font-medium px-2 pt-2">No further actions</span>
+                            )}
+                            {employer.approvalStatus === 'Rejected' && (
+                              <button 
                                 onClick={() => setConfirmModal({ show: true, userId: employer.userId, name: employer.name, action: 'approve' })}
                                 disabled={processing === employer.userId}
-                                className="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50"
+                                className="bg-green-50 text-green-600 hover:bg-green-100 px-3 py-1.5 rounded text-xs transition-colors border border-green-200 font-semibold"
                               >
                                 Approve
                               </button>
-                              <button
-                                onClick={() => setConfirmModal({ show: true, userId: employer.userId, name: employer.name, action: 'reject' })}
-                                disabled={processing === employer.userId}
-                                className="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-                          {employer.approvalStatus === 'Approved' && (
-                             <span className="text-xs text-gray-400 italic font-medium px-2 pt-2">No further actions</span>
-                          )}
-                          {employer.approvalStatus === 'Rejected' && (
-                             <button 
-                               onClick={() => setConfirmModal({ show: true, userId: employer.userId, name: employer.name, action: 'approve' })}
-                               disabled={processing === employer.userId}
-                               className="bg-green-50 text-green-600 hover:bg-green-100 px-3 py-1.5 rounded text-xs transition-colors border border-green-200 font-semibold"
-                             >
-                               Approve
-                             </button>
-                          )}
-                        </div>
-                      </td>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : (
@@ -438,6 +523,8 @@ const ModeratorApprovals = () => {
               </tbody>
             </table>
           </div>
+          {/* Showing count moved to table footer */}
+          <div className="px-4 py-3 text-sm text-gray-600">Showing: {filteredEmployers.length} of {totalEmployers}</div>
         </div>
       )}
 
