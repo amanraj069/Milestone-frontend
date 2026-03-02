@@ -214,7 +214,7 @@ export default function FreelancerJobHistory() {
           <div className="text-center py-16">
             <p className="text-gray-800 font-medium mb-1">No matching jobs</p>
             <p className="text-gray-500 text-sm mb-3">Try adjusting your search or filters</p>
-            <button onClick={() => { setSearchTerm(''); setColumnFilters({ status: [], employer: [], jobName: [] }); }}  className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
+            <button onClick={() => { setSearchTerm(''); setSortBy('newest'); setColumnFilters({ status: [], employer: [], jobName: [] }); }}  className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
           </div>
         ) : (
           <div className="overflow-x-auto">

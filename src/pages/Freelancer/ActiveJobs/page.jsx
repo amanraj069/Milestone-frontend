@@ -312,7 +312,7 @@ const FreelancerActiveJobs = () => {
               <div className="text-center py-16">
                 <p className="text-gray-800 font-medium mb-1">No matching applications</p>
                 <p className="text-gray-500 text-sm mb-3">Try adjusting your filters or search criteria</p>
-                <button onClick={() => { setAppSearchTerm(''); setAppColumnFilters({ status: [], jobType: [] }); }} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
+                <button onClick={() => { setAppSearchTerm(''); setAppSortBy('date-newest'); setAppColumnFilters({ status: [], jobType: [] }); setAppDateFilter(''); }} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
               </div>
             ) : (
               <div className="overflow-x-auto">
