@@ -5,6 +5,7 @@ import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from '../../../components/freelancer/JobDetailsModal';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
 import SmartSearchInput from '../../../components/SmartSearchInput';
+import SmartFilter from '../../../components/SmartFilter';
 import { useChatContext } from '../../../context/ChatContext';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
@@ -66,7 +67,11 @@ const FreelancerActiveJobs = () => {
   const [appsError, setAppsError] = useState(null);
   const [appSearchTerm, setAppSearchTerm] = useState('');
   const [appSortBy, setAppSortBy] = useState('date-newest');
-  const [appStatusFilter, setAppStatusFilter] = useState('all');
+  const [appColumnFilters, setAppColumnFilters] = useState({ status: [], jobType: [] });
+  const [appDateFilter, setAppDateFilter] = useState('');
+
+  const setAppColFilter = (field) => (values) =>
+    setAppColumnFilters((prev) => ({ ...prev, [field]: values }));
 
   const cols = useSmartColumnToggle(COLUMNS, 'active-jobs-cols');
   const appCols = useSmartColumnToggle(APPLICATIONS_COLUMNS, 'applications-cols');
@@ -145,8 +150,18 @@ const FreelancerActiveJobs = () => {
 
   const processedApplications = useMemo(() => {
     let list = applications;
-    if (appStatusFilter !== 'all') {
-      list = list.filter(a => a.status === appStatusFilter);
+    if (appColumnFilters.status.length > 0) {
+      list = list.filter(a => appColumnFilters.status.includes(a.status));
+    }
+    if (appColumnFilters.jobType.length > 0) {
+      list = list.filter(a => appColumnFilters.jobType.includes(a.jobType));
+    }
+    if (appDateFilter) {
+      list = list.filter(a => {
+        const d = new Date(a.appliedDate);
+        const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        return local === appDateFilter;
+      });
     }
     if (appSearchTerm) {
       const q = appSearchTerm.toLowerCase();
@@ -165,7 +180,7 @@ const FreelancerActiveJobs = () => {
       case 'status':      sorted.sort((a, b) => a.status.localeCompare(b.status)); break;
     }
     return sorted;
-  }, [applications, appSearchTerm, appSortBy, appStatusFilter]);
+  }, [applications, appSearchTerm, appSortBy, appColumnFilters, appDateFilter]);
 
   return (
     <DashboardPage title="My Jobs">
@@ -245,50 +260,6 @@ const FreelancerActiveJobs = () => {
             </div>
           </div>
 
-          {/* Status Filter */}
-          <div className="flex gap-2 mb-6">
-            <button
-              onClick={() => setAppStatusFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                appStatusFilter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              All ({appStats.total})
-            </button>
-            <button
-              onClick={() => setAppStatusFilter('Pending')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                appStatusFilter === 'Pending'
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Pending ({appStats.pending})
-            </button>
-            <button
-              onClick={() => setAppStatusFilter('Accepted')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                appStatusFilter === 'Accepted'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Accepted ({appStats.accepted})
-            </button>
-            <button
-              onClick={() => setAppStatusFilter('Rejected')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                appStatusFilter === 'Rejected'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Rejected ({appStats.rejected})
-            </button>
-          </div>
-
           {/* Search + Sort + Columns */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
@@ -341,7 +312,7 @@ const FreelancerActiveJobs = () => {
               <div className="text-center py-16">
                 <p className="text-gray-800 font-medium mb-1">No matching applications</p>
                 <p className="text-gray-500 text-sm mb-3">Try adjusting your filters or search criteria</p>
-                <button onClick={() => { setAppSearchTerm(''); setAppStatusFilter('all'); }} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
+                <button onClick={() => { setAppSearchTerm(''); setAppSortBy('date-newest'); setAppColumnFilters({ status: [], jobType: [] }); setAppDateFilter(''); }} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -349,10 +320,81 @@ const FreelancerActiveJobs = () => {
                   <thead>
                     <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
                       {appCols.visible.has('jobInfo') && <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Job Information</th>}
-                      {appCols.visible.has('status') && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>}
-                      {appCols.visible.has('appliedDate') && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Applied Date</th>}
+                      {appCols.visible.has('status') && (
+                        <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center justify-center gap-1.5">
+                            Status
+                            <SmartFilter
+                              label="Status"
+                              data={applications}
+                              field="status"
+                              selectedValues={appColumnFilters.status}
+                              onFilterChange={setAppColFilter('status')}
+                            />
+                          </div>
+                        </th>
+                      )}
+                      {appCols.visible.has('appliedDate') && (
+                        <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center justify-center gap-1.5">
+                            Applied Date
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  const input = e.currentTarget.nextElementSibling;
+                                  if (input?.showPicker) input.showPicker();
+                                  else input?.click();
+                                }}
+                                className={`p-0.5 rounded transition-colors ${
+                                  appDateFilter ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
+                                }`}
+                                title={appDateFilter ? `Filtered: ${appDateFilter}` : 'Filter by date'}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                                  <line x1="16" y1="2" x2="16" y2="6" />
+                                  <line x1="8" y1="2" x2="8" y2="6" />
+                                  <line x1="3" y1="10" x2="21" y2="10" />
+                                </svg>
+                              </button>
+                              <input
+                                type="date"
+                                value={appDateFilter}
+                                max={new Date().toISOString().slice(0, 10)}
+                                onChange={(e) => setAppDateFilter(e.target.value)}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              />
+                              {appDateFilter && (
+                                <button
+                                  type="button"
+                                  onClick={() => setAppDateFilter('')}
+                                  className="ml-1 text-blue-600 hover:text-blue-800 text-[10px] font-medium"
+                                  title="Clear date filter"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </th>
+                      )}
                       {appCols.visible.has('budget') && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Budget</th>}
-                      {appCols.visible.has('jobType') && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Job Type</th>}
+                      {appCols.visible.has('jobType') && (
+                        <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center justify-center gap-1.5">
+                            Job Type
+                            <SmartFilter
+                              label="Job Type"
+                              data={applications}
+                              field="jobType"
+                              selectedValues={appColumnFilters.jobType}
+                              onFilterChange={setAppColFilter('jobType')}
+                              valueFormatter={(v) => v.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                            />
+                          </div>
+                        </th>
+                      )}
                       {appCols.visible.has('actions') && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>}
                     </tr>
                   </thead>
@@ -424,15 +466,16 @@ const FreelancerActiveJobs = () => {
                     ))}
                   </tbody>
                 </table>
+                {/* Showing x of x — just below the table */}
+                <div className="px-5 py-2.5 border-t border-gray-100 bg-gray-50">
+                  <p className="text-xs text-gray-400 text-right">
+                    Showing {processedApplications.length} of {applications.length} application{applications.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
               </div>
             )}
           </div>
 
-          {!appsLoading && applications.length > 0 && (
-            <p className="text-xs text-gray-400 text-right mt-2">
-              Showing {processedApplications.length} of {applications.length} application{applications.length !== 1 ? 's' : ''}
-            </p>
-          )}
         </>
       ) : (
         <>
@@ -637,16 +680,17 @@ const FreelancerActiveJobs = () => {
                 ))}
               </tbody>
             </table>
+            {/* Showing x of x — just below the table */}
+            <div className="px-5 py-2.5 border-t border-gray-100 bg-gray-50">
+              <p className="text-xs text-gray-400 text-right">
+                Showing {processedJobs.length} of {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+              </p>
+            </div>
           </div>
         )}
       </div>
 
-      {!loading && jobs.length > 0 && (
-        <p className="text-xs text-gray-400 text-right mt-2">
-          Showing {processedJobs.length} of {jobs.length} job{jobs.length !== 1 ? 's' : ''}
-        </p>
-      )}
-        </>
+      </>
       )}
 
       {selectedJob && (

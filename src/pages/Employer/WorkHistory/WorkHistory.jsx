@@ -243,25 +243,19 @@ const EmployerWorkHistory = () => {
         </div>
       </div>
 
-      {/* Feedback Modal */}
-      {feedbackModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <FeedbackForm
-              jobId={feedbackModal.jobId}
-              toUserId={feedbackModal.toUserId}
-              toRole={feedbackModal.toRole}
-              counterpartyName={feedbackModal.counterpartyName}
-              onSuccess={() => {
-                setFeedbackModal(null);
-                // Refresh eligibility
-                dispatch(checkCanGiveFeedback(feedbackModal.jobId));
-              }}
-              onCancel={() => setFeedbackModal(null)}
-            />
-          </div>
-        </div>
-      )}
+      {/* Feedback Drawer */}
+      <FeedbackForm
+        isOpen={!!feedbackModal}
+        jobId={feedbackModal?.jobId}
+        toUserId={feedbackModal?.toUserId}
+        toRole={feedbackModal?.toRole}
+        counterpartyName={feedbackModal?.counterpartyName}
+        onSuccess={() => {
+          setFeedbackModal(null);
+          dispatch(checkCanGiveFeedback(feedbackModal?.jobId));
+        }}
+        onCancel={() => setFeedbackModal(null)}
+      />
     </DashboardPage>
   );
 };

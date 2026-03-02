@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useSelector } from 'react-redux';
 import DashboardPage from '../../components/DashboardPage';
 import BadgesList from '../Profile/BadgesList';
+import SmartSearchInput from '../../components/SmartSearchInput';
+import SmartFilter from '../../components/SmartFilter';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -22,7 +24,8 @@ const FreelancerSkillsBadges = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('All Categories');
+  const [filterCategory, setFilterCategory] = useState([]);
+  const [sortBy, setSortBy] = useState('recent');
   const [showMaxAttemptsModal, setShowMaxAttemptsModal] = useState(false);
   const [selectedQuizInfo, setSelectedQuizInfo] = useState(null);
 
@@ -57,14 +60,24 @@ const FreelancerSkillsBadges = () => {
   // Get badge skills
   const badgeSkills = new Set(badges.map(b => b.badge?.skillName).filter(Boolean));
 
-  const filteredQuizzes = quizzes.filter(q => {
-    const matchesSearch = q.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         q.skillName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'All Categories' || q.skillName === filterCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredQuizzes = useMemo(() => {
+    let list = quizzes.filter(q => {
+      const matchesSearch = q.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           q.skillName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = filterCategory.length === 0 || filterCategory.includes(q.skillName);
+      return matchesSearch && matchesCategory;
+    });
+    const sorted = [...list];
+    switch (sortBy) {
+      case 'az':     sorted.sort((a, b) => a.title.localeCompare(b.title)); break;
+      case 'za':     sorted.sort((a, b) => b.title.localeCompare(a.title)); break;
+      case 'earned': sorted.sort((a, b) => (badgeSkills.has(b.skillName) ? 1 : 0) - (badgeSkills.has(a.skillName) ? 1 : 0)); break;
+      case 'recent':
+      default:       break;
+    }
+    return sorted;
+  }, [quizzes, searchTerm, filterCategory, sortBy, badgeSkills]);
 
-  const categories = ['All Categories', ...new Set(quizzes.map(q => q.skillName))];
   const availableSkills = quizzes.length;
   const acquiredSkills = badges.length;
   const progress = availableSkills > 0 ? Math.round((acquiredSkills / availableSkills) * 100) : 0;
@@ -102,36 +115,6 @@ const FreelancerSkillsBadges = () => {
         </div>
       )}
 
-      {/* Search & Filter */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Search by skill name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Category:</label>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-          <span className="text-sm text-gray-500 whitespace-nowrap">
-            Showing: {filteredQuizzes.length} of {quizzes.length}
-          </span>
-        </div>
-      </div>
-
       {/* Your Badges Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="px-6 py-4 border-b border-gray-200">
@@ -140,6 +123,45 @@ const FreelancerSkillsBadges = () => {
         </div>
         <div className="p-6">
           <BadgesList userId={user?.id} />
+        </div>
+      </div>
+
+      {/* Search & Filter */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <SmartSearchInput
+              value={searchTerm}
+              onChange={setSearchTerm}
+              dataSource={quizzes}
+              getSearchValue={(item) => item.title || item.skillName || ''}
+              placeholder="Search by quiz title or skill..."
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-2.5 bg-white hover:border-gray-300 transition-colors">
+            <span className="text-sm text-gray-600">Category</span>
+            {filterCategory.length > 0 && (
+              <span className="bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">{filterCategory.length}</span>
+            )}
+            <SmartFilter
+              label="Category"
+              data={quizzes}
+              field="skillName"
+              selectedValues={filterCategory}
+              onFilterChange={setFilterCategory}
+            />
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+          >
+            <option value="recent">Default (Recent)</option>
+            <option value="az">A to Z</option>
+            <option value="za">Z to A</option>
+            <option value="earned">Earned Badges</option>
+          </select>
         </div>
       </div>
 
@@ -201,7 +223,10 @@ const FreelancerSkillsBadges = () => {
                       <div className="flex items-center gap-3">
                         {/* Status badges */}
                         {hasBadge && (
-                          <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">Badge Earned</span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                            Earned
+                          </span>
                         )}
                         {isAttempted && !hasBadge && (
                           <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
@@ -215,16 +240,10 @@ const FreelancerSkillsBadges = () => {
                             Best: {bestAttempt.percentage.toFixed(0)}%
                           </span>
                         )}
-                        <Link
-                          to={`/quizzes/${q._id}`}
-                          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                            quizAttempts.length >= maxAttempts 
-                              ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
-                          }`}
-                          onClick={(e) => {
-                            if (quizAttempts.length >= maxAttempts) {
-                              e.preventDefault();
+                        {quizAttempts.length >= maxAttempts ? (
+                          <button
+                            className="px-3 py-1.5 rounded-md text-sm font-medium border border-gray-300 text-gray-400 bg-white cursor-pointer hover:border-gray-400 hover:text-gray-500 transition-colors"
+                            onClick={() => {
                               setSelectedQuizInfo({
                                 title: q.title,
                                 skillName: q.skillName,
@@ -233,16 +252,32 @@ const FreelancerSkillsBadges = () => {
                                 isPremium: isPremium
                               });
                               setShowMaxAttemptsModal(true);
-                            }
-                          }}
-                        >
-                          {quizAttempts.length >= maxAttempts ? 'Max Attempts' : isPassed ? 'Retake' : 'Take Quiz'}
-                        </Link>
+                            }}
+                          >
+                            Max Attempts
+                          </button>
+                        ) : (
+                          <Link
+                            to={`/quizzes/${q._id}`}
+                            className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                          >
+                            {!isAttempted && !hasBadge
+                              ? 'Take Quiz'
+                              : bestAttempt?.percentage === 100
+                              ? 'Reattempt'
+                              : 'Improve Result'}
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>
                 );
               })}
+            </div>
+          )}
+          {!loading && filteredQuizzes.length > 0 && (
+            <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 -mx-6 -mb-6 mt-4 rounded-b-lg">
+              <p className="text-xs text-gray-400">Showing {filteredQuizzes.length} of {quizzes.length} skill{quizzes.length !== 1 ? 's' : ''}</p>
             </div>
           )}
         </div>
