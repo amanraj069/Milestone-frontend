@@ -72,6 +72,10 @@ import AdminPlatform from './pages/Admin/Revenue';
 import AdminPayments from './pages/Admin/Payments';
 import AdminModerators from './pages/Admin/Moderators';
 import ModeratorDetail from './pages/Admin/ModeratorDetail';
+import AdminFreelancers from './pages/Admin/Freelancers';
+import AdminFreelancerDetail from './pages/Admin/FreelancerDetail';
+import AdminEmployers from './pages/Admin/Employers';
+import AdminEmployerDetail from './pages/Admin/EmployerDetail';
 import AdminUsers from './pages/Admin/Users';
 import AdminProfile from './pages/Admin/Profile';
 import AdminEditProfile from './pages/Admin/EditProfile';
@@ -107,6 +111,10 @@ function App() {
                     <Route path="/admin/payments" element={<ProtectedRoute requiredRole="Admin"><AdminPayments /></ProtectedRoute>} />
                     <Route path="/admin/moderators/:moderatorId" element={<ProtectedRoute requiredRole="Admin"><ModeratorDetail /></ProtectedRoute>} />
                     <Route path="/admin/moderators" element={<ProtectedRoute requiredRole="Admin"><AdminModerators /></ProtectedRoute>} />
+                    <Route path="/admin/freelancers" element={<ProtectedRoute requiredRole="Admin"><AdminFreelancers /></ProtectedRoute>} />
+                    <Route path="/admin/freelancers/:freelancerId" element={<ProtectedRoute requiredRole="Admin"><AdminFreelancerDetail /></ProtectedRoute>} />
+                    <Route path="/admin/employers" element={<ProtectedRoute requiredRole="Admin"><AdminEmployers /></ProtectedRoute>} />
+                    <Route path="/admin/employers/:employerId" element={<ProtectedRoute requiredRole="Admin"><AdminEmployerDetail /></ProtectedRoute>} />
                     <Route path="/admin/users" element={<ProtectedRoute requiredRole="Admin"><AdminUsers /></ProtectedRoute>} />
                     <Route path="/admin/profile" element={<ProtectedRoute requiredRole="Admin"><AdminProfile /></ProtectedRoute>} />
                     <Route path="/admin/profile/edit" element={<ProtectedRoute requiredRole="Admin"><AdminEditProfile /></ProtectedRoute>} />
