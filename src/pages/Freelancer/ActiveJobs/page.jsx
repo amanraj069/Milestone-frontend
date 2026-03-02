@@ -68,6 +68,7 @@ const FreelancerActiveJobs = () => {
   const [appSearchTerm, setAppSearchTerm] = useState('');
   const [appSortBy, setAppSortBy] = useState('date-newest');
   const [appColumnFilters, setAppColumnFilters] = useState({ status: [], jobType: [] });
+  const [appDateFilter, setAppDateFilter] = useState('');
 
   const setAppColFilter = (field) => (values) =>
     setAppColumnFilters((prev) => ({ ...prev, [field]: values }));
@@ -155,6 +156,13 @@ const FreelancerActiveJobs = () => {
     if (appColumnFilters.jobType.length > 0) {
       list = list.filter(a => appColumnFilters.jobType.includes(a.jobType));
     }
+    if (appDateFilter) {
+      list = list.filter(a => {
+        const d = new Date(a.appliedDate);
+        const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        return local === appDateFilter;
+      });
+    }
     if (appSearchTerm) {
       const q = appSearchTerm.toLowerCase();
       list = list.filter(a =>
@@ -172,7 +180,7 @@ const FreelancerActiveJobs = () => {
       case 'status':      sorted.sort((a, b) => a.status.localeCompare(b.status)); break;
     }
     return sorted;
-  }, [applications, appSearchTerm, appSortBy, appColumnFilters]);
+  }, [applications, appSearchTerm, appSortBy, appColumnFilters, appDateFilter]);
 
   return (
     <DashboardPage title="My Jobs">
@@ -326,7 +334,51 @@ const FreelancerActiveJobs = () => {
                           </div>
                         </th>
                       )}
-                      {appCols.visible.has('appliedDate') && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Applied Date</th>}
+                      {appCols.visible.has('appliedDate') && (
+                        <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center justify-center gap-1.5">
+                            Applied Date
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  const input = e.currentTarget.nextElementSibling;
+                                  if (input?.showPicker) input.showPicker();
+                                  else input?.click();
+                                }}
+                                className={`p-0.5 rounded transition-colors ${
+                                  appDateFilter ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
+                                }`}
+                                title={appDateFilter ? `Filtered: ${appDateFilter}` : 'Filter by date'}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                                  <line x1="16" y1="2" x2="16" y2="6" />
+                                  <line x1="8" y1="2" x2="8" y2="6" />
+                                  <line x1="3" y1="10" x2="21" y2="10" />
+                                </svg>
+                              </button>
+                              <input
+                                type="date"
+                                value={appDateFilter}
+                                max={new Date().toISOString().slice(0, 10)}
+                                onChange={(e) => setAppDateFilter(e.target.value)}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              />
+                              {appDateFilter && (
+                                <button
+                                  type="button"
+                                  onClick={() => setAppDateFilter('')}
+                                  className="ml-1 text-blue-600 hover:text-blue-800 text-[10px] font-medium"
+                                  title="Clear date filter"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </th>
+                      )}
                       {appCols.visible.has('budget') && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Budget</th>}
                       {appCols.visible.has('jobType') && (
                         <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
