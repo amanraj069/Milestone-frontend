@@ -123,18 +123,18 @@ const FreelancerSubscription = () => {
   const expiryLabel = formatExpiryDate(user?.subscriptionExpiryDate || subscription.expiryDate);
 
   const basicFeatures = [
-    'Core functionality access',
-    'Limited project access',
-    'Basic support',
+    'Standard profile visibility to employers',
+    'Default daily job-apply limit',
+    'Standard cooldown and attempt limits on skill badge tests',
   ];
 
   const premiumFeatures = [
-    'Unlimited projects',
-    'Advanced analytics',
-    'Priority support',
-    'Ad-free experience',
-    'Advanced freelancing tools',
-    'Higher platform visibility',
+    'Higher daily job application limit',
+    'Reduced rate limiting for skill badge assessments',
+    'More skill badge test attempts before lockout',
+    'Lower cooldown period between assessment retries',
+    'Higher appearance in applicant rankings and search',
+    'Priority support for account and project issues',
   ];
 
   const isPremium = currentPlan === 'Premium';
@@ -248,18 +248,22 @@ const FreelancerSubscription = () => {
 
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Premium freelancer benefits</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
-              <p className="text-sm font-semibold text-gray-900">More Opportunities</p>
-              <p className="text-xs text-gray-600 mt-1">Get better discovery and unlock more project opportunities.</p>
+              <p className="text-sm font-semibold text-gray-900">More Applications</p>
+              <p className="text-xs text-gray-600 mt-1">Apply to more jobs per day to increase interview and hiring opportunities.</p>
             </div>
             <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
-              <p className="text-sm font-semibold text-gray-900">Advanced Tools</p>
-              <p className="text-xs text-gray-600 mt-1">Use analytics and tools to optimize your freelance growth.</p>
+              <p className="text-sm font-semibold text-gray-900">Faster Badge Progress</p>
+              <p className="text-xs text-gray-600 mt-1">Get more attempts and shorter cooldown windows in skill badge tests.</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+              <p className="text-sm font-semibold text-gray-900">Better Visibility</p>
+              <p className="text-xs text-gray-600 mt-1">Appear higher to employers when they compare applicants for active projects.</p>
             </div>
             <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
               <p className="text-sm font-semibold text-gray-900">Priority Support</p>
-              <p className="text-xs text-gray-600 mt-1">Get faster support when you need help with client work.</p>
+              <p className="text-xs text-gray-600 mt-1">Get quicker help for payments, submissions, and profile-related issues.</p>
             </div>
           </div>
         </div>

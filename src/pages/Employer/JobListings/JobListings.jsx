@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
+import SmartSearchInput from '../../../components/SmartSearchInput';
 
 const EmployerJobListings = () => {
   const [jobListings, setJobListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchFeature, setSearchFeature] = useState('all');
   const [activeFilter, setActiveFilter] = useState('All Jobs');
+  const [sortBy, setSortBy] = useState('newest-posted');
   const [deleteModal, setDeleteModal] = useState({ show: false, jobId: null });
   const navigate = useNavigate();
   const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
@@ -69,23 +72,85 @@ const EmployerJobListings = () => {
     return days === 0 ? 'Today' : `${days} days ago`;
   };
 
-  const filteredJobs = jobListings.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.description.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.description.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
+  const normalizeJobType = (jobType) => String(jobType || '').toLowerCase();
 
-    const matchesFilter = (() => {
-      switch (activeFilter) {
-        case 'All Jobs': return true;
-        case 'Remote': return job.remote;
-        case 'Full-time': return job.jobType === 'full-time';
-        case 'Part-time': return job.jobType === 'part-time';
-        default: return true;
+  const getSkills = (job) => {
+    if (Array.isArray(job?.description?.skills)) return job.description.skills;
+    return [];
+  };
+
+  const getBudgetValue = (budget) => {
+    if (typeof budget === 'number') return budget;
+    const cleaned = String(budget || '0').replace(/[^\d.]/g, '');
+    const parsed = parseFloat(cleaned);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+
+  const filteredJobs = [...jobListings]
+    .filter((job) => {
+      const searchLower = searchTerm.trim().toLowerCase();
+      const jobTitle = String(job.title || '').toLowerCase();
+      const location = String(job.location || '').toLowerCase();
+      const skills = getSkills(job).map((skill) => String(skill).toLowerCase());
+
+      const matchesSearch = (() => {
+        if (!searchLower) return true;
+
+        if (searchFeature === 'jobRole') {
+          return jobTitle.includes(searchLower);
+        }
+
+        if (searchFeature === 'skills') {
+          return skills.some((skill) => skill.includes(searchLower));
+        }
+
+        if (searchFeature === 'location') {
+          return location.includes(searchLower);
+        }
+
+        return (
+          jobTitle.includes(searchLower) ||
+          location.includes(searchLower) ||
+          skills.some((skill) => skill.includes(searchLower))
+        );
+      })();
+
+      const jobType = normalizeJobType(job.jobType);
+      const matchesFilter = (() => {
+        switch (activeFilter) {
+          case 'All Jobs':
+            return true;
+          case 'Remote':
+            return Boolean(job.remote) || jobType.includes('remote');
+          case 'Full-time':
+            return jobType.includes('full-time') || jobType.includes('full time');
+          case 'Part-time':
+            return jobType.includes('part-time') || jobType.includes('part time');
+          case 'Contract':
+            return jobType.includes('contract');
+          case 'Freelance':
+            return jobType.includes('freelance');
+          default:
+            return true;
+        }
+      })();
+
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'oldest-posted':
+          return new Date(a.postedDate || 0) - new Date(b.postedDate || 0);
+        case 'newest-posted':
+          return new Date(b.postedDate || 0) - new Date(a.postedDate || 0);
+        case 'budget-high-low':
+          return getBudgetValue(b.budget) - getBudgetValue(a.budget);
+        case 'budget-low-high':
+          return getBudgetValue(a.budget) - getBudgetValue(b.budget);
+        default:
+          return 0;
       }
-    })();
-
-    return matchesSearch && matchesFilter;
-  });
+    });
 
   return (
     <DashboardPage 
@@ -93,7 +158,7 @@ const EmployerJobListings = () => {
       headerAction={
         <Link
           to="/employer/job-listings/new"
-          className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
+          className="bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-all flex items-center gap-2 shadow-sm"
         >
           <i className="fas fa-plus"></i>
           <span>Post New Job</span>
@@ -106,29 +171,50 @@ const EmployerJobListings = () => {
 
           {/* Search and Filters */}
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <div className="flex flex-col md:flex-row gap-4 items-center">
-              <input
-                type="text"
-                placeholder="Search jobs, skills..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 transition-all"
-              />
-              <div className="flex gap-2 flex-wrap">
-                {['All Jobs', 'Remote', 'Full-time', 'Part-time'].map(filter => (
-                  <button
-                    key={filter}
-                    onClick={() => setActiveFilter(filter)}
-                    className={`px-4 py-2 rounded-full font-medium transition-all hover:cursor-pointer ${
-                      activeFilter === filter
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {filter}
-                  </button>
-                ))}
+            <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
+              <div className="flex-1 min-w-0">
+                <SmartSearchInput
+                  value={searchTerm}
+                  onChange={setSearchTerm}
+                  selectedFeature={searchFeature}
+                  onFeatureChange={setSearchFeature}
+                  dataSource={jobListings}
+                  searchFields={
+                    [
+                      { key: 'jobRole', label: 'Job Role', getValue: (item) => item.title || '' },
+                      { key: 'skills', label: 'Skills', getValue: (item) => item?.description?.skills || [] },
+                      { key: 'location', label: 'Location', getValue: (item) => item.location || '' },
+                    ]
+                  }
+                  placeholder="Search jobs, skills, location..."
+                />
               </div>
+
+              <select
+                value={activeFilter}
+                onChange={(e) => setActiveFilter(e.target.value)}
+                className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="All jobs filter"
+              >
+                <option>All Jobs</option>
+                <option>Remote</option>
+                <option>Full-time</option>
+                <option>Part-time</option>
+                <option>Contract</option>
+                <option>Freelance</option>
+              </select>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Sort jobs"
+              >
+                <option value="oldest-posted">Oldest Posted</option>
+                <option value="newest-posted">Newest Posted</option>
+                <option value="budget-high-low">Budget High-Low</option>
+                <option value="budget-low-high">Budget Low-High</option>
+              </select>
             </div>
           </div>
 
@@ -146,7 +232,7 @@ const EmployerJobListings = () => {
                 <p className="text-gray-600 mb-4">{error}</p>
                 <button
                   onClick={loadJobListings}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all"
+                  className="bg-blue-700 text-white px-6 py-2 rounded-lg hover:bg-blue-800 transition-all"
                 >
                   <i className="fas fa-refresh mr-2"></i>
                   Try Again
@@ -164,7 +250,7 @@ const EmployerJobListings = () => {
                 {jobListings.length === 0 && (
                   <Link
                     to="/employer/job-listings/new"
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all"
+                    className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition-all"
                   >
                     <i className="fas fa-plus mr-2"></i>
                     Post New Job
@@ -176,7 +262,7 @@ const EmployerJobListings = () => {
                 {filteredJobs.map(job => (
                   <div
                     key={job.jobId}
-                    className="border-2 border-gray-200 rounded-xl p-5 hover:border-blue-600 transition-all hover:shadow-lg flex gap-5 items-center"
+                    className="relative border-2 border-gray-200 rounded-xl p-5 hover:border-blue-600 transition-all hover:shadow-lg flex gap-5 items-start"
                   >
                     <div className="flex-shrink-0">
                       <img
@@ -188,11 +274,11 @@ const EmployerJobListings = () => {
 
                     <div className="flex-1">
                       <h3 className="text-xl font-semibold text-gray-800 mb-2">{job.title}</h3>
-                      <div className="text-blue-600 font-semibold text-lg mb-3">
+                      <div className="text-blue-700 font-semibold text-lg mb-3">
                         ₹{typeof job.budget === 'number' ? job.budget.toLocaleString('en-IN') : job.budget}
                       </div>
                       <div className="flex gap-2 mb-3 flex-wrap">
-                        {job.description.skills.slice(0, 3).map((skill, idx) => (
+                        {getSkills(job).slice(0, 3).map((skill, idx) => (
                           <span key={idx} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
                             {skill}
                           </span>
@@ -203,7 +289,7 @@ const EmployerJobListings = () => {
                           <i className="fas fa-map-marker-alt text-blue-600"></i>
                           {job.location || 'Not specified'}
                         </span>
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center gap-2 capitalize">
                           <i className="fas fa-briefcase text-blue-600"></i>
                           {job.jobType}
                         </span>
@@ -212,7 +298,7 @@ const EmployerJobListings = () => {
                           Posted {getDaysAgo(job.postedDate)}
                         </span>
                         {job.remote && (
-                          <span className="flex items-center gap-2 text-green-600">
+                          <span className="flex items-center gap-2 text-emerald-700">
                             <i className="fas fa-home"></i>
                             Remote
                           </span>
@@ -220,24 +306,26 @@ const EmployerJobListings = () => {
                       </div>
                     </div>
 
-                    <div className="flex-shrink-0 flex flex-col gap-2">
+                    <div className="absolute right-5 bottom-5 w-32 flex flex-col items-end">
+                      <div className="flex w-full gap-3 mb-2">
+                        <button
+                          onClick={() => navigate(`/employer/job-listings/edit/${job.jobId}`)}
+                          className="flex-1 bg-emerald-600 text-white px-1 py-2 rounded-lg hover:bg-emerald-700 transition-all font-medium flex items-center justify-center"
+                        >
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button
+                          onClick={() => setDeleteModal({ show: true, jobId: job.jobId })}
+                          className="flex-1 bg-rose-600 text-white px-1 py-2 rounded-lg hover:bg-rose-700 transition-all font-medium flex items-center justify-center"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
                       <button
                         onClick={() => navigate(`/jobs/${job.jobId}`)}
-                        className="border-2 border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium"
+                        className="w-full border border-blue-700 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-700 hover:text-white transition-all font-medium"
                       >
                         View Details
-                      </button>
-                      <button
-                        onClick={() => navigate(`/employer/job-listings/edit/${job.jobId}`)}
-                        className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all font-medium"
-                      >
-                        <i className="fas fa-edit"></i> Edit
-                      </button>
-                      <button
-                        onClick={() => setDeleteModal({ show: true, jobId: job.jobId })}
-                        className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all font-medium"
-                      >
-                        <i className="fas fa-trash"></i> Delete
                       </button>
                     </div>
                   </div>

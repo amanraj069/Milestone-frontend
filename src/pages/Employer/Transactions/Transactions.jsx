@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
+import SmartSearchInput from '../../../components/SmartSearchInput';
+import SmartFilter from '../../../components/SmartFilter';
+import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -8,7 +11,25 @@ const EmployerTransactions = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchFeature, setSearchFeature] = useState('name');
+  const [sortBy, setSortBy] = useState('name-a-z');
+  const [nameFilters, setNameFilters] = useState([]);
+  const [roleFilters, setRoleFilters] = useState([]);
+  const [statusFilters, setStatusFilters] = useState([]);
+  const [paymentProgressFilters, setPaymentProgressFilters] = useState([]);
   const navigate = useNavigate();
+
+  const columns = [
+    { key: 'freelancer', label: 'Freelancer', defaultVisible: true },
+    { key: 'jobDetails', label: 'Job Details', defaultVisible: true },
+    { key: 'status', label: 'Status', defaultVisible: true },
+    { key: 'payment', label: 'Payment Progress', defaultVisible: true },
+    { key: 'budget', label: 'Budget', defaultVisible: true },
+    { key: 'action', label: 'Action', defaultVisible: true },
+  ];
+
+  const { visible: visibleColumns, setVisible: setVisibleColumns } = useSmartColumnToggle(columns, 'employer_transactions_columns');
 
   useEffect(() => {
     fetchTransactions();
@@ -53,6 +74,69 @@ const EmployerTransactions = () => {
       </span>
     );
   };
+
+  const getPaymentProgressBucket = (percentage) => {
+    if (percentage < 25) return 'Less than 25%';
+    if (percentage < 50) return '25-50%';
+    if (percentage < 75) return '50-75%';
+    return '75-100%';
+  };
+
+  const getStatusLabel = (status) => {
+    if (status === 'working') return 'In Progress';
+    if (status === 'finished') return 'Completed';
+    if (status === 'left') return 'Left';
+    return status;
+  };
+
+  const paymentBucketSeed = [
+    { __bucket: 'Less than 25%' },
+    { __bucket: '25-50%' },
+    { __bucket: '50-75%' },
+    { __bucket: '75-100%' },
+  ];
+
+  const visibleTransactions = [...transactions]
+    .filter((transaction) => {
+      const searchLower = searchTerm.trim().toLowerCase();
+      if (!searchLower) return true;
+
+      const name = String(transaction.freelancerName || '').toLowerCase();
+      const role = String(transaction.jobTitle || '').toLowerCase();
+
+      if (searchFeature === 'name') return name.includes(searchLower);
+      if (searchFeature === 'role') return role.includes(searchLower);
+
+      return name.includes(searchLower) || role.includes(searchLower);
+    })
+    .filter((transaction) => {
+      if (nameFilters.length > 0 && !nameFilters.includes(transaction.freelancerName)) return false;
+      if (roleFilters.length > 0 && !roleFilters.includes(transaction.jobTitle)) return false;
+      if (statusFilters.length > 0 && !statusFilters.includes(transaction.status)) return false;
+
+      if (
+        paymentProgressFilters.length > 0 &&
+        !paymentProgressFilters.includes(getPaymentProgressBucket(transaction.paymentPercentage || 0))
+      ) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'name-a-z':
+          return String(a.freelancerName || '').localeCompare(String(b.freelancerName || ''));
+        case 'name-z-a':
+          return String(b.freelancerName || '').localeCompare(String(a.freelancerName || ''));
+        case 'budget-high-low':
+          return (b.totalBudget || 0) - (a.totalBudget || 0);
+        case 'budget-low-high':
+          return (a.totalBudget || 0) - (b.totalBudget || 0);
+        default:
+          return 0;
+      }
+    });
 
   // Calculate summary stats
   const totalBudget = transactions.reduce((sum, t) => sum + t.totalBudget, 0);
@@ -162,6 +246,49 @@ const EmployerTransactions = () => {
           </div>
         )}
 
+        <div className="bg-white rounded-2xl shadow-lg p-5 mb-6 border border-gray-100">
+          <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
+            <div className="flex-1 min-w-0">
+              <SmartSearchInput
+                value={searchTerm}
+                onChange={setSearchTerm}
+                selectedFeature={searchFeature}
+                onFeatureChange={setSearchFeature}
+                dataSource={transactions}
+                searchFields={[
+                  { key: 'name', label: 'Name', getValue: (item) => item.freelancerName || '' },
+                  { key: 'role', label: 'Role', getValue: (item) => item.jobTitle || '' },
+                ]}
+                placeholder="Search transactions..."
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Sort transactions"
+              >
+                <option value="name-a-z">Name A-Z</option>
+                <option value="name-z-a">Name Z-A</option>
+                <option value="budget-high-low">Budget High-Low</option>
+                <option value="budget-low-high">Budget Low-High</option>
+              </select>
+
+              <SmartColumnToggle
+                columns={columns}
+                visible={visibleColumns}
+                onChange={setVisibleColumns}
+                storageKey="employer_transactions_columns"
+                label="Columns"
+                heading="Table Columns"
+                triggerClassName="text-gray-700 bg-white border-gray-200 hover:bg-gray-50"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Transactions List */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
           {transactions.length === 0 ? (
@@ -179,106 +306,175 @@ const EmployerTransactions = () => {
               <table className="min-w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Freelancer
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Job Details
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Payment Progress
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Budget
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Action
-                    </th>
+                    {visibleColumns.has('freelancer') && (
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          Freelancer
+                          <SmartFilter
+                            label="Freelancer"
+                            data={transactions}
+                            field="freelancerName"
+                            selectedValues={nameFilters}
+                            onFilterChange={setNameFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {visibleColumns.has('jobDetails') && (
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          Job Details
+                          <SmartFilter
+                            label="Job role"
+                            data={transactions}
+                            field="jobTitle"
+                            selectedValues={roleFilters}
+                            onFilterChange={setRoleFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {visibleColumns.has('status') && (
+                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center justify-center gap-2">
+                          Status
+                          <SmartFilter
+                            label="Status"
+                            data={transactions}
+                            field="status"
+                            selectedValues={statusFilters}
+                            onFilterChange={setStatusFilters}
+                            valueFormatter={getStatusLabel}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {visibleColumns.has('payment') && (
+                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center justify-center gap-2">
+                          Payment Progress
+                          <SmartFilter
+                            label="Payment"
+                            data={[...transactions, ...paymentBucketSeed]}
+                            selectedValues={paymentProgressFilters}
+                            onFilterChange={setPaymentProgressFilters}
+                            valueExtractor={(item) => item.__bucket || getPaymentProgressBucket(item.paymentPercentage || 0)}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {visibleColumns.has('budget') && (
+                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Budget</th>
+                    )}
+                    {visibleColumns.has('action') && (
+                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Action</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {transactions.map((transaction, index) => (
-                    <tr 
-                      key={transaction.jobId} 
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-5">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0">
-                            {transaction.freelancerPicture ? (
-                              <img 
-                                className="h-12 w-12 rounded-full object-cover border-2 border-white shadow-md" 
-                                src={transaction.freelancerPicture} 
-                                alt={transaction.freelancerName} 
-                              />
-                            ) : (
-                              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-lg shadow-md">
-                                {transaction.freelancerName?.charAt(0)?.toUpperCase() || 'F'}
+                    {visibleTransactions.map((transaction) => (
+                      <tr 
+                        key={transaction.jobId} 
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        {visibleColumns.has('freelancer') && (
+                          <td className="px-6 py-5">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0">
+                                {transaction.freelancerPicture ? (
+                                  <img 
+                                    className="h-12 w-12 rounded-full object-cover border-2 border-white shadow-md" 
+                                    src={transaction.freelancerPicture} 
+                                    alt={transaction.freelancerName} 
+                                  />
+                                ) : (
+                                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-lg shadow-md">
+                                    {transaction.freelancerName?.charAt(0)?.toUpperCase() || 'F'}
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-semibold text-gray-900">
-                              {transaction.freelancerName}
+                              <div className="ml-4">
+                                <div className="text-sm font-semibold text-gray-900">
+                                  {transaction.freelancerName}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {transaction.freelancerEmail}
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {transaction.freelancerEmail}
+                          </td>
+                        )}
+
+                        {visibleColumns.has('jobDetails') && (
+                          <td className="px-6 py-5">
+                            <div className="text-sm font-semibold text-gray-900 mb-1">{transaction.jobTitle}</div>
+                            <div className="flex items-center text-sm text-gray-500">
+                              <svg className="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                              </svg>
+                              {transaction.completedMilestones}/{transaction.milestonesCount} milestones
                             </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="text-sm font-semibold text-gray-900 mb-1">{transaction.jobTitle}</div>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <svg className="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                          </svg>
-                          {transaction.completedMilestones}/{transaction.milestonesCount} milestones
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        {getStatusBadge(transaction.status)}
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col items-center">
-                          <div className="w-full max-w-[120px] bg-gray-100 rounded-full h-2.5 mb-2">
-                            <div 
-                              className={`h-2.5 rounded-full transition-all duration-500 ${
-                                transaction.paymentPercentage === 100 
-                                  ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
-                                  : 'bg-gradient-to-r from-blue-500 to-indigo-500'
-                              }`}
-                              style={{ width: `${transaction.paymentPercentage}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm font-semibold text-gray-700">{transaction.paymentPercentage}%</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <div className="text-sm font-bold text-gray-900">₹{transaction.totalBudget.toLocaleString()}</div>
-                        <div className="text-xs text-green-600 font-medium">
-                          ₹{transaction.paidAmount.toLocaleString()} paid
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <button
-                          onClick={() => handleViewDetails(transaction.jobId)}
-                          className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                        >
-                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                          </td>
+                        )}
+
+                        {visibleColumns.has('status') && (
+                          <td className="px-6 py-5 text-center">
+                            {getStatusBadge(transaction.status)}
+                          </td>
+                        )}
+
+                        {visibleColumns.has('payment') && (
+                          <td className="px-6 py-5">
+                            <div className="flex flex-col items-center">
+                              <div className="w-full max-w-[120px] bg-gray-100 rounded-full h-2.5 mb-2">
+                                <div 
+                                  className={`h-2.5 rounded-full transition-all duration-500 ${
+                                    transaction.paymentPercentage === 100 
+                                      ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+                                      : 'bg-gradient-to-r from-blue-500 to-indigo-500'
+                                  }`}
+                                  style={{ width: `${transaction.paymentPercentage}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-sm font-semibold text-gray-700">{transaction.paymentPercentage}%</span>
+                            </div>
+                          </td>
+                        )}
+
+                        {visibleColumns.has('budget') && (
+                          <td className="px-6 py-5 text-center">
+                            <div className="text-sm font-bold text-gray-900">₹{transaction.totalBudget.toLocaleString()}</div>
+                            <div className="text-xs text-green-600 font-medium">
+                              ₹{transaction.paidAmount.toLocaleString()} paid
+                            </div>
+                          </td>
+                        )}
+
+                        {visibleColumns.has('action') && (
+                          <td className="px-6 py-5 text-center">
+                            <button
+                              onClick={() => handleViewDetails(transaction.jobId)}
+                              className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                            >
+                              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              View Details
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {transactions.length > 0 && visibleTransactions.length === 0 && (
+            <div className="text-center py-16 border-t border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Matching Transactions</h3>
+              <p className="text-gray-500">Try changing search text, filters, or sort selection.</p>
             </div>
           )}
         </div>
