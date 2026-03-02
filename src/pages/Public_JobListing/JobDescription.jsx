@@ -221,17 +221,17 @@ const JobDescription = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <header className="bg-white/95 border-gray-200 backdrop-blur-md border-b fixed top-0 left-0 right-0 z-50">
+        <div className="max-w-7xl mx-auto px-8">
           <div className="flex items-center justify-between py-4">
-            <div className="text-2xl font-bold text-gray-900">
-              <Link to="/" className="hover:text-blue-600 transition-colors">
-                Mile<span className="text-blue-600">stone</span>
+            <div className="text-4xl font-bold text-gray-900">
+              <Link to="/" className="hover:text-navy-700 transition-colors">
+                Mile<span className="text-navy-700">stone</span>
               </Link>
             </div>
             <div className="flex items-center gap-4">
               {user ? (
-                <Link
+                <Link 
                   to={
                     user.role === 'Moderator'
                       ? '/moderator/profile'
@@ -239,15 +239,17 @@ const JobDescription = () => {
                       ? '/employer/profile'
                       : '/freelancer/profile'
                   }
-                  className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white rounded-lg font-medium no-underline transition-all hover:shadow-lg hover:-translate-y-0.5"
                 >
+                  <i className="fas fa-tachometer-alt"></i>
                   Dashboard
                 </Link>
               ) : (
-                <Link
-                  to="/login"
-                  className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                <Link 
+                  to="/login" 
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white rounded-lg font-medium no-underline transition-all hover:shadow-lg hover:-translate-y-0.5"
                 >
+                  <i className="fas fa-sign-in-alt"></i>
                   Sign In
                 </Link>
               )}
@@ -257,7 +259,7 @@ const JobDescription = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
+      <main className="pt-24 pb-12 max-w-7xl mx-auto px-6 lg:px-8">
         {/* Back Button */}
         <button
           onClick={() => navigate(-1)}

@@ -298,7 +298,7 @@ const EmployerJobListings = () => {
                           Posted {getDaysAgo(job.postedDate)}
                         </span>
                         {job.remote && (
-                          <span className="flex items-center gap-2 text-emerald-700">
+                          <span className="flex items-center gap-2 text-emerald-500">
                             <i className="fas fa-home"></i>
                             Remote
                           </span>
@@ -306,24 +306,30 @@ const EmployerJobListings = () => {
                       </div>
                     </div>
 
-                    <div className="absolute right-5 bottom-5 w-32 flex flex-col items-end">
-                      <div className="flex w-full gap-3 mb-2">
+                    <div className="absolute right-5 bottom-5 flex flex-col items-end gap-2">
+                      <div className="flex gap-2">
                         <button
                           onClick={() => navigate(`/employer/job-listings/edit/${job.jobId}`)}
-                          className="flex-1 bg-emerald-600 text-white px-1 py-2 rounded-lg hover:bg-emerald-700 transition-all font-medium flex items-center justify-center"
+                          title="Edit"
+                          aria-label="Edit job"
+                          className="w-10 h-10 flex items-center justify-center rounded-lg bg-green-600 hover:bg-green-700 text-white transition-all shadow-sm"
                         >
                           <i className="fas fa-edit"></i>
                         </button>
+
                         <button
                           onClick={() => setDeleteModal({ show: true, jobId: job.jobId })}
-                          className="flex-1 bg-rose-600 text-white px-1 py-2 rounded-lg hover:bg-rose-700 transition-all font-medium flex items-center justify-center"
+                          title="Delete"
+                          aria-label="Delete job"
+                          className="w-10 h-10 mr-4 ml-3 flex items-center justify-center rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all shadow-sm"
                         >
                           <i className="fas fa-trash"></i>
                         </button>
                       </div>
+
                       <button
                         onClick={() => navigate(`/jobs/${job.jobId}`)}
-                        className="w-full border border-blue-700 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-700 hover:text-white transition-all font-medium"
+                        className="w-32 border-2 border-blue-600 text-blue-600 px-1 py-1 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium"
                       >
                         View Details
                       </button>

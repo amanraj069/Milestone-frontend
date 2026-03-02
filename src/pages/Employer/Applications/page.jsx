@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import ApplicationDetailsModal from '../../../components/employer/ApplicationDetailsModal';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
+import SmartFilter from '../../../components/SmartFilter';
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
@@ -11,7 +13,6 @@ const APP_COLUMNS = [
   { key: 'job', label: 'Job Details' },
   { key: 'status', label: 'Status' },
   { key: 'date', label: 'Applied Date' },
-  { key: 'premium', label: 'Premium', defaultVisible: false },
   { key: 'rating', label: 'Rating', defaultVisible: false },
   { key: 'view', label: 'View' },
   { key: 'resume', label: 'Resume' },
@@ -19,6 +20,9 @@ const APP_COLUMNS = [
 ];
 
 const EmployerApplications = () => {
+  const [searchParams] = useSearchParams();
+  const jobIdFilter = searchParams.get('jobId'); // Get jobId from URL query
+  
   const [applications, setApplications] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, accepted: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
@@ -26,22 +30,40 @@ const EmployerApplications = () => {
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  // New filter/sort state
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [jobFilter, setJobFilter] = useState('all');
+  // SmartFilter states for column-level filtering
+  const [freelancerFilters, setFreelancerFilters] = useState([]);
+  const [jobFilters, setJobFilters] = useState([]);
+  const [statusFilters, setStatusFilters] = useState([]);
+  const [dateFilters, setDateFilters] = useState([]);
+  const [ratingFilters, setRatingFilters] = useState([]);
   const [sortBy, setSortBy] = useState('date-desc');
 
   const cols = useSmartColumnToggle(APP_COLUMNS, 'employer-apps-cols');
 
-  useEffect(() => { fetchApplications(); }, []);
+  useEffect(() => { fetchApplications(); }, [jobIdFilter]);
 
   const fetchApplications = async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_BASE_URL}/api/employer/job_applications/api/data`, { withCredentials: true });
       if (response.data.success) {
-        setApplications(response.data.data.applications);
-        setStats(response.data.data.stats);
+        let allApplications = response.data.data.applications;
+        
+        // Filter by jobId if provided in URL
+        if (jobIdFilter) {
+          allApplications = allApplications.filter(app => app.jobId === jobIdFilter);
+        }
+        
+        setApplications(allApplications);
+        
+        // Calculate statistics based on filtered applications
+        const filteredStats = {
+          total: allApplications.length,
+          pending: allApplications.filter(app => app.status === 'Pending').length,
+          accepted: allApplications.filter(app => app.status === 'Accepted').length,
+          rejected: allApplications.filter(app => app.status === 'Rejected').length,
+        };
+        setStats(filteredStats);
       }
     } catch (error) {
       console.error('Error fetching applications:', error);
@@ -81,11 +103,6 @@ const EmployerApplications = () => {
     setShowDetailsModal(true);
   };
 
-  const uniqueJobs = useMemo(() => {
-    const titles = [...new Set(applications.map((a) => a.jobTitle))];
-    return titles.sort();
-  }, [applications]);
-
   const filteredApplications = useMemo(() => {
     let list = [...applications];
 
@@ -99,12 +116,24 @@ const EmployerApplications = () => {
       );
     }
 
-    if (statusFilter !== 'all') {
-      list = list.filter((a) => a.status === statusFilter);
+    if (freelancerFilters.length > 0) {
+      list = list.filter((a) => freelancerFilters.includes(a.freelancerName));
     }
 
-    if (jobFilter !== 'all') {
-      list = list.filter((a) => a.jobTitle === jobFilter);
+    if (jobFilters.length > 0) {
+      list = list.filter((a) => jobFilters.includes(a.jobTitle));
+    }
+
+    if (statusFilters.length > 0) {
+      list = list.filter((a) => statusFilters.includes(a.status));
+    }
+
+    if (dateFilters.length > 0) {
+      list = list.filter((a) => dateFilters.includes(new Date(a.appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })));
+    }
+
+    if (ratingFilters.length > 0) {
+      list = list.filter((a) => ratingFilters.includes(a.skillRating));
     }
 
     switch (sortBy) {
@@ -123,19 +152,12 @@ const EmployerApplications = () => {
       case 'rating-desc':
         list.sort((a, b) => (b.skillRating || 0) - (a.skillRating || 0));
         break;
-      case 'premium-first':
-        list.sort((a, b) => {
-          if (a.isPremium && !b.isPremium) return -1;
-          if (!a.isPremium && b.isPremium) return 1;
-          return new Date(a.appliedDate) - new Date(b.appliedDate);
-        });
-        break;
       default:
         break;
     }
 
     return list;
-  }, [applications, searchTerm, statusFilter, jobFilter, sortBy]);
+  }, [applications, searchTerm, freelancerFilters, jobFilters, statusFilters, dateFilters, ratingFilters, sortBy]);
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -149,10 +171,16 @@ const EmployerApplications = () => {
 
   const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  const activeFilters = (statusFilter !== 'all' ? 1 : 0) + (jobFilter !== 'all' ? 1 : 0) + (searchTerm ? 1 : 0);
+  const activeFilters =
+    freelancerFilters.length + jobFilters.length + statusFilters.length +
+    dateFilters.length + ratingFilters.length +
+    (searchTerm ? 1 : 0);
+
+  // Get the job title if filtering by specific job
+  const filteredJobTitle = jobIdFilter && applications.length > 0 ? applications[0].jobTitle : null;
 
   return (
-    <DashboardPage title="Applications">
+    <DashboardPage title={filteredJobTitle ? `Applications for ${filteredJobTitle}` : "Applications"}>
       <div className="space-y-6">
         <p className="text-gray-600">Review and manage applications for your job listings</p>
 
@@ -207,8 +235,8 @@ const EmployerApplications = () => {
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex-1 min-w-[200px] relative">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative">
               <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
               <input
                 type="text"
@@ -220,28 +248,6 @@ const EmployerApplications = () => {
             </div>
 
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              <option value="all">All Statuses</option>
-              <option value="Pending">Pending</option>
-              <option value="Accepted">Accepted</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-
-            <select
-              value={jobFilter}
-              onChange={(e) => setJobFilter(e.target.value)}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white max-w-[200px]"
-            >
-              <option value="all">All Jobs</option>
-              {uniqueJobs.map((j) => (
-                <option key={j} value={j}>{j}</option>
-              ))}
-            </select>
-
-            <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
@@ -251,14 +257,13 @@ const EmployerApplications = () => {
               <option value="name-asc">Name A-Z</option>
               <option value="name-desc">Name Z-A</option>
               <option value="rating-desc">Highest Rated</option>
-              <option value="premium-first">Premium First</option>
             </select>
 
             <SmartColumnToggle columns={APP_COLUMNS} visible={cols.visible} onChange={cols.setVisible} storageKey="employer-apps-cols" />
 
             {activeFilters > 0 && (
               <button
-                onClick={() => { setSearchTerm(''); setStatusFilter('all'); setJobFilter('all'); }}
+                onClick={() => { setSearchTerm(''); setFreelancerFilters([]); setJobFilters([]); setStatusFilters([]); setDateFilters([]); setRatingFilters([]); }}
                 className="px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
               >
                 Clear ({activeFilters})
@@ -290,12 +295,76 @@ const EmployerApplications = () => {
               <table className="min-w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                    {cols.visible.has('freelancer') && <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Freelancer</th>}
-                    {cols.visible.has('job') && <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Job Details</th>}
-                    {cols.visible.has('status') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>}
-                    {cols.visible.has('date') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Applied</th>}
-                    {cols.visible.has('premium') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Premium</th>}
-                    {cols.visible.has('rating') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Rating</th>}
+                    {cols.visible.has('freelancer') && (
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          Freelancer
+                          <SmartFilter
+                            label="Freelancer"
+                            data={applications}
+                            field="freelancerName"
+                            selectedValues={freelancerFilters}
+                            onFilterChange={setFreelancerFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {cols.visible.has('job') && (
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          Job Details
+                          <SmartFilter
+                            label="Job"
+                            data={applications}
+                            field="jobTitle"
+                            selectedValues={jobFilters}
+                            onFilterChange={setJobFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {cols.visible.has('status') && (
+                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <div className="flex items-center justify-center gap-2">
+                          Status
+                          <SmartFilter
+                            label="Status"
+                            data={applications}
+                            field="status"
+                            selectedValues={statusFilters}
+                            onFilterChange={setStatusFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {cols.visible.has('date') && (
+                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <div className="flex items-center justify-center gap-2">
+                          Applied
+                          <SmartFilter
+                            label="Date"
+                            data={applications}
+                            valueExtractor={(item) => new Date(item.appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            selectedValues={dateFilters}
+                            onFilterChange={setDateFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {cols.visible.has('rating') && (
+                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <div className="flex items-center justify-center gap-2">
+                          Rating
+                          <SmartFilter
+                            label="Rating"
+                            data={applications}
+                            field="skillRating"
+                            selectedValues={ratingFilters}
+                            onFilterChange={setRatingFilters}
+                          />
+                        </div>
+                      </th>
+                    )}
                     {cols.visible.has('view') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">View</th>}
                     {cols.visible.has('resume') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Resume</th>}
                     {cols.visible.has('actions') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider" style={{ width: '140px' }}>Actions</th>}
@@ -333,15 +402,6 @@ const EmployerApplications = () => {
                       {cols.visible.has('status') && <td className="px-6 py-4 text-center">{getStatusBadge(application.status)}</td>}
                       {cols.visible.has('date') && (
                         <td className="px-6 py-4 text-center text-sm text-gray-600">{formatDate(application.appliedDate)}</td>
-                      )}
-                      {cols.visible.has('premium') && (
-                        <td className="px-6 py-4 text-center">
-                          {application.isPremium ? (
-                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-semibold">Premium</span>
-                          ) : (
-                            <span className="text-xs text-gray-400">Free</span>
-                          )}
-                        </td>
                       )}
                       {cols.visible.has('rating') && (
                         <td className="px-6 py-4 text-center">

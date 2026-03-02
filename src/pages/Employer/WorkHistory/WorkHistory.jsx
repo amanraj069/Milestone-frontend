@@ -22,8 +22,7 @@ const EmployerWorkHistory = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchFeature, setSearchFeature] = useState('name');
-  const [sortBy, setSortBy] = useState('recent-left');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date-desc');
   const [feedbackModal, setFeedbackModal] = useState(null); // { jobId, toUserId, toRole, counterpartyName }
   
   const navigate = useNavigate();
@@ -37,57 +36,56 @@ const EmployerWorkHistory = () => {
   }, []);
 
   useEffect(() => {
-    // Start from base list
-    let result = Array.isArray(freelancers) ? [...freelancers] : [];
-
-    // Apply search if present
-    const searchLower = searchTerm.trim().toLowerCase();
-    if (searchLower) {
-      result = result.filter((f) => {
-        const name = String(f.name || '').toLowerCase();
-        const jobRole = String(f.jobTitle || '').toLowerCase();
-        const location = String(f.location || '').toLowerCase();
-
-        if (searchFeature === 'name') return name.includes(searchLower);
-        if (searchFeature === 'jobRole') return jobRole.includes(searchLower);
-        if (searchFeature === 'location') return location.includes(searchLower);
-
-        return name.includes(searchLower) || jobRole.includes(searchLower) || location.includes(searchLower);
+    let list;
+    if (searchTerm.trim() === '') {
+      list = [...freelancers];
+    } else {
+      const searchLower = searchTerm.toLowerCase();
+      list = freelancers.filter((f) => {
+        if (searchFeature === 'name') {
+          return f.name?.toLowerCase().includes(searchLower);
+        }
+        if (searchFeature === 'jobRole') {
+          return f.jobTitle?.toLowerCase().includes(searchLower);
+        }
+        if (searchFeature === 'location') {
+          return f.location?.toLowerCase().includes(searchLower);
+        }
+        return (
+          f.name?.toLowerCase().includes(searchLower) ||
+          f.jobTitle?.toLowerCase().includes(searchLower) ||
+          f.location?.toLowerCase().includes(searchLower)
+        );
       });
     }
 
-    // Apply status filter
-    if (statusFilter && statusFilter !== 'all') {
-      result = result.filter((f) => String(f.status || '').toLowerCase() === String(statusFilter).toLowerCase());
-    }
-
-    // Apply sorting
+    // Apply sort
+    list = [...list];
     switch (sortBy) {
-      case 'recent-left':
-        // jobs that left/finished most recently
-        result = result.sort((a, b) => new Date(b.completedDate || b.endDate || 0) - new Date(a.completedDate || a.endDate || 0));
+      case 'date-desc':
+        list.sort((a, b) => new Date(b.completedDate || b.leftDate || 0) - new Date(a.completedDate || a.leftDate || 0));
         break;
-      case 'oldest-left':
-        result = result.sort((a, b) => new Date(a.completedDate || a.endDate || 0) - new Date(b.completedDate || b.endDate || 0));
+      case 'date-asc':
+        list.sort((a, b) => new Date(a.completedDate || a.leftDate || 0) - new Date(b.completedDate || b.leftDate || 0));
         break;
-      case 'rating-high-low':
-        result = result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      case 'name-asc':
+        list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         break;
-      case 'rating-low-high':
-        result = result.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+      case 'name-desc':
+        list.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
         break;
-      case 'name-a-z':
-        result = result.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+      case 'rating-desc':
+        list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
-      case 'name-z-a':
-        result = result.sort((a, b) => String(b.name || '').localeCompare(String(a.name || '')));
+      case 'rating-asc':
+        list.sort((a, b) => (a.rating || 0) - (b.rating || 0));
         break;
       default:
         break;
     }
 
-    setFilteredFreelancers(result);
-  }, [searchTerm, freelancers, searchFeature, sortBy, statusFilter]);
+    setFilteredFreelancers(list);
+  }, [searchTerm, freelancers, searchFeature, sortBy]);
 
   // Check feedback eligibility for all completed jobs
   useEffect(() => {
@@ -218,7 +216,7 @@ const EmployerWorkHistory = () => {
         {/* Search Bar + Sort + Status Filter */}
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center gap-3">
-            <div className="flex-1 min-w-0">
+            <div className="flex-1">
               <SmartSearchInput
                 value={searchTerm}
                 onChange={setSearchTerm}
@@ -233,35 +231,18 @@ const EmployerWorkHistory = () => {
                 placeholder="Search work history..."
               />
             </div>
-
-            <div className="flex items-center gap-2">
-              <div className="text-xs text-gray-500">Sort by</div>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="recent-left">Recent Left</option>
-                <option value="oldest-left">Oldest Left</option>
-                <option value="rating-high-low">Rating High - Low</option>
-                <option value="rating-low-high">Rating Low - High</option>
-                <option value="name-a-z">Name A - Z</option>
-                <option value="name-z-a">Name Z - A</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="text-xs text-gray-500">Filter</div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All</option>
-                <option value="left">Left Job</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 shrink-0"
+            >
+              <option value="date-desc">Newest First</option>
+              <option value="date-asc">Oldest First</option>
+              <option value="name-asc">Name A–Z</option>
+              <option value="name-desc">Name Z–A</option>
+              <option value="rating-desc">Highest Rated</option>
+              <option value="rating-asc">Lowest Rated</option>
+            </select>
           </div>
         </div>
 
@@ -293,25 +274,19 @@ const EmployerWorkHistory = () => {
         </div>
       </div>
 
-      {/* Feedback Modal */}
-      {feedbackModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <FeedbackForm
-              jobId={feedbackModal.jobId}
-              toUserId={feedbackModal.toUserId}
-              toRole={feedbackModal.toRole}
-              counterpartyName={feedbackModal.counterpartyName}
-              onSuccess={() => {
-                setFeedbackModal(null);
-                // Refresh eligibility
-                dispatch(checkCanGiveFeedback(feedbackModal.jobId));
-              }}
-              onCancel={() => setFeedbackModal(null)}
-            />
-          </div>
-        </div>
-      )}
+      {/* Feedback Drawer */}
+      <FeedbackForm
+        isOpen={!!feedbackModal}
+        jobId={feedbackModal?.jobId}
+        toUserId={feedbackModal?.toUserId}
+        toRole={feedbackModal?.toRole}
+        counterpartyName={feedbackModal?.counterpartyName}
+        onSuccess={() => {
+          setFeedbackModal(null);
+          dispatch(checkCanGiveFeedback(feedbackModal?.jobId));
+        }}
+        onCancel={() => setFeedbackModal(null)}
+      />
     </DashboardPage>
   );
 };
