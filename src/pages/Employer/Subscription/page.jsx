@@ -270,6 +270,103 @@ const EmployerSubscription = () => {
             </div>
           </div>
         </div>
+
+        {/* Platform Fee & Listing Priority Info */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            <i className="fas fa-layer-group text-indigo-500"></i>
+            Platform Fees &amp; Job Listing Priority
+          </h3>
+          <p className="text-sm text-gray-500 mb-5">Understand how your job postings are ranked and what fees apply.</p>
+
+          {/* Priority ladder */}
+          <div className="space-y-3 mb-6">
+            {[
+              {
+                rank: 1,
+                label: 'Premium Subscription + Boosted',
+                desc: 'Highest placement on all job boards',
+                color: 'from-amber-400 to-orange-500',
+                textColor: 'text-white',
+                icon: 'fa-crown',
+                tag: 'Highest',
+              },
+              {
+                rank: 2,
+                label: 'Boosted job (no subscription)',
+                desc: 'Above premium subscription jobs',
+                color: 'from-amber-100 to-amber-50',
+                textColor: 'text-amber-800',
+                icon: 'fa-bolt',
+                tag: 'High',
+              },
+              {
+                rank: 3,
+                label: 'Premium subscription only',
+                desc: 'Above standard job listings',
+                color: 'from-blue-100 to-blue-50',
+                textColor: 'text-blue-800',
+                icon: 'fa-star',
+                tag: 'Medium',
+              },
+              {
+                rank: 4,
+                label: 'Standard (no subscription, no boost)',
+                desc: 'Standard placement by date',
+                color: 'from-gray-100 to-gray-50',
+                textColor: 'text-gray-700',
+                icon: 'fa-circle',
+                tag: 'Standard',
+              },
+            ].map((tier) => (
+              <div
+                key={tier.rank}
+                className={`flex items-center gap-4 rounded-xl p-4 bg-gradient-to-r ${tier.color}`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${tier.textColor} bg-white/30`}>
+                  {tier.rank}
+                </div>
+                <div className="flex-1">
+                  <p className={`text-sm font-semibold ${tier.textColor}`}>{tier.label}</p>
+                  <p className={`text-xs ${tier.textColor} opacity-80`}>{tier.desc}</p>
+                </div>
+                <span className={`text-xs font-semibold px-2 py-1 rounded-full bg-white/30 ${tier.textColor}`}>{tier.tag}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Fee table */}
+          <div className="border border-gray-200 rounded-xl overflow-hidden text-sm">
+            <div className="bg-gray-50 px-4 py-2.5 font-semibold text-gray-700 border-b border-gray-200">Fee Structure</div>
+            <table className="w-full">
+              <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
+                <tr>
+                  <th className="text-left px-4 py-2.5">Type</th>
+                  <th className="text-left px-4 py-2.5">Platform fee</th>
+                  <th className="text-left px-4 py-2.5">Cap fee</th>
+                  <th className="text-left px-4 py-2.5">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                <tr className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-gray-800 font-medium">Normal job</td>
+                  <td className="px-4 py-3 text-gray-600">2%</td>
+                  <td className="px-4 py-3 text-gray-600">0.5% – 2%</td>
+                  <td className="px-4 py-3 font-semibold text-gray-800">2.5% – 4%</td>
+                </tr>
+                <tr className="hover:bg-amber-50">
+                  <td className="px-4 py-3 flex items-center gap-1.5 text-amber-800 font-medium"><i className="fas fa-bolt text-amber-500 text-xs"></i>Boosted job</td>
+                  <td className="px-4 py-3 text-amber-700 font-semibold">4%</td>
+                  <td className="px-4 py-3 text-gray-600">0.5% – 2%</td>
+                  <td className="px-4 py-3 font-semibold text-amber-700">4.5% – 6%</td>
+                </tr>
+              </tbody>
+            </table>
+            <div className="bg-blue-50 px-4 py-3 text-xs text-blue-700 border-t border-gray-200">
+              <strong>Application cap fee tiers:</strong> Unlimited (+2%) · Up to 50 (+1.5%) · Up to 25 (+1%) · Up to 10 (+0.5%). Fees are charged on job budget at posting time.
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Modals */}

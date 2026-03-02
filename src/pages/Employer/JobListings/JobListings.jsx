@@ -9,6 +9,7 @@ const EmployerJobListings = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('All Jobs');
   const [deleteModal, setDeleteModal] = useState({ show: false, jobId: null });
+
   const navigate = useNavigate();
   const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -173,10 +174,14 @@ const EmployerJobListings = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredJobs.map(job => (
+                {filteredJobs.map(job => {
+                  const isActiveBoost = job.isBoosted === true;
+                  return (
                   <div
                     key={job.jobId}
-                    className="border-2 border-gray-200 rounded-xl p-5 hover:border-blue-600 transition-all hover:shadow-lg flex gap-5 items-center"
+                    className={`border-2 rounded-xl p-5 hover:border-blue-600 transition-all hover:shadow-lg flex gap-5 items-center ${
+                      isActiveBoost ? 'border-amber-400 bg-amber-50/30' : 'border-gray-200'
+                    }`}
                   >
                     <div className="flex-shrink-0">
                       <img
@@ -187,8 +192,15 @@ const EmployerJobListings = () => {
                     </div>
 
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-gray-800 mb-2">{job.title}</h3>
-                      <div className="text-blue-600 font-semibold text-lg mb-3">
+                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                        <h3 className="text-xl font-semibold text-gray-800">{job.title}</h3>
+                        {job.applicationCap && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                            <i className="fas fa-users text-[10px] mr-1"></i>{job.applicationCap} cap
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-blue-600 font-semibold text-lg mb-2">
                         ₹{typeof job.budget === 'number' ? job.budget.toLocaleString('en-IN') : job.budget}
                       </div>
                       <div className="flex gap-2 mb-3 flex-wrap">
@@ -241,7 +253,8 @@ const EmployerJobListings = () => {
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -278,6 +291,7 @@ const EmployerJobListings = () => {
           </div>
         </div>
       )}
+
     </DashboardPage>
   );
 };

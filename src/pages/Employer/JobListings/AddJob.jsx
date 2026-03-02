@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as Yup from 'yup';
 import DashboardPage from '../../../components/DashboardPage';
+import { computeFees } from '../../../components/employer/BoostJobModal';
+import FeePaymentModal from '../../../components/employer/FeePaymentModal';
+import PaymentProcessingModal from '../../../components/employer/PaymentProcessingModal';
 
 // Validation schema for Step 1 - Job Details
 const jobDetailsSchema = Yup.object().shape({
@@ -86,6 +89,9 @@ const AddJob = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showFeePaymentModal, setShowFeePaymentModal] = useState(false);
+  const [showPaymentProcessing, setShowPaymentProcessing] = useState(false);
+  const [pendingJobData, setPendingJobData] = useState(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -99,7 +105,10 @@ const AddJob = () => {
     responsibilities: '',
     requirements: '',
     skills: '',
-    imageUrl: ''
+    imageUrl: '',
+    // Fee & boost options
+    isBoosted: false,
+    applicationCap: '', // '' = unlimited
   });
 
   const [milestones, setMilestones] = useState([
@@ -163,6 +172,45 @@ const AddJob = () => {
     updated[milestoneIndex].subTasks[subTaskIndex].description = value;
     setMilestones(updated);
   };
+
+  // Determines whether the Review & Pay button should be enabled.
+  // Rules:
+  //   1. At least one milestone must be fully filled.
+  //   2. No milestone may be partially filled — if any field is touched, all
+  //      three main fields (description ≥ 5 chars, deadline, payment ≥ ₹100) are required.
+  //   3. The sum of all milestone payments must exactly equal the total budget.
+  const areMilestonesValid = useMemo(() => {
+    for (const m of milestones) {
+      const hasAnyField = m.description || m.deadline || m.payment;
+      if (!hasAnyField) continue;
+
+      // All three fields must be present
+      if (!m.description?.trim() || !m.deadline || !m.payment) return false;
+
+      // Description must be at least 5 chars
+      if (m.description.trim().length < 5) return false;
+
+      // Payment must be a valid positive number ≥ ₹100
+      const paymentVal = parseFloat(m.payment);
+      if (isNaN(paymentVal) || paymentVal < 100) return false;
+    }
+
+    // At least one milestone must be fully filled
+    const filledMilestones = milestones.filter(
+      m => m.description?.trim() && m.deadline && m.payment
+    );
+    if (filledMilestones.length === 0) return false;
+
+    // Total milestone payments must equal the project budget
+    const totalMilestonePayment = filledMilestones.reduce(
+      (sum, m) => sum + parseFloat(m.payment || 0),
+      0
+    );
+    const totalBudget = parseFloat(formData.budget || 0);
+    if (Math.abs(totalMilestonePayment - totalBudget) > 0.01) return false;
+
+    return true;
+  }, [milestones, formData.budget]);
 
   const handleNextStep = async (e) => {
     e.preventDefault();
@@ -230,27 +278,26 @@ const AddJob = () => {
     return filledMilestones;
   };
 
+  // Step 2 submit — validate then open payment modal
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
     try {
       // Validate milestones
       const filledMilestones = await validateMilestones();
-      
-      // Validate milestones payment matches budget
+
+      // Validate milestone payments match budget
       if (filledMilestones.length > 0) {
         const totalMilestonePayment = filledMilestones.reduce((sum, m) => sum + parseFloat(m.payment || 0), 0);
         const totalBudget = parseFloat(formData.budget);
-        
         if (Math.abs(totalMilestonePayment - totalBudget) > 0.01) {
           setError(`Milestone payments (₹${totalMilestonePayment.toLocaleString('en-IN')}) must equal the total budget (₹${totalBudget.toLocaleString('en-IN')})`);
-          setLoading(false);
           return;
         }
       }
 
+      // Build job payload and park it — actual POST happens after payment
       const jobData = {
         title: formData.title,
         budget: parseFloat(formData.budget),
@@ -283,30 +330,51 @@ const AddJob = () => {
                 notes: ''
               })),
             completionPercentage: 0
-          }))
+          })),
+        isBoosted: formData.isBoosted,
+        applicationCap: formData.applicationCap === '' ? null : parseInt(formData.applicationCap),
       };
 
+      setPendingJobData(jobData);
+      setShowFeePaymentModal(true);
+    } catch (err) {
+      setError(err.message || 'Please fix the errors above');
+    }
+  };
+
+  // Called when payment card form is submitted (or fee is 0)
+  const handlePaymentConfirm = (paymentDetails) => {
+    setShowFeePaymentModal(false);
+    setShowPaymentProcessing(true);
+  };
+
+  // Called when PaymentProcessingModal finishes its animation
+  const handlePaymentProcessingComplete = async () => {
+    setShowPaymentProcessing(false);
+    if (!pendingJobData) return;
+    setLoading(true);
+    setError('');
+    try {
       const response = await fetch(`${apiBaseUrl}/api/employer/job-listings`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(jobData)
+        body: JSON.stringify(pendingJobData),
       });
-
       const data = await response.json();
-
       if (response.ok && data.success) {
         navigate('/employer/job-listings');
       } else {
         setError(data.error || 'Failed to create job listing');
+        setCurrentStep(2);
       }
     } catch (err) {
       console.error('Error creating job:', err);
       setError('Network error. Please try again.');
+      setCurrentStep(2);
     } finally {
       setLoading(false);
+      setPendingJobData(null);
     }
   };
 
@@ -680,6 +748,152 @@ const AddJob = () => {
                 <h2 className="text-base font-semibold text-gray-900">Project Milestones</h2>
                 <p className="text-sm text-gray-500 mt-0.5">Break down your project into manageable milestones (Optional)</p>
               </div>
+
+              {/* ── Platform Fee & Boost Options (moved here from Step 1) ── */}
+              {(() => {
+                const budget = parseFloat(formData.budget) || 0;
+                const appCap = formData.applicationCap === '' ? null : parseInt(formData.applicationCap);
+                const fees = computeFees(budget, formData.isBoosted, appCap);
+                return (
+                  <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-200">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                          <i className="fas fa-sliders text-white text-sm"></i>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-white">Platform Fee &amp; Boost Options</h3>
+                          <p className="text-xs text-slate-400 mt-0.5">Set applicant limits and optionally boost your listing.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Two-column body */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+
+                      {/* LEFT: Controls */}
+                      <div className="p-5 space-y-5 bg-white">
+                        {/* Application Cap */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Application Cap</label>
+                            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">limit applicants</span>
+                          </div>
+                          <div className="relative">
+                            <select
+                              name="applicationCap"
+                              value={formData.applicationCap}
+                              onChange={handleChange}
+                              className="w-full appearance-none pl-3 pr-8 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            >
+                              <option value="">Unlimited applications (+2% fee)</option>
+                              <option value="50">Up to 50 applicants (+1% fee)</option>
+                              <option value="25">Up to 25 applicants (+0.5% fee)</option>
+                              <option value="10">Up to 10 applicants (0% fee)</option>
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                              <i className="fas fa-chevron-down text-gray-400 text-xs"></i>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5">
+                            <i className="fas fa-circle-info text-gray-300 text-[11px]"></i>
+                            Fewer applications allowed = lower cap fee
+                          </p>
+                        </div>
+
+                        {/* Boost Toggle */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Boost</label>
+                            <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full border border-amber-100 font-medium">Optional</span>
+                          </div>
+                          <label className={`flex items-start gap-3.5 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${formData.isBoosted ? 'border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50 shadow-sm shadow-amber-100' : 'border-gray-200 bg-gray-50 hover:border-amber-200 hover:bg-amber-50/40'}`}>
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${formData.isBoosted ? 'bg-amber-400 shadow-md shadow-amber-200' : 'bg-white border border-gray-200'}`}>
+                              <i className={`fas fa-bolt text-sm ${formData.isBoosted ? 'text-white' : 'text-gray-400'}`}></i>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-semibold text-gray-800">Boost this job posting</span>
+                                <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 ${formData.isBoosted ? 'bg-amber-400' : 'bg-gray-200'}`}>
+                                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${formData.isBoosted ? 'translate-x-6' : 'translate-x-1'}`}></div>
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                                Ranks above premium listings for the full job duration. Only "Premium + Boosted" ranks higher.
+                              </p>
+                              <div className="mt-2">
+                                <span className="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">+2% fee · 4% total</span>
+                              </div>
+                            </div>
+                            <input type="checkbox" name="isBoosted" checked={formData.isBoosted} onChange={handleChange} className="sr-only" />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* RIGHT: Fee Summary */}
+                      <div className="p-5 bg-gray-50/60 flex flex-col">
+                        <div className="flex items-center justify-between mb-4">
+                          <p className="text-xs font-bold uppercase tracking-wide text-gray-500 flex items-center gap-1.5">
+                            <i className="fas fa-receipt text-gray-400"></i>
+                            Fee Summary
+                          </p>
+                          {budget <= 0 && <span className="text-xs text-gray-400 italic">enter budget to see amounts</span>}
+                        </div>
+                        <div className="flex-1 flex flex-col gap-2.5">
+                          <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                              <i className="fas fa-percent text-blue-500 text-xs"></i>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs font-medium text-gray-700">Platform fee</p>
+                              <span className={`inline-block text-xs font-semibold px-1.5 py-0.5 rounded mt-0.5 ${formData.isBoosted ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-blue-600'}`}>
+                                {formData.isBoosted ? '4% — boosted' : '2% — standard'}
+                              </span>
+                            </div>
+                            <span className="text-sm font-semibold font-mono text-gray-800 shrink-0">
+                              {budget > 0 ? `₹${((fees.platformFeeRate / 100) * budget).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : <span className="text-gray-300 font-sans text-base">—</span>}
+                            </span>
+                          </div>
+                          <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+                              <i className="fas fa-users text-purple-400 text-xs"></i>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs font-medium text-gray-700">Application cap fee</p>
+                              <span className="inline-block text-xs font-semibold px-1.5 py-0.5 rounded mt-0.5 bg-purple-50 text-purple-600">{fees.applicationCapFeeRate}%</span>
+                            </div>
+                            <span className="text-sm font-semibold font-mono text-gray-800 shrink-0">
+                              {budget > 0 ? `₹${((fees.applicationCapFeeRate / 100) * budget).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : <span className="text-gray-300 font-sans text-base">—</span>}
+                            </span>
+                          </div>
+                          <div className={`rounded-xl px-4 py-4 flex items-center justify-between transition-all duration-300 ${formData.isBoosted ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-md shadow-amber-200/50' : 'bg-gradient-to-r from-blue-600 to-indigo-600 shadow-md shadow-blue-200/50'}`}>
+                            <div>
+                              <p className="text-xs font-semibold text-white/70">Total platform fee</p>
+                              <p className="text-2xl font-bold text-white leading-tight">{fees.totalFeeRate}%</p>
+                              <p className="text-xs text-white/60 mt-0.5">of project budget</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-white/60 mb-0.5">you pay</p>
+                              <p className="text-xl font-bold text-white font-mono">
+                                {budget > 0 ? `₹${fees.platformFeeAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                              </p>
+                            </div>
+                          </div>
+                          {formData.isBoosted && (
+                            <div className="bg-amber-50 rounded-xl border border-amber-100 px-4 py-3 space-y-1.5">
+                              <p className="text-xs font-semibold text-amber-800 mb-2">Boost includes</p>
+                              <div className="flex items-center gap-2 text-xs text-amber-700"><i className="fas fa-check-circle text-amber-500 text-[11px]"></i> Lifetime boost — active for full job duration</div>
+                              <div className="flex items-center gap-2 text-xs text-amber-700"><i className="fas fa-check-circle text-amber-500 text-[11px]"></i> Top placement above all standard &amp; premium listings</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                );
+              })()}
               
               {/* Show error at top only for non-milestone errors */}
               {error && !error.includes('Milestone payments') && (
@@ -872,16 +1086,48 @@ const AddJob = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading || !areMilestonesValid}
+                  title={!areMilestonesValid ? 'Fill in all milestone fields completely (description ≥ 5 chars, deadline, payment ≥ ₹100) and ensure the total payments equal the project budget.' : ''}
+                  className={`flex-1 px-4 py-2 text-white rounded-md text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
+                    loading || !areMilestonesValid
+                      ? 'bg-gray-400 cursor-not-allowed opacity-70'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
                 >
-                  {loading ? 'Creating...' : 'Create Job Listing'}
+                  {loading ? (
+                    <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span> Publishing...</>
+                  ) : (
+                    <><i className="fas fa-lock text-xs opacity-75"></i> Review &amp; Pay →</>
+                  )}
                 </button>
               </div>
             </form>
           )}
         </div>
       </div>
+
+      {/* ── Fee Payment Modal ── */}
+      {(() => {
+        const budget = parseFloat(formData.budget) || 0;
+        const appCap = formData.applicationCap === '' ? null : parseInt(formData.applicationCap);
+        const fees = computeFees(budget, formData.isBoosted, appCap);
+        return (
+          <FeePaymentModal
+            isOpen={showFeePaymentModal}
+            onClose={() => setShowFeePaymentModal(false)}
+            onConfirm={handlePaymentConfirm}
+            fees={fees}
+            budget={budget}
+            isBoosted={formData.isBoosted}
+          />
+        );
+      })()}
+
+      {/* ── Payment Processing Spinner ── */}
+      <PaymentProcessingModal
+        isOpen={showPaymentProcessing}
+        onComplete={handlePaymentProcessingComplete}
+      />
     </DashboardPage>
   );
 };
