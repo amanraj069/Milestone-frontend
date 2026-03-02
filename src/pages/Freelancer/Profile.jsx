@@ -155,97 +155,76 @@ const FreelancerProfile = () => {
   return (
     <DashboardPage title="Profile" headerAction={editProfileButton}>
       <div className="max-w-7xl mx-auto">
-        {/* Profile Header Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
-          <div className="flex items-start gap-8">
-            {/* Profile Image */}
-            <div className="flex-shrink-0">
-              <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-blue-500 bg-gray-900">
-                <img 
-                  src={profileData.picture} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png';
-                  }}
-                />
-              </div>
+        {/* Profile Header — two-column: left = profile card, right = reviews */}
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 mb-6">
+
+          {/* ── Left: Profile Card ── */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 flex flex-col items-center text-center justify-center h-[460px]">
+            {/* Avatar */}
+            <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-blue-500 bg-gray-900 mb-4 flex-shrink-0">
+              <img
+                src={profileData.picture}
+                alt="Profile"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.src = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png';
+                }}
+              />
             </div>
 
-            {/* Profile Info */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <h2 className="text-3xl font-bold text-gray-900">{profileData.name}</h2>
-                
+            {/* Name & role */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">{profileData.name}</h2>
+            <span className="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full mb-4">
+              {profileData.role}
+            </span>
+
+            {/* Rating */}
+            <div className="flex items-center justify-center gap-1 text-amber-400 text-lg mb-5">
+              {[1,2,3,4,5].map((star) => (
+                <span key={star}>{star <= Math.floor(profileData.rating) ? '★' : '☆'}</span>
+              ))}
+              <span className="text-gray-600 font-semibold text-sm ml-1">{profileData.rating}/5</span>
+            </div>
+
+            {/* Divider */}
+            <div className="w-full border-t border-gray-100 mb-5" />
+
+            {/* Contact details */}
+            <div className="w-full space-y-3 text-left">
+              <div className="flex items-center gap-3 text-gray-600 text-sm">
+                <span className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                  </svg>
+                </span>
+                <span className="truncate">{profileData.location || 'Not specified'}</span>
               </div>
-
-              <div className="text-lg text-gray-600 mb-4">{profileData.role}</div>
-
-              <div className="space-y-3 mb-5">
-                <div className="flex items-center gap-3 text-gray-600">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
+              <div className="flex items-center gap-3 text-gray-600 text-sm">
+                <span className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
                   </svg>
-                  <span>{profileData.location || 'Not specified'}</span>
-                </div>
-
-                <div className="flex items-center gap-3 text-gray-600">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                    <polyline points="22,6 12,13 2,6"></polyline>
-                  </svg>
-                  <span>{profileData.email}</span>
-                </div>
-
-                <div className="flex items-center gap-3 text-gray-600">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                  </svg>
-                  <span>{profileData.phone || 'Not specified'}</span>
-                </div>
+                </span>
+                <span className="truncate">{profileData.email}</span>
               </div>
-
-              {/* Rating */}
-              <div className="flex items-center gap-2 text-amber-500 text-xl">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <span key={star}>
-                    {star <= Math.floor(profileData.rating) ? '★' : star === Math.ceil(profileData.rating) && profileData.rating % 1 !== 0 ? '☆' : '☆'}
-                  </span>
-                ))}
-                <span className="text-gray-700 font-semibold ml-2">{profileData.rating}/5</span>
+              <div className="flex items-center gap-3 text-gray-600 text-sm">
+                <span className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
+                </span>
+                <span>{profileData.phone || 'Not specified'}</span>
               </div>
             </div>
+          </div>
+
+          {/* ── Right: Reviews & Ratings ── */}
+          <div className="h-[460px]">
+            <PublicFeedbackSection
+              userId={user?.id}
+              userRole="Freelancer"
+              overrideRating={profileData?.rating}
+            />
           </div>
         </div>
 
@@ -395,12 +374,7 @@ const FreelancerProfile = () => {
             <BadgesList userId={user?.id} />
           </div>
 
-          {/* Reviews & Feedback Section */}
-          <PublicFeedbackSection 
-            userId={user?.id} 
-            userRole="Freelancer"
-            overrideRating={profileData?.rating}
-          />
+          {/* Reviews & Feedback moved to top-right column */}
         </div>
       </div>
     </DashboardPage>

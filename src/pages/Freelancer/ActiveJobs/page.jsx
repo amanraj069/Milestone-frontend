@@ -5,6 +5,7 @@ import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from '../../../components/freelancer/JobDetailsModal';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
 import SmartSearchInput from '../../../components/SmartSearchInput';
+import SmartFilter from '../../../components/SmartFilter';
 import { useChatContext } from '../../../context/ChatContext';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
@@ -66,7 +67,10 @@ const FreelancerActiveJobs = () => {
   const [appsError, setAppsError] = useState(null);
   const [appSearchTerm, setAppSearchTerm] = useState('');
   const [appSortBy, setAppSortBy] = useState('date-newest');
-  const [appStatusFilter, setAppStatusFilter] = useState('all');
+  const [appColumnFilters, setAppColumnFilters] = useState({ status: [], jobType: [] });
+
+  const setAppColFilter = (field) => (values) =>
+    setAppColumnFilters((prev) => ({ ...prev, [field]: values }));
 
   const cols = useSmartColumnToggle(COLUMNS, 'active-jobs-cols');
   const appCols = useSmartColumnToggle(APPLICATIONS_COLUMNS, 'applications-cols');
@@ -145,8 +149,11 @@ const FreelancerActiveJobs = () => {
 
   const processedApplications = useMemo(() => {
     let list = applications;
-    if (appStatusFilter !== 'all') {
-      list = list.filter(a => a.status === appStatusFilter);
+    if (appColumnFilters.status.length > 0) {
+      list = list.filter(a => appColumnFilters.status.includes(a.status));
+    }
+    if (appColumnFilters.jobType.length > 0) {
+      list = list.filter(a => appColumnFilters.jobType.includes(a.jobType));
     }
     if (appSearchTerm) {
       const q = appSearchTerm.toLowerCase();
@@ -165,7 +172,7 @@ const FreelancerActiveJobs = () => {
       case 'status':      sorted.sort((a, b) => a.status.localeCompare(b.status)); break;
     }
     return sorted;
-  }, [applications, appSearchTerm, appSortBy, appStatusFilter]);
+  }, [applications, appSearchTerm, appSortBy, appColumnFilters]);
 
   return (
     <DashboardPage title="My Jobs">
@@ -245,50 +252,6 @@ const FreelancerActiveJobs = () => {
             </div>
           </div>
 
-          {/* Status Filter */}
-          <div className="flex gap-2 mb-6">
-            <button
-              onClick={() => setAppStatusFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                appStatusFilter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              All ({appStats.total})
-            </button>
-            <button
-              onClick={() => setAppStatusFilter('Pending')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                appStatusFilter === 'Pending'
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Pending ({appStats.pending})
-            </button>
-            <button
-              onClick={() => setAppStatusFilter('Accepted')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                appStatusFilter === 'Accepted'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Accepted ({appStats.accepted})
-            </button>
-            <button
-              onClick={() => setAppStatusFilter('Rejected')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                appStatusFilter === 'Rejected'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Rejected ({appStats.rejected})
-            </button>
-          </div>
-
           {/* Search + Sort + Columns */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
@@ -341,7 +304,7 @@ const FreelancerActiveJobs = () => {
               <div className="text-center py-16">
                 <p className="text-gray-800 font-medium mb-1">No matching applications</p>
                 <p className="text-gray-500 text-sm mb-3">Try adjusting your filters or search criteria</p>
-                <button onClick={() => { setAppSearchTerm(''); setAppStatusFilter('all'); }} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
+                <button onClick={() => { setAppSearchTerm(''); setAppColumnFilters({ status: [], jobType: [] }); }} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -349,10 +312,37 @@ const FreelancerActiveJobs = () => {
                   <thead>
                     <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
                       {appCols.visible.has('jobInfo') && <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Job Information</th>}
-                      {appCols.visible.has('status') && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>}
+                      {appCols.visible.has('status') && (
+                        <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center justify-center gap-1.5">
+                            Status
+                            <SmartFilter
+                              label="Status"
+                              data={applications}
+                              field="status"
+                              selectedValues={appColumnFilters.status}
+                              onFilterChange={setAppColFilter('status')}
+                            />
+                          </div>
+                        </th>
+                      )}
                       {appCols.visible.has('appliedDate') && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Applied Date</th>}
                       {appCols.visible.has('budget') && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Budget</th>}
-                      {appCols.visible.has('jobType') && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Job Type</th>}
+                      {appCols.visible.has('jobType') && (
+                        <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center justify-center gap-1.5">
+                            Job Type
+                            <SmartFilter
+                              label="Job Type"
+                              data={applications}
+                              field="jobType"
+                              selectedValues={appColumnFilters.jobType}
+                              onFilterChange={setAppColFilter('jobType')}
+                              valueFormatter={(v) => v.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                            />
+                          </div>
+                        </th>
+                      )}
                       {appCols.visible.has('actions') && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>}
                     </tr>
                   </thead>
@@ -424,15 +414,16 @@ const FreelancerActiveJobs = () => {
                     ))}
                   </tbody>
                 </table>
+                {/* Showing x of x — just below the table */}
+                <div className="px-5 py-2.5 border-t border-gray-100 bg-gray-50">
+                  <p className="text-xs text-gray-400 text-right">
+                    Showing {processedApplications.length} of {applications.length} application{applications.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
               </div>
             )}
           </div>
 
-          {!appsLoading && applications.length > 0 && (
-            <p className="text-xs text-gray-400 text-right mt-2">
-              Showing {processedApplications.length} of {applications.length} application{applications.length !== 1 ? 's' : ''}
-            </p>
-          )}
         </>
       ) : (
         <>
@@ -637,16 +628,17 @@ const FreelancerActiveJobs = () => {
                 ))}
               </tbody>
             </table>
+            {/* Showing x of x — just below the table */}
+            <div className="px-5 py-2.5 border-t border-gray-100 bg-gray-50">
+              <p className="text-xs text-gray-400 text-right">
+                Showing {processedJobs.length} of {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+              </p>
+            </div>
           </div>
         )}
       </div>
 
-      {!loading && jobs.length > 0 && (
-        <p className="text-xs text-gray-400 text-right mt-2">
-          Showing {processedJobs.length} of {jobs.length} job{jobs.length !== 1 ? 's' : ''}
-        </p>
-      )}
-        </>
+      </>
       )}
 
       {selectedJob && (

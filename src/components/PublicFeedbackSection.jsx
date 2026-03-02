@@ -3,12 +3,22 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
+const COMMENT_LIMIT = 180;
+
 const PublicFeedbackSection = ({ userId, userRole, overrideRating }) => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showAll, setShowAll] = useState(false);
+  const [expandedIds, setExpandedIds] = useState(new Set());
+
+  const toggleExpand = (id) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     fetchPublicFeedback();
@@ -65,22 +75,20 @@ const PublicFeedbackSection = ({ userId, userRole, overrideRating }) => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="animate-pulse">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 animate-pulse">
           <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="h-20 bg-gray-200 rounded"></div>
             ))}
           </div>
-        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl shadow-md p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
         <div className="text-center text-gray-500">
           <i className="fas fa-exclamation-triangle text-2xl mb-2"></i>
           <p>{error}</p>
@@ -89,10 +97,8 @@ const PublicFeedbackSection = ({ userId, userRole, overrideRating }) => {
     );
   }
 
-  const displayFeedbacks = showAll ? feedbacks : feedbacks.slice(0, 3);
-
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 h-full flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Reviews & Feedback</h3>
@@ -123,8 +129,8 @@ const PublicFeedbackSection = ({ userId, userRole, overrideRating }) => {
           <p className="text-lg font-medium">No reviews yet</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {displayFeedbacks.map((feedback) => (
+        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+          {feedbacks.map((feedback) => (
             <div key={feedback._id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -154,9 +160,26 @@ const PublicFeedbackSection = ({ userId, userRole, overrideRating }) => {
                 {!feedback.anonymous && (
                   <p className="text-sm text-gray-600 mb-1">Worked as: <span className="font-medium">{feedback.jobTitle}</span></p>
                 )}
-                {feedback.comment && (
-                  <p className="text-gray-800 leading-relaxed">{feedback.comment}</p>
-                )}
+                {feedback.comment && (() => {
+                    const expanded = expandedIds.has(feedback._id);
+                    const long = feedback.comment.length > COMMENT_LIMIT;
+                    const text = long && !expanded
+                      ? feedback.comment.slice(0, COMMENT_LIMIT) + '…'
+                      : feedback.comment;
+                    return (
+                      <p className="text-gray-800 leading-relaxed">
+                        {text}
+                        {long && (
+                          <button
+                            onClick={() => toggleExpand(feedback._id)}
+                            className="ml-1.5 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          >
+                            {expanded ? 'Read less' : 'Read more'}
+                          </button>
+                        )}
+                      </p>
+                    );
+                  })()}
               </div>
 
               {feedback.tags && feedback.tags.length > 0 && (
@@ -174,16 +197,7 @@ const PublicFeedbackSection = ({ userId, userRole, overrideRating }) => {
             </div>
           ))}
 
-          {feedbacks.length > 3 && (
-            <div className="text-center pt-4">
-              <button
-                onClick={() => setShowAll(!showAll)}
-                className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
-              >
-                {showAll ? 'Show Less' : `Show All ${feedbacks.length} Reviews`}
-              </button>
-            </div>
-          )}
+
         </div>
       )}
     </div>

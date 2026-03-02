@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 import SmartSearchInput from '../../components/SmartSearchInput';
+import SmartFilter from '../../components/SmartFilter';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
@@ -119,7 +120,10 @@ const FreelancerPayments = () => {
   const [activeSortBy, setActiveSortBy] = useState('budget-high');
   const [pastSearchTerm, setPastSearchTerm] = useState('');
   const [pastSortBy, setPastSortBy] = useState('earned-high');
-  const [pastStatusFilter, setPastStatusFilter] = useState('all');
+  const [activeColumnFilters, setActiveColumnFilters] = useState({ status: [], employer: [], job: [] });
+  const setActiveColFilter = (field) => (values) => setActiveColumnFilters(prev => ({ ...prev, [field]: values }));
+  const [pastColumnFilters, setPastColumnFilters] = useState({ status: [], employer: [], job: [] });
+  const setPastColFilter = (field) => (values) => setPastColumnFilters(prev => ({ ...prev, [field]: values }));
   const navigate = useNavigate();
 
   const activeCols = useSmartColumnToggle(ACTIVE_COLUMNS, 'payments-active-cols');
@@ -167,6 +171,17 @@ const FreelancerPayments = () => {
 
   const processedActivePayments = useMemo(() => {
     let list = payments.filter((p) => p.status === 'working');
+
+    // Column filters
+    if (activeColumnFilters.status.length > 0) {
+      list = list.filter(p => activeColumnFilters.status.includes(p.status));
+    }
+    if (activeColumnFilters.employer.length > 0) {
+      list = list.filter(p => activeColumnFilters.employer.includes(p.employerName));
+    }
+    if (activeColumnFilters.job.length > 0) {
+      list = list.filter(p => activeColumnFilters.job.includes(p.jobTitle));
+    }
     
     // Search
     if (activeSearchTerm) {
@@ -197,8 +212,14 @@ const FreelancerPayments = () => {
     let list = payments.filter((p) => p.status === 'finished' || p.status === 'left');
     
     // Status filter
-    if (pastStatusFilter !== 'all') {
-      list = list.filter(p => p.status === pastStatusFilter);
+    if (pastColumnFilters.status.length > 0) {
+      list = list.filter(p => pastColumnFilters.status.includes(p.status));
+    }
+    if (pastColumnFilters.employer.length > 0) {
+      list = list.filter(p => pastColumnFilters.employer.includes(p.employerName));
+    }
+    if (pastColumnFilters.job.length > 0) {
+      list = list.filter(p => pastColumnFilters.job.includes(p.jobTitle));
     }
     
     // Search
@@ -220,7 +241,7 @@ const FreelancerPayments = () => {
       case 'oldest': sorted.sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0)); break;
     }
     return sorted;
-  }, [payments, pastSearchTerm, pastSortBy, pastStatusFilter]);
+  }, [payments, pastSearchTerm, pastSortBy, pastColumnFilters]);
 
   if (loading) {
     return (
@@ -258,11 +279,11 @@ const FreelancerPayments = () => {
 
   return (
     <DashboardPage title="Payments">
-      <p className="text-gray-500 mb-8 -mt-4">Track your earnings and manage milestone payments</p>
+      <p className="text-gray-500 mb-6 -mt-4">Track your earnings and manage milestone payments</p>
 
       {/*   Stat Cards      */}
       {payments.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Total Earned */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div className="flex items-center gap-3">
@@ -314,92 +335,9 @@ const FreelancerPayments = () => {
         </div>
       )}
 
-      {/*   Earnings Chart     */}
-      {payments.length > 0 && monthlyData.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Earnings Overview</h2>
-              <p className="text-sm text-gray-500">Monthly breakdown of your earnings and pending amounts</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-              >
-                {availableYears.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setChartType('bar')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${chartType === 'bar' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  Bar
-                </button>
-                <button
-                  onClick={() => setChartType('area')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${chartType === 'area' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  Area
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              {chartType === 'bar' ? (
-                <BarChart data={monthlyData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#6b7280' }} />
-                  <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="earned" name="Earned" fill="#10b981" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="pending" name="Pending" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              ) : (
-                <AreaChart data={monthlyData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <defs>
-                    <linearGradient id="earnedGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="pendingGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#6b7280' }} />
-                  <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Area type="monotone" dataKey="earned" name="Earned" stroke="#10b981" fillOpacity={1} fill="url(#earnedGrad)" />
-                  <Area type="monotone" dataKey="pending" name="Pending" stroke="#f59e0b" fillOpacity={1} fill="url(#pendingGrad)" />
-                </AreaChart>
-              )}
-            </ResponsiveContainer>
-          </div>
-
-          {/* Legend */}
-          <div className="flex items-center justify-center gap-6 mt-4">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
-              <span className="text-xs text-gray-600">Earned</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-amber-500"></span>
-              <span className="text-xs text-gray-600">Pending</span>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/*   Active Projects Table    */}
       {payments.filter((p) => p.status === 'working').length > 0 && (
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800">Active Projects</h2>
           </div>
@@ -411,7 +349,7 @@ const FreelancerPayments = () => {
                   value={activeSearchTerm}
                   onChange={setActiveSearchTerm}
                   dataSource={payments.filter(p => p.status === 'working')}
-                  getSearchValue={(item) => item.title || item.jobTitle || ''}
+                  getSearchValue={(item) => item.jobTitle || item.title || ''}
                   placeholder="Search by job title, employer, or company..."
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -431,9 +369,49 @@ const FreelancerPayments = () => {
               <table className="min-w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
-                    {activeCols.visible.has('employer') && <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Employer</th>}
-                    {activeCols.visible.has('job') && <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Job Details</th>}
-                    {activeCols.visible.has('status') && <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>}
+                    {activeCols.visible.has('employer') && (
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-1.5">
+                          Employer
+                          <SmartFilter
+                            label="Employer"
+                            data={payments.filter(p => p.status === 'working')}
+                            field="employerName"
+                            selectedValues={activeColumnFilters.employer}
+                            onFilterChange={setActiveColFilter('employer')}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {activeCols.visible.has('job') && (
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-1.5">
+                          Job Details
+                          <SmartFilter
+                            label="Job"
+                            data={payments.filter(p => p.status === 'working')}
+                            field="jobTitle"
+                            selectedValues={activeColumnFilters.job}
+                            onFilterChange={setActiveColFilter('job')}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {activeCols.visible.has('status') && (
+                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center justify-center gap-1.5">
+                          Status
+                          <SmartFilter
+                            label="Status"
+                            data={payments.filter(p => p.status === 'working')}
+                            field="status"
+                            selectedValues={activeColumnFilters.status}
+                            onFilterChange={setActiveColFilter('status')}
+                            valueFormatter={(v) => v === 'working' ? 'In Progress' : v}
+                          />
+                        </div>
+                      </th>
+                    )}
                     {activeCols.visible.has('progress') && <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Payment Progress</th>}
                     {activeCols.visible.has('budget') && <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Budget</th>}
                     {activeCols.visible.has('milestones') && <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Milestones</th>}
@@ -454,30 +432,21 @@ const FreelancerPayments = () => {
                     <tr key={payment.jobId} className="hover:bg-gray-50 transition-colors">
                       {activeCols.visible.has('employer') && (
                         <td className="px-6 py-5">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                              {payment.employerPicture ? (
-                                <img className="h-10 w-10 rounded-full object-cover border-2 border-white shadow" src={payment.employerPicture} alt={payment.employerName} />
-                              ) : (
-                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow">
-                                  {payment.employerName?.charAt(0)?.toUpperCase() || 'E'}
-                                </div>
-                              )}
-                            </div>
-                            <div className="ml-3">
-                              <div className="text-sm font-semibold text-gray-900">{payment.employerName}</div>
-                              <div className="text-xs text-gray-500">{payment.companyName || 'Company'}</div>
-                            </div>
+                          <div className="flex items-center gap-3">
+                            {payment.employerPicture ? (
+                              <img className="h-9 w-9 rounded-lg object-cover border border-gray-200 flex-shrink-0" src={payment.employerPicture} alt={payment.employerName} />
+                            ) : (
+                              <div className="h-9 w-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 font-semibold flex-shrink-0 text-sm">
+                                {payment.employerName?.charAt(0)?.toUpperCase() || 'E'}
+                              </div>
+                            )}
+                            <p className="text-sm font-medium text-gray-700 truncate">{payment.employerName}</p>
                           </div>
                         </td>
                       )}
                       {activeCols.visible.has('job') && (
                         <td className="px-6 py-5">
-                          <div className="text-sm font-semibold text-gray-900 mb-1">{payment.jobTitle}</div>
-                          <div className="flex items-center text-xs text-gray-500">
-                            <svg className="w-3.5 h-3.5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-                            {payment.completedMilestones}/{payment.milestonesCount} milestones
-                          </div>
+                          <p className="text-sm font-semibold text-gray-900">{payment.jobTitle}</p>
                         </td>
                       )}
                       {activeCols.visible.has('status') && <td className="px-6 py-5 text-center">{getStatusBadge(payment.status)}</td>}
@@ -521,7 +490,7 @@ const FreelancerPayments = () => {
 
       {/*   Completed / Left Projects Table      */}
       {payments.filter((p) => p.status === 'finished' || p.status === 'left').length > 0 && (
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800">Past Projects</h2>
           </div>
@@ -533,22 +502,10 @@ const FreelancerPayments = () => {
                   value={pastSearchTerm}
                   onChange={setPastSearchTerm}
                   dataSource={payments.filter(p => p.status === 'finished' || p.status === 'left')}
-                  getSearchValue={(item) => item.title || item.jobTitle || ''}
+                  getSearchValue={(item) => item.jobTitle || item.title || ''}
                   placeholder="Search by job title, employer, or company..."
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-              </div>
-              {/* Status Filter */}
-              <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-                {STATUS_FILTERS.map(f => (
-                  <button
-                    key={f.value}
-                    onClick={() => setPastStatusFilter(f.value)}
-                    className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${pastStatusFilter === f.value ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
               </div>
               <select
                 value={pastSortBy}
@@ -565,9 +522,49 @@ const FreelancerPayments = () => {
               <table className="min-w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-slate-50 to-green-50 border-b border-gray-100">
-                    {completedCols.visible.has('employer') && <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Employer</th>}
-                    {completedCols.visible.has('job') && <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Job Details</th>}
-                    {completedCols.visible.has('status') && <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>}
+                    {completedCols.visible.has('employer') && (
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-1.5">
+                          Employer
+                          <SmartFilter
+                            label="Employer"
+                            data={payments.filter(p => p.status === 'finished' || p.status === 'left')}
+                            field="employerName"
+                            selectedValues={pastColumnFilters.employer}
+                            onFilterChange={setPastColFilter('employer')}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {completedCols.visible.has('job') && (
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-1.5">
+                          Job Details
+                          <SmartFilter
+                            label="Job"
+                            data={payments.filter(p => p.status === 'finished' || p.status === 'left')}
+                            field="jobTitle"
+                            selectedValues={pastColumnFilters.job}
+                            onFilterChange={setPastColFilter('job')}
+                          />
+                        </div>
+                      </th>
+                    )}
+                    {completedCols.visible.has('status') && (
+                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center justify-center gap-1.5">
+                          Status
+                          <SmartFilter
+                            label="Status"
+                            data={payments.filter(p => p.status === 'finished' || p.status === 'left')}
+                            field="status"
+                            selectedValues={pastColumnFilters.status}
+                            onFilterChange={setPastColFilter('status')}
+                            valueFormatter={(v) => v === 'finished' ? 'Completed' : v === 'left' ? 'Left' : v}
+                          />
+                        </div>
+                      </th>
+                    )}
                     {completedCols.visible.has('earned') && <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Total Earned</th>}
                     {completedCols.visible.has('action') && <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Action</th>}
                   </tr>
@@ -586,30 +583,21 @@ const FreelancerPayments = () => {
                     <tr key={payment.jobId} className="hover:bg-gray-50 transition-colors">
                       {completedCols.visible.has('employer') && (
                         <td className="px-6 py-5">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                              {payment.employerPicture ? (
-                                <img className="h-10 w-10 rounded-full object-cover border-2 border-white shadow" src={payment.employerPicture} alt={payment.employerName} />
-                              ) : (
-                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-semibold shadow">
-                                  {payment.employerName?.charAt(0)?.toUpperCase() || 'E'}
-                                </div>
-                              )}
-                            </div>
-                            <div className="ml-3">
-                              <div className="text-sm font-semibold text-gray-900">{payment.employerName}</div>
-                              <div className="text-xs text-gray-500">{payment.companyName || 'Company'}</div>
-                            </div>
+                          <div className="flex items-center gap-3">
+                            {payment.employerPicture ? (
+                              <img className="h-9 w-9 rounded-lg object-cover border border-gray-200 flex-shrink-0" src={payment.employerPicture} alt={payment.employerName} />
+                            ) : (
+                              <div className="h-9 w-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 font-semibold flex-shrink-0 text-sm">
+                                {payment.employerName?.charAt(0)?.toUpperCase() || 'E'}
+                              </div>
+                            )}
+                            <p className="text-sm font-medium text-gray-700 truncate">{payment.employerName}</p>
                           </div>
                         </td>
                       )}
                       {completedCols.visible.has('job') && (
                         <td className="px-6 py-5">
-                          <div className="text-sm font-semibold text-gray-900 mb-1">{payment.jobTitle}</div>
-                          <div className="flex items-center text-xs text-gray-500">
-                            <svg className="w-3.5 h-3.5 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            {payment.completedMilestones}/{payment.milestonesCount} milestones received
-                          </div>
+                          <p className="text-sm font-semibold text-gray-900">{payment.jobTitle}</p>
                         </td>
                       )}
                       {completedCols.visible.has('status') && <td className="px-6 py-5 text-center">{getStatusBadge(payment.status)}</td>}
@@ -620,7 +608,7 @@ const FreelancerPayments = () => {
                       )}
                       {completedCols.visible.has('action') && (
                         <td className="px-6 py-5 text-center">
-                          <button onClick={() => handleViewDetails(payment.jobId)} className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white text-sm font-semibold rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-200 shadow-md hover:shadow-lg">
+                          <button onClick={() => handleViewDetails(payment.jobId)} className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
                             <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                             View Details
                           </button>
@@ -630,6 +618,71 @@ const FreelancerPayments = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {payments.length > 0 && monthlyData.length > 0 && (
+        <div className="mb-8">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Earnings Overview</h2>
+                <p className="text-sm text-gray-500">Monthly breakdown of your earnings and pending amounts</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                >
+                  {availableYears.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                  <button onClick={() => setChartType('bar')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${chartType === 'bar' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Bar</button>
+                  <button onClick={() => setChartType('area')} className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${chartType === 'area' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Area</button>
+                </div>
+              </div>
+            </div>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                {chartType === 'bar' ? (
+                  <BarChart data={monthlyData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#6b7280' }} />
+                    <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Bar dataKey="earned" name="Earned" fill="#10b981" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="pending" name="Pending" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                ) : (
+                  <AreaChart data={monthlyData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="earnedGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="pendingGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#6b7280' }} />
+                    <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Area type="monotone" dataKey="earned" name="Earned" stroke="#10b981" fillOpacity={1} fill="url(#earnedGrad)" />
+                    <Area type="monotone" dataKey="pending" name="Pending" stroke="#f59e0b" fillOpacity={1} fill="url(#pendingGrad)" />
+                  </AreaChart>
+                )}
+              </ResponsiveContainer>
+            </div>
+            <div className="flex items-center justify-center gap-6 mt-4">
+              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500"></span><span className="text-xs text-gray-600">Earned</span></div>
+              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-500"></span><span className="text-xs text-gray-600">Pending</span></div>
             </div>
           </div>
         </div>

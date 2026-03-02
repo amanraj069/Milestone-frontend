@@ -6,40 +6,25 @@ import FeedbackForm from '../../components/FeedbackForm';
 import JobDetailsModal from '../../components/freelancer/JobDetailsModal';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 import SmartSearchInput from '../../components/SmartSearchInput';
+import SmartFilter from '../../components/SmartFilter';
 import { loadJobHistory, selectJobHistory, selectJobsLoading, selectJobsError } from '../../redux/slices/jobsSlice';
 import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../redux/slices/feedbackSlice';
 import { useChatContext } from '../../context/ChatContext';
 
 const COLUMNS = [
-  { key: 'employer',  label: 'Employer' },
-  { key: 'details',   label: 'Job Details' },
-  { key: 'status',    label: 'Status' },
-  { key: 'earned',    label: 'Earned' },
-  { key: 'rating',    label: 'Rating' },
-  { key: 'actions',   label: 'Actions' },
+  { key: 'jobName',  label: 'Job Name' },
+  { key: 'employer', label: 'Employer' },
+  { key: 'duration', label: 'Job Duration', defaultVisible: false },
+  { key: 'status',   label: 'Status' },
+  { key: 'earned',   label: 'Earned' },
+  { key: 'actions',  label: 'Actions' },
 ];
 
 const SORT_OPTIONS = [
-  { value: 'newest',       label: 'Most Recent' },
-  { value: 'oldest',       label: 'Oldest First' },
-  { value: 'earned-high',  label: 'Earned (High to Low)' },
-  { value: 'earned-low',   label: 'Earned (Low to High)' },
-  { value: 'rating-high',  label: 'Rating (High to Low)' },
-  { value: 'rating-low',   label: 'Rating (Low to High)' },
+  { value: 'newest', label: 'Most Recent' },
+  { value: 'oldest', label: 'Oldest First' },
 ];
 
-function Stars({ rating = 0 }) {
-  const full = Math.floor(rating);
-  const half = rating % 1 >= 0.5 ? 1 : 0;
-  const empty = 5 - full - half;
-  return (
-    <div className="flex gap-0.5">
-      {[...Array(full)].map((_, i) => <span key={`f${i}`} className="text-amber-400 text-sm">&#9733;</span>)}
-      {half === 1 && <span className="text-amber-400 text-sm">&#189;</span>}
-      {[...Array(empty)].map((_, i) => <span key={`e${i}`} className="text-gray-300 text-sm">&#9734;</span>)}
-    </div>
-  );
-}
 
 export default function FreelancerJobHistory() {
   const dispatch = useDispatch();
@@ -55,7 +40,8 @@ export default function FreelancerJobHistory() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [columnFilters, setColumnFilters] = useState({ status: [], employer: [], jobName: [] });
+  const setColFilter = (field) => (values) => setColumnFilters(prev => ({ ...prev, [field]: values }));
 
   const cols = useSmartColumnToggle(COLUMNS, 'job-history-cols');
 
@@ -84,8 +70,18 @@ export default function FreelancerJobHistory() {
     let list = jobs || [];
 
     // Status filter
-    if (statusFilter !== 'all') {
-      list = list.filter(j => j.status === statusFilter);
+    if (columnFilters.status.length > 0) {
+      list = list.filter(j => columnFilters.status.includes(j.status));
+    }
+
+    // Employer filter
+    if (columnFilters.employer.length > 0) {
+      list = list.filter(j => columnFilters.employer.includes(j.company));
+    }
+
+    // Job name filter
+    if (columnFilters.jobName.length > 0) {
+      list = list.filter(j => columnFilters.jobName.includes(j.title));
     }
 
     // Search
@@ -109,7 +105,7 @@ export default function FreelancerJobHistory() {
       case 'rating-low':  sorted.sort((a, b) => (a.rating || 0) - (b.rating || 0)); break;
     }
     return sorted;
-  }, [jobs, searchTerm, sortBy, statusFilter]);
+  }, [jobs, searchTerm, sortBy, columnFilters]);
 
   const handleChat = (job) => {
     const userId = job.employerUserId || job.employer?.userId;
@@ -128,7 +124,7 @@ export default function FreelancerJobHistory() {
       <p className="text-gray-500 -mt-6 mb-6">View your completed and past jobs</p>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
@@ -153,17 +149,6 @@ export default function FreelancerJobHistory() {
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-              <svg className="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Avg Job Rating</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : 'N/A'}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
               <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
@@ -176,35 +161,7 @@ export default function FreelancerJobHistory() {
         </div>
       </div>
 
-      {/* Status Filter Tabs */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        <button
-          onClick={() => setStatusFilter('all')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            statusFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          All ({jobs?.length || 0})
-        </button>
-        <button
-          onClick={() => setStatusFilter('finished')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            statusFilter === 'finished' ? 'bg-green-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          Completed ({stats.completed})
-        </button>
-        <button
-          onClick={() => setStatusFilter('left')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            statusFilter === 'left' ? 'bg-red-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          Left ({stats.left})
-        </button>
-      </div>
-
-      {/* Search + Sort + Filter + Columns */}
+      {/* Search + Sort + Columns */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
           <div className="flex-1">
@@ -257,18 +214,58 @@ export default function FreelancerJobHistory() {
           <div className="text-center py-16">
             <p className="text-gray-800 font-medium mb-1">No matching jobs</p>
             <p className="text-gray-500 text-sm mb-3">Try adjusting your search or filters</p>
-            <button onClick={() => { setSearchTerm(''); setStatusFilter('all'); }} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
+            <button onClick={() => { setSearchTerm(''); setColumnFilters({ status: [], employer: [], jobName: [] }); }}  className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
                 <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
-                  {cols.visible.has('employer') && <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Employer</th>}
-                  {cols.visible.has('details')  && <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Job Details</th>}
-                  {cols.visible.has('status')   && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>}
+                  {cols.visible.has('jobName')  && (
+                    <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      <div className="flex items-center gap-1.5">
+                        Job Name
+                        <SmartFilter
+                          label="Job"
+                          data={jobs || []}
+                          field="title"
+                          selectedValues={columnFilters.jobName}
+                          onFilterChange={setColFilter('jobName')}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {cols.visible.has('employer') && (
+                    <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      <div className="flex items-center gap-1.5">
+                        Employer
+                        <SmartFilter
+                          label="Employer"
+                          data={jobs || []}
+                          field="company"
+                          selectedValues={columnFilters.employer}
+                          onFilterChange={setColFilter('employer')}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {cols.visible.has('duration') && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Job Duration</th>}
+                  {cols.visible.has('status')   && (
+                    <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                      <div className="flex items-center justify-center gap-1.5">
+                        Status
+                        <SmartFilter
+                          label="Status"
+                          data={jobs || []}
+                          field="status"
+                          selectedValues={columnFilters.status}
+                          onFilterChange={setColFilter('status')}
+                          valueFormatter={(v) => v === 'finished' ? 'Completed' : v === 'left' ? 'Left' : v}
+                        />
+                      </div>
+                    </th>
+                  )}
                   {cols.visible.has('earned')   && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Earned</th>}
-                  {cols.visible.has('rating')   && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Rating</th>}
                   {cols.visible.has('actions')  && <th className="px-5 py-3.5 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>}
                 </tr>
               </thead>
@@ -278,31 +275,23 @@ export default function FreelancerJobHistory() {
                   const eligibility = feedbackEligibilityMap[jobId];
                   return (
                     <tr key={jobId} className="hover:bg-gray-50 transition-colors">
+                      {cols.visible.has('jobName') && (
+                        <td className="px-5 py-4">
+                          <p className="text-sm font-semibold text-gray-900">{job.title || 'N/A'}</p>
+                        </td>
+                      )}
                       {cols.visible.has('employer') && (
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
-                            <img src={job.logo || '/assets/company_logo.jpg'} alt={job.company} className="w-10 h-10 rounded-lg object-cover border border-gray-200 flex-shrink-0" onError={(e) => { e.target.src = '/assets/company_logo.jpg'; }} />
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 truncate">{job.title}</p>
-                              <p className="text-xs text-gray-500 truncate">{job.company}</p>
-                              {job.tech?.length > 0 && (
-                                <div className="flex items-center gap-1 mt-1">
-                                  {job.tech.slice(0, 2).map((t, i) => (
-                                    <span key={i} className="px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] rounded border border-blue-100">{t}</span>
-                                  ))}
-                                  {job.tech.length > 2 && <span className="text-[10px] text-gray-400">+{job.tech.length - 2}</span>}
-                                </div>
-                              )}
-                            </div>
+                            <img src={job.logo || '/assets/company_logo.jpg'} alt={job.company} className="w-9 h-9 rounded-lg object-cover border border-gray-200 flex-shrink-0" onError={(e) => { e.target.src = '/assets/company_logo.jpg'; }} />
+                            <p className="text-sm text-gray-700 font-medium truncate">{job.company || 'N/A'}</p>
                           </div>
                         </td>
                       )}
-                      {cols.visible.has('details') && (
-                        <td className="px-5 py-4">
-                          <div className="text-xs space-y-1 text-gray-600">
-                            <div>{job.date || 'N/A'}</div>
-                            {job.cancelReason && <div className="text-red-600 text-[11px]">{job.cancelReason}</div>}
-                          </div>
+                      {cols.visible.has('duration') && (
+                        <td className="px-5 py-4 text-center">
+                          <span className="text-xs text-gray-600">{job.date || 'N/A'}</span>
+                          {job.cancelReason && <p className="text-[11px] text-red-500 mt-0.5">{job.cancelReason}</p>}
                         </td>
                       )}
                       {cols.visible.has('status') && (
@@ -311,42 +300,30 @@ export default function FreelancerJobHistory() {
                       {cols.visible.has('earned') && (
                         <td className="px-5 py-4 text-center">
                           {job.paidAmount > 0 ? (
-                            <span className="text-sm font-bold text-green-600">{'\u20B9'}{(job.paidAmount || 0).toLocaleString()}</span>
+                            <span className="text-sm font-semibold text-gray-800">{'₹'}{(job.paidAmount || 0).toLocaleString()}</span>
                           ) : (
-                            <span className="text-sm font-medium text-red-500">Not paid</span>
+                            <span className="text-xs text-gray-400">Not paid</span>
                           )}
                           {job.totalBudget > 0 && (
-                            <p className="text-[10px] text-gray-400">of {'\u20B9'}{job.totalBudget.toLocaleString()}</p>
-                          )}
-                        </td>
-                      )}
-                      {cols.visible.has('rating') && (
-                        <td className="px-5 py-4 text-center">
-                          {job.rating && typeof job.rating === 'number' ? (
-                            <div className="flex flex-col items-center">
-                              <Stars rating={job.rating} />
-                              <span className="text-[10px] text-gray-500 mt-0.5">{job.rating.toFixed(1)}/5</span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-400">-</span>
+                            <p className="text-[10px] text-gray-400">of {'₹'}{job.totalBudget.toLocaleString()}</p>
                           )}
                         </td>
                       )}
                       {cols.visible.has('actions') && (
                         <td className="px-5 py-4 text-center">
                           <div className="flex items-center justify-center gap-2 flex-wrap">
-                            <button onClick={() => { setSelectedJob(job); setIsModalOpen(true); }} className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors">
+                            <button onClick={() => { setSelectedJob(job); setIsModalOpen(true); }} className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                               Details
                             </button>
-                            <button onClick={() => handleChat(job)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 transition-colors">
+                            <button onClick={() => handleChat(job)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500 text-white rounded-lg text-xs font-medium hover:bg-sky-600 transition-colors">
                               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" /></svg>
                               Chat
                             </button>
                             {eligibility?.canGiveFeedback && (
                               <button
                                 onClick={() => setFeedbackModal({ jobId, toUserId: eligibility.counterparty.userId, toRole: eligibility.counterparty.role, counterpartyName: eligibility.counterparty.name })}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-semibold hover:bg-amber-600 transition-colors"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
                                 Feedback
@@ -360,31 +337,25 @@ export default function FreelancerJobHistory() {
                 })}
               </tbody>
             </table>
+            {!loading && processedJobs.length > 0 && (
+              <div className="border-t border-gray-100 bg-gray-50 px-5 py-3">
+                <p className="text-xs text-gray-400">Showing {processedJobs.length} of {jobs.length} job{jobs.length !== 1 ? 's' : ''}</p>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {!loading && jobs?.length > 0 && (
-        <p className="text-xs text-gray-400 text-right mt-2">
-          Showing {processedJobs.length} of {jobs.length} job{jobs.length !== 1 ? 's' : ''}
-        </p>
-      )}
-
       {/* Feedback Modal */}
-      {feedbackModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <FeedbackForm
-              jobId={feedbackModal.jobId}
-              toUserId={feedbackModal.toUserId}
-              toRole={feedbackModal.toRole}
-              counterpartyName={feedbackModal.counterpartyName}
-              onSuccess={() => { setFeedbackModal(null); dispatch(checkCanGiveFeedback(feedbackModal.jobId)); }}
-              onCancel={() => setFeedbackModal(null)}
-            />
-          </div>
-        </div>
-      )}
+      <FeedbackForm
+        isOpen={!!feedbackModal}
+        jobId={feedbackModal?.jobId}
+        toUserId={feedbackModal?.toUserId}
+        toRole={feedbackModal?.toRole}
+        counterpartyName={feedbackModal?.counterpartyName}
+        onSuccess={() => { setFeedbackModal(null); dispatch(checkCanGiveFeedback(feedbackModal?.jobId)); }}
+        onCancel={() => setFeedbackModal(null)}
+      />
 
       {/* Job Details Modal */}
       {selectedJob && (
