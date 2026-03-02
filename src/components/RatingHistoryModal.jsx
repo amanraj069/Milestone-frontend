@@ -50,22 +50,34 @@ const RatingHistoryModal = ({ isOpen, onClose, userId, userName, apiBasePath = '
     }).format(date);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-gray-200">
+    <>
+      {/* Subtle backdrop */}
+      <div
+        className={`fixed inset-0 z-40 transition-opacity duration-300 ${
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        style={{ background: 'rgba(15,23,42,0.15)' }}
+        onClick={onClose}
+      />
+
+      {/* Slide-in drawer */}
+      <div
+        className={`fixed top-0 right-0 h-full z-50 w-full max-w-sm bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Rating History</h2>
-            <p className="text-gray-500 text-sm">{userName}</p>
+            <h2 className="text-base font-semibold text-gray-900">Rating History</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{userName}</p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -102,9 +114,7 @@ const RatingHistoryModal = ({ isOpen, onClose, userId, userName, apiBasePath = '
                   {/* Header row */}
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
-                      <span className={`text-lg font-bold ${
-                        entry.adjustment < 0 ? 'text-red-600' : 'text-green-600'
-                      }`}>
+                      <span className="text-lg font-bold text-gray-900">
                         {entry.adjustment > 0 ? '+' : ''}{entry.adjustment?.toFixed(1) || '0.0'}
                       </span>
                       <span className="text-sm text-gray-700">
@@ -112,9 +122,9 @@ const RatingHistoryModal = ({ isOpen, onClose, userId, userName, apiBasePath = '
                       </span>
                     </div>
                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                      entry.adjustment < 0 
-                        ? 'bg-red-100 text-red-700' 
-                        : 'bg-green-100 text-green-700'
+                      entry.adjustment < 0
+                        ? 'bg-gray-100 text-gray-600'
+                        : 'bg-slate-100 text-slate-600'
                     }`}>
                       {entry.adjustment < 0 ? 'Penalty' : 'Bonus'}
                     </span>
@@ -146,16 +156,16 @@ const RatingHistoryModal = ({ isOpen, onClose, userId, userName, apiBasePath = '
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 px-5 py-3">
+        <div className="border-t border-gray-200 px-5 py-4 flex-shrink-0">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2.5 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
+            className="w-full px-4 py-2.5 bg-slate-800 text-white rounded-md text-sm font-medium hover:bg-slate-700 transition-colors"
           >
             Close
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
