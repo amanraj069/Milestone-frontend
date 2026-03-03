@@ -8,6 +8,8 @@ import {
 } from '../redux/slices/notificationsSlice';
 import { useChatNotifications } from '../context/ChatNotificationContext';
 
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+
 // Paths that unapproved employers can access (must match ProtectedRoute)
 const UNAPPROVED_EMPLOYER_ALLOWED_PATHS = [
   '/',
@@ -22,6 +24,7 @@ const DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [isPremium, setIsPremium] = useState(false);
+  const [pendingApplicationsCount, setPendingApplicationsCount] = useState(0);
   
   const unreadCount = useSelector(selectUnreadCount);
 
@@ -53,6 +56,37 @@ const DashboardLayout = ({ children }) => {
       return () => clearInterval(interval);
     }
   }, [dispatch, user]);
+
+  useEffect(() => {
+    if (user?.role !== 'Employer') {
+      setPendingApplicationsCount(0);
+      return;
+    }
+
+    const fetchPendingApplicationsCount = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/employer/job_applications/pending-count`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success) {
+          setPendingApplicationsCount(data.count || 0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch pending applications count:', error);
+      }
+    };
+
+    fetchPendingApplicationsCount();
+    const interval = setInterval(fetchPendingApplicationsCount, 30000);
+
+    return () => clearInterval(interval);
+  }, [user?.role]);
 
   // Listen for profile updates from other pages (EditProfile)
   useEffect(() => {
@@ -199,6 +233,7 @@ const DashboardLayout = ({ children }) => {
             const isActive = location.pathname === item.path;
             const showChatBadge = item.name === 'Chat' && totalUnreadCount > 0;
             const showNotificationBadge = item.showBadge && unreadCount > 0;
+            const showPendingApplicationsBadge = item.name === 'Applications' && pendingApplicationsCount > 0;
             const isLocked = isUnapprovedEmployer && !isPathAllowedForUnapproved(item.path);
             
             // For locked items, render a div instead of Link
@@ -236,6 +271,11 @@ const DashboardLayout = ({ children }) => {
                 {showChatBadge && (
                   <span className="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
                     {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                  </span>
+                )}
+                {showPendingApplicationsBadge && (
+                  <span className="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                    {pendingApplicationsCount > 99 ? '99+' : pendingApplicationsCount}
                   </span>
                 )}
               </Link>

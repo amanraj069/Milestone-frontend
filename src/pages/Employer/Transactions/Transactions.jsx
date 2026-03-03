@@ -14,6 +14,7 @@ const EmployerTransactions = () => {
   const [sortBy, setSortBy] = useState('name-a-z');
   const [nameFilters, setNameFilters] = useState([]);
   const [roleFilters, setRoleFilters] = useState([]);
+  const [milestoneFilters, setMilestoneFilters] = useState([]);
   const [statusFilters, setStatusFilters] = useState([]);
   const [paymentProgressFilters, setPaymentProgressFilters] = useState([]);
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ const EmployerTransactions = () => {
   const columns = [
     { key: 'freelancer', label: 'Freelancer', defaultVisible: true },
     { key: 'jobDetails', label: 'Job Details', defaultVisible: true },
+    { key: 'milestones', label: 'Milestones', defaultVisible: true },
     { key: 'status', label: 'Status', defaultVisible: true },
     { key: 'payment', label: 'Payment Progress', defaultVisible: true },
     { key: 'budget', label: 'Budget', defaultVisible: true },
@@ -66,7 +68,7 @@ const EmployerTransactions = () => {
     };
     const { bg, text, dot, label } = config[status] || { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500', label: status };
     return (
-      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${bg} ${text}`}>
+      <span className={`inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-sm font-medium ${bg} ${text}`}>
         <span className={`w-2 h-2 rounded-full ${dot} mr-2`}></span>
         {label}
       </span>
@@ -86,6 +88,9 @@ const EmployerTransactions = () => {
     if (status === 'left') return 'Left';
     return status;
   };
+
+  const getMilestoneValue = (transaction) =>
+    `${transaction.completedMilestones || 0}/${transaction.milestonesCount || 0}`;
 
   const paymentBucketSeed = [
     { __bucket: 'Less than 25%' },
@@ -114,6 +119,7 @@ const EmployerTransactions = () => {
     .filter((transaction) => {
       if (nameFilters.length > 0 && !nameFilters.includes(transaction.freelancerName)) return false;
       if (roleFilters.length > 0 && !roleFilters.includes(transaction.jobTitle)) return false;
+      if (milestoneFilters.length > 0 && !milestoneFilters.includes(getMilestoneValue(transaction))) return false;
       if (statusFilters.length > 0 && !statusFilters.includes(transaction.status)) return false;
 
       if (
@@ -353,6 +359,20 @@ const EmployerTransactions = () => {
                         </div>
                       </th>
                     )}
+                    {visibleColumns.has('milestones') && (
+                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center justify-center gap-2">
+                          Milestones
+                          <SmartFilter
+                            label="Milestones"
+                            data={transactions}
+                            selectedValues={milestoneFilters}
+                            onFilterChange={setMilestoneFilters}
+                            valueExtractor={getMilestoneValue}
+                          />
+                        </div>
+                      </th>
+                    )}
                     {visibleColumns.has('payment') && (
                       <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
                         <div className="flex items-center justify-center gap-2">
@@ -411,19 +431,21 @@ const EmployerTransactions = () => {
 
                         {visibleColumns.has('jobDetails') && (
                           <td className="px-6 py-5">
-                            <div className="text-sm font-semibold text-gray-900 mb-1">{transaction.jobTitle}</div>
-                            <div className="flex items-center text-sm text-gray-500">
-                              <svg className="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                              </svg>
-                              {transaction.completedMilestones}/{transaction.milestonesCount} milestones
-                            </div>
+                            <div className="text-sm font-semibold text-gray-900">{transaction.jobTitle}</div>
                           </td>
                         )}
 
                         {visibleColumns.has('status') && (
                           <td className="px-6 py-5 text-center">
                             {getStatusBadge(transaction.status)}
+                          </td>
+                        )}
+
+                        {visibleColumns.has('milestones') && (
+                          <td className="px-6 py-5 text-center">
+                            <span className="text-sm font-semibold text-gray-700">
+                              {getMilestoneValue(transaction)}
+                            </span>
                           </td>
                         )}
 
@@ -458,13 +480,13 @@ const EmployerTransactions = () => {
                           <td className="px-6 py-5 text-center">
                             <button
                               onClick={() => handleViewDetails(transaction.jobId)}
-                              className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                              className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-700 text-white text-sm font-semibold rounded-xl hover:from-blue-600 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                             >
                               <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                               </svg>
-                              View Details
+                              Details
                             </button>
                           </td>
                         )}
