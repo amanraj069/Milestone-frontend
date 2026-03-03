@@ -158,7 +158,7 @@ const EmployerJobListings = () => {
       headerAction={
         <Link
           to="/employer/job-listings/new"
-          className="bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-all flex items-center gap-2 shadow-sm"
+          className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
         >
           <i className="fas fa-plus"></i>
           <span>Post New Job</span>
@@ -232,7 +232,7 @@ const EmployerJobListings = () => {
                 <p className="text-gray-600 mb-4">{error}</p>
                 <button
                   onClick={loadJobListings}
-                  className="bg-blue-700 text-white px-6 py-2 rounded-lg hover:bg-blue-800 transition-all"
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all"
                 >
                   <i className="fas fa-refresh mr-2"></i>
                   Try Again
@@ -250,7 +250,7 @@ const EmployerJobListings = () => {
                 {jobListings.length === 0 && (
                   <Link
                     to="/employer/job-listings/new"
-                    className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition-all"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all"
                   >
                     <i className="fas fa-plus mr-2"></i>
                     Post New Job
@@ -262,19 +262,28 @@ const EmployerJobListings = () => {
                 {filteredJobs.map(job => (
                   <div
                     key={job.jobId}
-                    className="relative border-2 border-gray-200 rounded-xl p-5 hover:border-blue-600 transition-all hover:shadow-lg flex gap-5 items-start"
+                    className={`border-2 rounded-xl p-5 transition-all hover:shadow-lg flex gap-5 items-center ${
+                      job.isBoosted
+                        ? 'border-yellow-400 shadow-md shadow-yellow-100 hover:border-yellow-500'
+                        : 'border-gray-200 hover:border-blue-600'
+                    }`}
                   >
                     <div className="flex-shrink-0">
                       <img
                         src={job.imageUrl || '/assets/company_logo.jpg'}
                         alt="Company"
-                        className="w-16 h-16 rounded-lg object-cover"
+                        className="w-32 h-32 rounded-lg object-cover"
                       />
                     </div>
 
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-gray-800 mb-2">{job.title}</h3>
-                      <div className="text-blue-700 font-semibold text-lg mb-3">
+                      <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                        {job.title}
+                        <span className="ml-2 text-sm font-normal text-gray-500">
+                          ({job.applicationCount || 0}/{job.applicationCap != null ? job.applicationCap : <span className="text-base">∞</span>})
+                        </span>
+                      </h3>
+                      <div className="text-blue-600 font-semibold text-lg mb-3">
                         ₹{typeof job.budget === 'number' ? job.budget.toLocaleString('en-IN') : job.budget}
                       </div>
                       <div className="flex gap-2 mb-3 flex-wrap">
@@ -289,7 +298,7 @@ const EmployerJobListings = () => {
                           <i className="fas fa-map-marker-alt text-blue-600"></i>
                           {job.location || 'Not specified'}
                         </span>
-                        <span className="flex items-center gap-2 capitalize">
+                        <span className="flex items-center gap-2">
                           <i className="fas fa-briefcase text-blue-600"></i>
                           {job.jobType}
                         </span>
@@ -298,7 +307,7 @@ const EmployerJobListings = () => {
                           Posted {getDaysAgo(job.postedDate)}
                         </span>
                         {job.remote && (
-                          <span className="flex items-center gap-2 text-emerald-500">
+                          <span className="flex items-center gap-2 text-green-600">
                             <i className="fas fa-home"></i>
                             Remote
                           </span>
@@ -306,33 +315,38 @@ const EmployerJobListings = () => {
                       </div>
                     </div>
 
-                    <div className="absolute right-5 bottom-5 flex flex-col items-end gap-2">
+                    <div className="flex-shrink-0 flex flex-col gap-2 items-stretch min-w-[140px]">
+                      <button
+                        onClick={() => navigate(`/employer/applications?jobId=${job.jobId}`)}
+                        className="border-2 border-blue-600 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-semibold whitespace-nowrap flex items-center justify-center gap-2 text-sm"
+                      >
+                        <i className="fas fa-users"></i>
+                        <span>{job.applicationCount || 0} applicants</span>
+                      </button>
+                      <button
+                        onClick={() => navigate(`/jobs/${job.jobId}`)}
+                        className="border-2 border-blue-600 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium text-sm"
+                      >
+                        <i className="fas fa-eye mr-2"></i>View
+                      </button>
                       <div className="flex gap-2">
                         <button
                           onClick={() => navigate(`/employer/job-listings/edit/${job.jobId}`)}
                           title="Edit"
-                          aria-label="Edit job"
-                          className="w-10 h-10 flex items-center justify-center rounded-lg bg-green-600 hover:bg-green-700 text-white transition-all shadow-sm"
+                          className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-all font-medium text-sm flex items-center justify-center gap-1"
                         >
                           <i className="fas fa-edit"></i>
+                          <span>Edit</span>
                         </button>
-
                         <button
                           onClick={() => setDeleteModal({ show: true, jobId: job.jobId })}
                           title="Delete"
-                          aria-label="Delete job"
-                          className="w-10 h-10 mr-4 ml-3 flex items-center justify-center rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all shadow-sm"
+                          className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-all font-medium text-sm flex items-center justify-center gap-1"
                         >
                           <i className="fas fa-trash"></i>
+                          <span>Del</span>
                         </button>
                       </div>
-
-                      <button
-                        onClick={() => navigate(`/jobs/${job.jobId}`)}
-                        className="w-32 border-2 border-blue-600 text-blue-600 px-1 py-1 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium"
-                      >
-                        View Details
-                      </button>
                     </div>
                   </div>
                 ))}

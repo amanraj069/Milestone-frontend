@@ -152,11 +152,17 @@ const PublicJobListing = () => {
       );
     }
 
-    // Sort filtered results - sponsored jobs first (newest to oldest), then regular jobs (newest to oldest)
+    // Sort filtered results with 4-tier priority ordering
+    // Tier 4: Premium subscription + Boosted (highest)
+    // Tier 3: Boosted only
+    // Tier 2: Premium subscription only
+    // Tier 1: Normal jobs (lowest)
     filtered.sort((a, b) => {
-      // First, prioritize sponsored/premium jobs
-      if (a.isSponsored && !b.isSponsored) return -1;
-      if (!a.isSponsored && b.isSponsored) return 1;
+      const tierA = a.tier || (a.isSponsored && a.isBoosted ? 4 : a.isBoosted ? 3 : a.isSponsored ? 2 : 1);
+      const tierB = b.tier || (b.isSponsored && b.isBoosted ? 4 : b.isBoosted ? 3 : b.isSponsored ? 2 : 1);
+
+      // Always keep tier ordering regardless of selected sort
+      if (tierB !== tierA) return tierB - tierA;
       
       // Within same tier, apply selected sorting
       switch (sortBy) {
@@ -365,21 +371,17 @@ const PublicJobListing = () => {
 
                           {/* Job Info */}
                           <div className="flex-1 min-w-0">
-                            {/* 1. Job Title and New Badge */}
-                            <div className="flex items-center gap-2 mb-2">
+                            {/* 1. Job Title and Badges */}
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
                               <h1 className="text-lg font-bold text-gray-900">
                                 {job.title}
                               </h1>
                               {isNewJob(job.postedDate) && (
-                                <span className="inline-block px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">
                                   New
                                 </span>
                               )}
-                              {job.isSponsored && (
-                                <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
-                                  Sponsored
-                                </span>
-                              )}
+
                             </div>
 
                             {/* 2. Salary */}

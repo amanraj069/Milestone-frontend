@@ -982,7 +982,7 @@ const AdminDashboard = () => {
         <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-gray-900">Platform Fee Structure</h3>
-            <p className="text-[11px] text-gray-400">Base rate: <span className="font-semibold text-gray-600">{feeTiers.baseRate}%</span> · Effective range: <span className="font-semibold text-gray-600">2% – 8%</span></p>
+            <p className="text-[11px] text-gray-400">Base rate: <span className="font-semibold text-gray-600">{feeTiers.baseRate}%</span> · Effective range: <span className="font-semibold text-gray-600">{feeTiers.range || '2.5% – 6%'}</span></p>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-16 bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 h-2 rounded-full"></div>
@@ -990,40 +990,40 @@ const AdminDashboard = () => {
           </div>
         </div>
         <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Duration Modifiers */}
+          {/* Platform Type */}
           <div>
             <div className="flex items-center gap-1.5 mb-2.5">
-              <i className="fas fa-clock text-[10px] text-gray-400"></i>
-              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Duration Modifiers</p>
+              <i className="fas fa-bolt text-[10px] text-amber-400"></i>
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Platform Fee</p>
             </div>
             <div className="space-y-1">
-              {feeTiers.tiers?.duration?.map((t, i) => (
+              {(feeTiers.tiers?.platform || [
+                { range: 'Standard job', modifier: '2%' },
+                { range: 'Boosted job', modifier: '4%' },
+              ]).map((t, i) => (
                 <div key={i} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                   <span className="text-gray-600 font-medium">{t.range}</span>
-                  <span className={`font-bold px-2 py-0.5 rounded ${
-                    t.modifier.startsWith('+') ? 'bg-red-100 text-red-700' : t.modifier.startsWith('-') ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {t.modifier}
-                  </span>
+                  <span className="font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700">{t.modifier}</span>
                 </div>
               ))}
             </div>
           </div>
-          {/* Applicant Modifiers */}
+          {/* Application Cap Fee */}
           <div>
             <div className="flex items-center gap-1.5 mb-2.5">
               <i className="fas fa-users text-[10px] text-gray-400"></i>
-              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Applicant Modifiers</p>
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Application Cap Fee</p>
             </div>
             <div className="space-y-1">
-              {feeTiers.tiers?.applicants?.map((t, i) => (
+              {(feeTiers.tiers?.applicationCap || [
+                { range: '≤ 10 applicants', modifier: '0%' },
+                { range: '≤ 25 applicants', modifier: '+0.5%' },
+                { range: '≤ 50 applicants', modifier: '+1%' },
+                { range: 'Unlimited', modifier: '+2%' },
+              ]).map((t, i) => (
                 <div key={i} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                   <span className="text-gray-600 font-medium">{t.range}</span>
-                  <span className={`font-bold px-2 py-0.5 rounded ${
-                    t.modifier.startsWith('+') ? 'bg-red-100 text-red-700' : t.modifier.startsWith('-') ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {t.modifier}
-                  </span>
+                  <span className="font-bold px-2 py-0.5 rounded bg-orange-100 text-orange-700">{t.modifier}</span>
                 </div>
               ))}
             </div>
