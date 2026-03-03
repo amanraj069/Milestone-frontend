@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
-
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 // Modal animation styles
 const modalStyles = `
@@ -525,6 +524,142 @@ const ModeratorApprovals = () => {
           </div>
           {/* Showing count moved to table footer */}
           <div className="px-4 py-3 text-sm text-gray-600">Showing: {filteredEmployers.length} of {totalEmployers}</div>
+        </div>
+      )}
+
+      {/* Details Modal */}
+      {detailsModal.show && detailsModal.employer && (
+        <div
+          className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn"
+          onClick={() => setDetailsModal({ show: false, employer: null })}
+        >
+          <div
+            className="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto p-6 animate-slideUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Employer Details</h3>
+              <button
+                onClick={() => setDetailsModal({ show: false, employer: null })}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-sm">
+              <div>
+                <p className="text-gray-500">Name</p>
+                <p className="font-medium text-gray-900">{detailsModal.employer.name || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Email</p>
+                <p className="font-medium text-gray-900">{detailsModal.employer.email || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Phone</p>
+                <p className="font-medium text-gray-900">{detailsModal.employer.phone || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Location</p>
+                <p className="font-medium text-gray-900">{detailsModal.employer.location || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Approval Status</p>
+                <p className="font-medium text-gray-900">{detailsModal.employer.approvalStatus || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Registered</p>
+                <p className="font-medium text-gray-900">{new Date(detailsModal.employer.registeredAt || Date.now()).toLocaleString()}</p>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-200 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-base font-semibold text-gray-900">Company Verification Data</h4>
+                <span className={`px-2 py-1 rounded text-xs font-semibold ${detailsModal.employer.companyDetails?.isSubmitted ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                  {detailsModal.employer.companyDetails?.isSubmitted ? 'Submitted' : 'Not Submitted'}
+                </span>
+              </div>
+
+              {detailsModal.employer.companyDetails?.isSubmitted ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500">Company Name</p>
+                    <p className="font-medium text-gray-900">{detailsModal.employer.companyDetails?.companyName || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Company PAN</p>
+                    <p className="font-medium text-gray-900">{detailsModal.employer.companyDetails?.companyPAN || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Accounts Payable Contact Email</p>
+                    <p className="font-medium text-gray-900">{detailsModal.employer.companyDetails?.accountsPayableEmail || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Official Business Email</p>
+                    <p className="font-medium text-gray-900">{detailsModal.employer.companyDetails?.officialBusinessEmail || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Tax Identification Number (TIN / VAT / GST)</p>
+                    <p className="font-medium text-gray-900">{detailsModal.employer.companyDetails?.taxIdentificationNumber || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Submitted At</p>
+                    <p className="font-medium text-gray-900">
+                      {detailsModal.employer.companyDetails?.submittedAt
+                        ? new Date(detailsModal.employer.companyDetails.submittedAt).toLocaleString()
+                        : 'N/A'}
+                    </p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-gray-500">Billing Address</p>
+                    <p className="font-medium text-gray-900 whitespace-pre-wrap">{detailsModal.employer.companyDetails?.billingAddress || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Proof of Address</p>
+                    {detailsModal.employer.companyDetails?.proofOfAddressUrl ? (
+                      <a
+                        href={(detailsModal.employer.companyDetails.proofOfAddressUrl || '').startsWith('/') ? `${API_BASE_URL}${detailsModal.employer.companyDetails.proofOfAddressUrl}` : detailsModal.employer.companyDetails.proofOfAddressUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        View Document
+                      </a>
+                    ) : (
+                      <p className="font-medium text-gray-900">N/A</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Company Logo</p>
+                    {detailsModal.employer.companyDetails?.companyLogoUrl ? (
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={(detailsModal.employer.companyDetails.companyLogoUrl || '').startsWith('/') ? `${API_BASE_URL}${detailsModal.employer.companyDetails.companyLogoUrl}` : detailsModal.employer.companyDetails.companyLogoUrl}
+                          alt="Company Logo"
+                          className="w-28 h-16 object-contain border border-gray-200 rounded bg-white"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                        <a
+                          href={(detailsModal.employer.companyDetails.companyLogoUrl || '').startsWith('/') ? `${API_BASE_URL}${detailsModal.employer.companyDetails.companyLogoUrl}` : detailsModal.employer.companyDetails.companyLogoUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          Open full image
+                        </a>
+                      </div>
+                    ) : (
+                      <p className="font-medium text-gray-900">N/A</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">Company verification details have not been submitted yet.</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

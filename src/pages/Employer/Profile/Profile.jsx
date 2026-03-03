@@ -47,7 +47,10 @@ const EmployerProfile = () => {
               });
               setEmployerData({
                 companyName: user.companyName || 'Company Name',
-                websiteLink: user.websiteLink || ''
+                websiteLink: user.websiteLink || '',
+                companyDetails: {
+                  isSubmitted: false,
+                }
               });
             }
           } else {
@@ -66,7 +69,10 @@ const EmployerProfile = () => {
             });
             setEmployerData({
               companyName: user.companyName || 'Company Name',
-              websiteLink: user.websiteLink || ''
+              websiteLink: user.websiteLink || '',
+              companyDetails: {
+                isSubmitted: false,
+              }
             });
           }
         }
@@ -88,7 +94,10 @@ const EmployerProfile = () => {
           });
           setEmployerData({
             companyName: user.companyName || 'Company Name',
-            websiteLink: user.websiteLink || ''
+            websiteLink: user.websiteLink || '',
+            companyDetails: {
+              isSubmitted: false,
+            }
           });
         }
         setLoading(false);
@@ -170,17 +179,36 @@ const EmployerProfile = () => {
     );
   }
 
+  const isUnapprovedEmployer = user?.role === 'Employer' && user?.isApproved === false;
+  const hasCompanyDetails = employerData?.companyDetails?.isSubmitted === true;
+
   return (
     <DashboardPage title="Employer Profile">
       {/* Header with description and action button */}
       <div className="flex justify-between items-center mb-6 -mt-4">
         <p className="text-gray-600">Manage your company profile and information</p>
-        <button 
-          onClick={() => navigate('/employer/profile/edit')}
-          className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          Edit Profile
-        </button>
+        <div className="flex items-center gap-3">
+          {isUnapprovedEmployer && (
+            <button
+              onClick={() => navigate('/employer/company-details')}
+              className="relative px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2"
+            >
+              {!hasCompanyDetails && (
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-400 text-indigo-900 text-xs font-bold animate-pulse">
+                  !
+                </span>
+              )}
+              {hasCompanyDetails ? 'Edit company detail' : 'Add company details'}
+            </button>
+          )}
+
+          <button 
+            onClick={() => navigate('/employer/profile/edit')}
+            className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            Edit Profile
+          </button>
+        </div>
       </div>
 
         {/* Stats Row */}

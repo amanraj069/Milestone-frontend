@@ -39,6 +39,7 @@ import EditQuiz from './pages/Moderator/Quizzes/EditQuiz';
 // Employer Pages
 import EmployerProfile from './pages/Employer/Profile/Profile';
 import EditEmployerProfile from './pages/Employer/Profile/EditProfile';
+import EmployerCompanyDetails from './pages/Employer/Profile/CompanyDetails';
 import EmployerJobListings from './pages/Employer/JobListings/JobListings';
 import AddJob from './pages/Employer/JobListings/AddJob';
 import EditJob from './pages/Employer/JobListings/EditJob';
@@ -145,6 +146,7 @@ function App() {
                     <Route path="/employer/home" element={<Navigate to="/employer/job-listings" replace />} />
                     <Route path="/employer/profile" element={<ProtectedRoute requiredRole="Employer"><EmployerProfile /></ProtectedRoute>} />
                     <Route path="/employer/profile/edit" element={<ProtectedRoute requiredRole="Employer"><EditEmployerProfile /></ProtectedRoute>} />
+                    <Route path="/employer/company-details" element={<ProtectedRoute requiredRole="Employer"><EmployerCompanyDetails /></ProtectedRoute>} />
                     <Route path="/employer/job-listings" element={<ProtectedRoute requiredRole="Employer"><EmployerJobListings /></ProtectedRoute>} />
                     <Route path="/employer/job-listings/new" element={<ProtectedRoute requiredRole="Employer"><AddJob /></ProtectedRoute>} />
                     <Route path="/employer/job-listings/edit/:jobId" element={<ProtectedRoute requiredRole="Employer"><EditJob /></ProtectedRoute>} />
