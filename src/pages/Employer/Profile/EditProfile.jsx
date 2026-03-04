@@ -12,13 +12,11 @@ const EditEmployerProfile = () => {
   const [phoneError, setPhoneError] = useState('');
   const [aboutError, setAboutError] = useState('');
   const [nameError, setNameError] = useState('');
-  const [companyNameError, setCompanyNameError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     location: '',
-    companyName: '',
     websiteLink: '',
     aboutMe: '',
     picture: '',
@@ -50,7 +48,6 @@ const EditEmployerProfile = () => {
                 email: result.data.email || '',
                 phone: result.data.phone || '',
                 location: result.data.location || '',
-                companyName: result.employer?.companyName || '',
                 websiteLink: result.employer?.websiteLink || '',
                 aboutMe: result.data.aboutMe || '',
                 picture: result.data.picture || '',
@@ -69,7 +66,6 @@ const EditEmployerProfile = () => {
                 email: user.email || '',
                 phone: user.phone || '',
                 location: user.location || '',
-                companyName: user.companyName || '',
                 websiteLink: user.websiteLink || '',
                 aboutMe: user.aboutMe || '',
                 picture: user.picture || '',
@@ -93,7 +89,6 @@ const EditEmployerProfile = () => {
             email: user.email || '',
             phone: user.phone || '',
             location: user.location || '',
-            companyName: user.companyName || '',
             websiteLink: user.websiteLink || '',
             aboutMe: user.aboutMe || '',
             picture: user.picture || '',
@@ -166,21 +161,6 @@ const EditEmployerProfile = () => {
       setNameError('');
     }
   }, [formData.name]);
-
-  // Real-time company name validation - minimum 3 characters
-  useEffect(() => {
-    const companyName = formData.companyName ? String(formData.companyName).trim() : '';
-    if (!companyName) {
-      setCompanyNameError('Company name is required');
-      return;
-    }
-
-    if (companyName.length < 3) {
-      setCompanyNameError(`Company name must be at least 3 characters (${companyName.length}/3)`);
-    } else {
-      setCompanyNameError('');
-    }
-  }, [formData.companyName]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -382,26 +362,6 @@ const EditEmployerProfile = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company Name * (min 3 characters)
-                </label>
-                <input
-                  type="text"
-                  name="companyName"
-                  value={formData.companyName}
-                  onChange={handleInputChange}
-                  required
-                  className={`w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    companyNameError ? 'border-2 border-red-500' : 'border border-gray-300 focus:border-transparent'
-                  }`}
-                  placeholder="Enter company name"
-                />
-                {companyNameError && (
-                  <p className="text-sm text-red-600 mt-1">{companyNameError}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email * (Cannot be changed)
                 </label>
                 <input
@@ -581,7 +541,7 @@ const EditEmployerProfile = () => {
             
             <button
               type="submit"
-              disabled={saving || !!phoneError || !!aboutError || !!nameError || !!companyNameError || !formData.name || !formData.companyName || !formData.aboutMe}
+              disabled={saving || !!phoneError || !!aboutError || !!nameError || !formData.name || !formData.aboutMe}
               className="px-8 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {saving ? (

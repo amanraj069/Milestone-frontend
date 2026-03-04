@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 const UNAPPROVED_EMPLOYER_ALLOWED_PATHS = [
   '/employer/profile',
   '/employer/profile/edit',
+  '/employer/company-details',
   '/',
 ];
 
