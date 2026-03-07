@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { useAuth } from '../context/AuthContext';
 import {
   fetchNotifications,
   fetchUnreadCount,
@@ -15,6 +16,7 @@ import {
 const NotificationDropdown = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   
@@ -53,9 +55,14 @@ const NotificationDropdown = () => {
       await dispatch(markNotificationAsRead(notification.notificationId));
     }
 
-    // Navigate to the job's questions section
+    // Navigate based on notification type
     setIsOpen(false);
-    navigate(`/jobs/${notification.jobId}?tab=questions`);
+    const profilePath = user?.role === 'Employer' ? '/employer/profile' : '/freelancer/profile';
+    if (notification.type === 'rating_received' || notification.type === 'rating_adjusted') {
+      navigate(profilePath);
+    } else if (notification.jobId) {
+      navigate(`/jobs/${notification.jobId}?tab=questions`);
+    }
   };
 
   const handleMarkAllRead = () => {
@@ -80,6 +87,24 @@ const NotificationDropdown = () => {
         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
           <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      );
+    }
+    if (type === 'rating_received') {
+      return (
+        <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+          <svg className="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        </div>
+      );
+    }
+    if (type === 'rating_adjusted') {
+      return (
+        <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+          <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
           </svg>
         </div>
       );

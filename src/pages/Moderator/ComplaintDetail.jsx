@@ -256,7 +256,6 @@ const ComplaintDetail = () => {
 
   // Render inline rating adjuster for a user
   const renderRatingUser = (type, name, rating, badgeClass, badgeLabel) => {
-    const isExpanded = ratingTarget === type;
     const pendingRating = pendingRatings[type];
     const isComplaintClosed = complaint && (complaint.status === 'Resolved' || complaint.status === 'Rejected');
 
@@ -266,125 +265,161 @@ const ComplaintDetail = () => {
       : rating;
 
     return (
-      <div className="flex-1">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-gray-900 text-base">{name}</span>
-            <span className={`px-2 py-0.5 rounded text-sm font-medium ${badgeClass}`}>{badgeLabel}</span>
+      <div className="flex-1 bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-3">
+        {/* Row 1: User identity */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h5 className="font-semibold text-gray-900 text-base truncate" title={name}>{name}</h5>
+            <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeClass}`}>{badgeLabel}</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-end shrink-0">
+            <span className="text-2xl font-bold text-amber-500 leading-none">
+              {displayRating?.toFixed(1) || 'N/A'} <span className="text-amber-400 text-lg">&#9733;</span>
+            </span>
             {pendingRating && (
-              <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+              <span className={`mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                pendingRating.adjustment > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}>
                 {pendingRating.adjustment > 0 ? '+' : ''}{pendingRating.adjustment.toFixed(1)} pending
               </span>
-            )}
-            <span className="text-base font-bold text-amber-500">
-              {displayRating?.toFixed(1) || 'N/A'} <span className="text-amber-400">&#9733;</span>
-            </span>
-            {!isExpanded && !isComplaintClosed && (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => openRatingAdjust(type)}
-                  className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
-                >
-                  {pendingRating ? 'Modify' : 'Adjust'}
-                </button>
-                {pendingRating && (
-                  <button
-                    type="button"
-                    onClick={() => setPendingRatings(prev => ({ ...prev, [type]: null }))}
-                    className="px-3 py-1.5 bg-white text-red-600 border border-red-300 rounded-md text-sm font-medium hover:bg-red-50 transition-colors"
-                  >
-                    Clear
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleViewHistory(type)}
-                  className="px-3 py-1.5 bg-white text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
-                >
-                  History
-                </button>
-              </div>
-            )}
-            {isComplaintClosed && (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleViewHistory(type)}
-                  className="px-3 py-1.5 bg-white text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
-                >
-                  History
-                </button>
-                <span className="text-sm text-gray-500">Closed</span>
-              </div>
             )}
           </div>
         </div>
 
-        {isExpanded ? (
-          <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-3">
-            {/* +/- Controls */}
-            <div className="flex items-center gap-3">
+        {/* Row 2: Action buttons */}
+        {!isComplaintClosed && (
+          <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => openRatingAdjust(type)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                ratingTarget === type
+                  ? 'bg-gray-400 text-white hover:bg-gray-400'
+                  : 'bg-gray-900 text-white hover:bg-gray-800'
+              }`}
+            >
+              {ratingTarget === type ? 'Adjust' : pendingRating ? 'Modify' : 'Adjust'}
+            </button>
+            {pendingRating && (
               <button
                 type="button"
-                onClick={() => adjustment > -4.0 && setAdjustment(Math.round((adjustment - 0.1) * 10) / 10)}
-                disabled={adjustment <= -4.0 || newRating <= 1.0}
-                className={`w-8 h-8 rounded-md font-bold text-sm ${
-                  adjustment <= -4.0 || newRating <= 1.0 ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-800'
-                }`}
-              >−</button>
-              <div className="text-center flex-1">
-                <span className={`text-xl font-bold ${adjustment < 0 ? 'text-red-600' : adjustment > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                  {adjustment > 0 ? '+' : ''}{adjustment.toFixed(1)}
-                </span>
-                <span className="text-gray-400 mx-2">&rarr;</span>
-                <span className="text-xl font-bold text-gray-900">{newRating.toFixed(1)}</span>
-                <span className="text-amber-400 ml-0.5">&#9733;</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => adjustment < 0.5 && newRating < 5.0 && setAdjustment(Math.round((adjustment + 0.1) * 10) / 10)}
-                disabled={adjustment >= 0.5 || newRating >= 5.0}
-                className={`w-8 h-8 rounded-md font-bold text-sm ${
-                  adjustment >= 0.5 || newRating >= 5.0 ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-800'
-                }`}
-              >+</button>
-            </div>
-
-            {/* Reason */}
-            <textarea
-              value={ratingReason}
-              onChange={(e) => setRatingReason(e.target.value)}
-              placeholder="Reason for adjustment (min 20 characters)..."
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-base focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-none"
-            />
-            <div className="text-xs text-gray-400">{ratingReason.length}/500</div>
-
-            {ratingError && <p className="text-xs text-red-600">{ratingError}</p>}
-
-            {/* Buttons */}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleRatingStage}
-                disabled={adjustment === 0 || ratingReason.trim().length < 20}
-                className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                onClick={() => setPendingRatings(prev => ({ ...prev, [type]: null }))}
+                className="px-3 py-1.5 bg-white text-red-600 border border-red-300 rounded-md text-sm font-medium hover:bg-red-50 transition-colors"
               >
-                Stage Adjustment
+                Clear
               </button>
-              <button
-                type="button"
-                onClick={closeRatingAdjust}
-                className="px-3 py-1.5 bg-white text-gray-600 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={() => handleViewHistory(type)}
+              className="px-3 py-1.5 bg-white text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              History
+            </button>
           </div>
-        ) : null}
+        )}
+        {isComplaintClosed && (
+          <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => handleViewHistory(type)}
+              className="px-3 py-1.5 bg-white text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              History
+            </button>
+            <span className="text-sm text-gray-400 italic">Closed</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render the expanded adjustment panel (full-width, below the cards)
+  const renderAdjustmentPanel = () => {
+    if (!ratingTarget) return null;
+    const targetName = ratingTarget === 'freelancer' ? complaint.freelancerName : complaint.employerName;
+    const targetBadge = ratingTarget === 'freelancer' ? 'Freelancer' : 'Employer';
+
+    return (
+      <div className="bg-white border border-blue-200 rounded-lg p-5 space-y-4 mt-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-gray-700">Adjusting rating for</span>
+            <span className="font-bold text-gray-900">{targetName}</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              ratingTarget === 'freelancer' ? 'bg-cyan-100 text-cyan-700' : 'bg-amber-100 text-amber-700'
+            }`}>{targetBadge}</span>
+          </div>
+          <button
+            type="button"
+            onClick={closeRatingAdjust}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* +/- Controls */}
+        <div className="flex items-center gap-4 justify-center py-2">
+          <button
+            type="button"
+            onClick={() => adjustment > -4.0 && setAdjustment(Math.round((adjustment - 0.1) * 10) / 10)}
+            disabled={adjustment <= -4.0 || newRating <= 1.0}
+            className={`w-10 h-10 rounded-lg font-bold text-lg ${
+              adjustment <= -4.0 || newRating <= 1.0 ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-800'
+            }`}
+          >−</button>
+          <div className="text-center min-w-[160px]">
+            <span className={`text-2xl font-bold ${adjustment < 0 ? 'text-red-600' : adjustment > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+              {adjustment > 0 ? '+' : ''}{adjustment.toFixed(1)}
+            </span>
+            <span className="text-gray-400 mx-3 text-lg">&rarr;</span>
+            <span className="text-2xl font-bold text-gray-900">{newRating.toFixed(1)}</span>
+            <span className="text-amber-400 ml-1 text-lg">&#9733;</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => adjustment < 0.5 && newRating < 5.0 && setAdjustment(Math.round((adjustment + 0.1) * 10) / 10)}
+            disabled={adjustment >= 0.5 || newRating >= 5.0}
+            className={`w-10 h-10 rounded-lg font-bold text-lg ${
+              adjustment >= 0.5 || newRating >= 5.0 ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-800'
+            }`}
+          >+</button>
+        </div>
+
+        {/* Reason */}
+        <textarea
+          value={ratingReason}
+          onChange={(e) => setRatingReason(e.target.value)}
+          placeholder="Reason for adjustment (min 20 characters)..."
+          rows={2}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-none"
+        />
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-400">{ratingReason.length}/500</span>
+          {ratingError && <p className="text-xs text-red-600">{ratingError}</p>}
+        </div>
+
+        {/* Buttons */}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleRatingStage}
+            disabled={adjustment === 0 || ratingReason.trim().length < 20}
+            className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+          >
+            Stage Adjustment
+          </button>
+          <button
+            type="button"
+            onClick={closeRatingAdjust}
+            className="px-5 py-2 bg-white text-gray-600 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     );
   };
@@ -479,9 +514,10 @@ const ComplaintDetail = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200">
               <h4 className="text-lg font-semibold text-gray-800">Rating Management</h4>
+              <p className="text-sm text-gray-500 mt-0.5">Stage adjustments, then resolve the complaint to apply them</p>
             </div>
-            <div className="px-6 py-6">
-              <div className="flex flex-col md:flex-row gap-4">
+            <div className="px-6 py-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {renderRatingUser(
                   'freelancer',
                   complaint.freelancerName,
@@ -489,8 +525,6 @@ const ComplaintDetail = () => {
                   'bg-cyan-100 text-cyan-700',
                   'Freelancer'
                 )}
-                <div className="hidden md:block w-px bg-gray-200"></div>
-                <div className="md:hidden h-px bg-gray-200"></div>
                 {renderRatingUser(
                   'employer',
                   complaint.employerName,
@@ -499,11 +533,12 @@ const ComplaintDetail = () => {
                   'Employer'
                 )}
               </div>
+              {renderAdjustmentPanel()}
             </div>
           </div>
 
           {/* Actions */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
             <textarea
               value={moderatorNotes}
               onChange={(e) => setModeratorNotes(e.target.value)}
@@ -511,33 +546,29 @@ const ComplaintDetail = () => {
               rows={3}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none placeholder-gray-400"
             />
+
+            {/* Pending summary */}
+            {(pendingRatings.freelancer || pendingRatings.employer) && complaint.status !== 'Resolved' && complaint.status !== 'Rejected' && (
+              <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5">
+                <i className="fas fa-info-circle text-blue-500 text-sm"></i>
+                <span className="text-sm text-blue-700 font-medium">
+                  {[
+                    pendingRatings.freelancer && `Freelancer ${pendingRatings.freelancer.adjustment > 0 ? '+' : ''}${pendingRatings.freelancer.adjustment.toFixed(1)}`,
+                    pendingRatings.employer && `Employer ${pendingRatings.employer.adjustment > 0 ? '+' : ''}${pendingRatings.employer.adjustment.toFixed(1)}`
+                  ].filter(Boolean).join(', ')} will be applied on resolve
+                </span>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={handleChat}
                 className="px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg text-base font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
               >
-                <i className="fas fa-comment text-xs"></i> Chat with Complainant
+                <i className="fas fa-comment text-sm"></i> Chat with Complainant
               </button>
               <div className="flex-1"></div>
-              {(pendingRatings.freelancer || pendingRatings.employer) && complaint.status !== 'Resolved' && complaint.status !== 'Rejected' && (
-                <span className="text-sm text-blue-600 font-medium">
-                  {[
-                    pendingRatings.freelancer && `Freelancer ${pendingRatings.freelancer.adjustment > 0 ? '+' : ''}${pendingRatings.freelancer.adjustment.toFixed(1)}`,
-                    pendingRatings.employer && `Employer ${pendingRatings.employer.adjustment > 0 ? '+' : ''}${pendingRatings.employer.adjustment.toFixed(1)}`
-                  ].filter(Boolean).join(', ')} will be applied
-                </span>
-              )}
-              {complaint.status === 'Pending' && (
-                <button
-                  type="button"
-                  onClick={() => handleUpdateStatus('Under Review')}
-                  disabled={updating}
-                  className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-base font-medium hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-                >
-                  {updating ? <i className="fas fa-spinner fa-spin"></i> : 'Under Review'}
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => handleUpdateStatus('Resolved')}
