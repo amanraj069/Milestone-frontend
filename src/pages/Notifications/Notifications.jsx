@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { useAuth } from '../../context/AuthContext';
 import DashboardPage from '../../components/DashboardPage';
 import {
   fetchNotifications,
@@ -15,6 +16,7 @@ import {
 const Notifications = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { user } = useAuth();
   
   const notifications = useSelector(selectNotifications);
   const unreadCount = useSelector(selectUnreadCount);
@@ -28,7 +30,12 @@ const Notifications = () => {
     if (!notification.read) {
       await dispatch(markNotificationAsRead(notification.notificationId));
     }
-    navigate(`/jobs/${notification.jobId}?tab=questions`);
+    const profilePath = user?.role === 'Employer' ? '/employer/profile' : '/freelancer/profile';
+    if (notification.type === 'rating_received' || notification.type === 'rating_adjusted') {
+      navigate(profilePath);
+    } else if (notification.jobId) {
+      navigate(`/jobs/${notification.jobId}?tab=questions`);
+    }
   };
 
   const handleMarkAllRead = () => {
@@ -109,7 +116,7 @@ const Notifications = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-base font-semibold text-gray-900">Recent Activity</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Questions and answers on jobs</p>
+          <p className="text-sm text-gray-500 mt-0.5">Questions, answers, ratings, and updates</p>
         </div>
 
         <div className="p-6">
@@ -146,17 +153,24 @@ const Notifications = () => {
                           {notification.title}
                         </h3>
                         <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                          notification.type === 'question_posted' 
+                          notification.type === 'question_posted' || notification.type === 'question_answered'
                             ? 'bg-blue-100 text-blue-700' 
-                            : 'bg-green-100 text-green-700'
+                            : notification.type === 'rating_received'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : notification.type === 'rating_adjusted'
+                            ? 'bg-orange-100 text-orange-700'
+                            : 'bg-gray-100 text-gray-700'
                         }`}>
-                          {notification.type === 'question_posted' ? 'Question' : 'Answer'}
+                          {notification.type === 'question_posted' || notification.type === 'question_answered' ? 'Q&A' 
+                            : notification.type === 'rating_received' ? 'Feedback'
+                            : notification.type === 'rating_adjusted' ? 'Moderation'
+                            : 'Notification'}
                         </span>
                         {!notification.read && (
                           <span className="inline-block w-2 h-2 bg-blue-600 rounded-full"></span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-1">{notification.message}</p>
+                      <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
                       <div className="flex items-center gap-3 mt-1.5">
                         <span className="text-sm text-gray-500">{formatTimeAgo(notification.createdAt)}</span>
                         {notification.fromUserName && (
@@ -175,7 +189,7 @@ const Notifications = () => {
                         }}
                         className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition-colors"
                       >
-                        View
+                        {notification.type === 'rating_received' || notification.type === 'rating_adjusted' ? 'View' : 'View'}
                       </button>
                       <button
                         onClick={(e) => handleDelete(e, notification.notificationId)}

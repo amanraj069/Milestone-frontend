@@ -5,8 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import {
   fetchUnreadCount,
   selectUnreadCount,
+  addNotification,
 } from '../redux/slices/notificationsSlice';
 import { useChatNotifications } from '../context/ChatNotificationContext';
+import { useSocket } from '../context/SocketContext';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -28,6 +30,21 @@ const DashboardLayout = ({ children }) => {
   const [pendingApplicationsCount, setPendingApplicationsCount] = useState(0);
   
   const unreadCount = useSelector(selectUnreadCount);
+  const { socket } = useSocket();
+
+  // Listen for real-time notifications via socket
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewNotification = (notification) => {
+      dispatch(addNotification(notification));
+    };
+
+    socket.on('notification:new', handleNewNotification);
+    return () => {
+      socket.off('notification:new', handleNewNotification);
+    };
+  }, [socket, dispatch]);
 
   // Check if employer is unapproved
   const isUnapprovedEmployer = user?.role === 'Employer' && user?.isApproved === false;
