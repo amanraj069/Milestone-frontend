@@ -1,34 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useDispatch, useSelector } from 'react-redux';
-import { loadFeedbacksForUser, selectFeedbacksForUser, selectFeedbackLoading } from '../../redux/slices/feedbackSlice';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 const FreelancerProfile = () => {
   const { freelancerId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const dispatch = useDispatch();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Feedback state
-  const freelancerFeedbacks = useSelector((state) => 
-    profile?.userId ? selectFeedbacksForUser(state, profile.userId) : { feedbacks: [], total: 0 }
-  );
-  const feedbackLoading = useSelector(selectFeedbackLoading);
+  const [freelancerFeedbacks, setFreelancerFeedbacks] = useState({ feedbacks: [], total: 0 });
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
 
   useEffect(() => {
     fetchFreelancerProfile();
   }, [freelancerId]);
 
   useEffect(() => {
-    // Load freelancer's feedback when profile loads
+    // Load freelancer's feedback when profile loads — uses public query (no auth needed)
     if (profile?.userId) {
-      dispatch(loadFeedbacksForUser({ userId: profile.userId, limit: 10 }));
+      setFeedbackLoading(true);
+      graphqlQuery(`
+        query PublicFeedbacks($userId: String!, $limit: Int) {
+          publicFeedbacksForUser(userId: $userId, limit: $limit) {
+            feedbacks {
+              _id
+              rating
+              comment
+              tags
+              anonymous
+              createdAt
+              jobTitle
+              fromUser {
+                name
+                picture
+                role
+              }
+            }
+            total
+          }
+        }
+      `, { userId: profile.userId, limit: 10 })
+        .then((data) => {
+          setFreelancerFeedbacks({
+            feedbacks: data.publicFeedbacksForUser?.feedbacks || [],
+            total: data.publicFeedbacksForUser?.total || 0,
+          });
+        })
+        .catch((err) => {
+          console.error('Error loading public feedbacks:', err);
+        })
+        .finally(() => setFeedbackLoading(false));
     }
-  }, [profile?.userId, dispatch]);
+  }, [profile?.userId]);
 
   const fetchFreelancerProfile = async () => {
     try {

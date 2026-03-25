@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { graphqlQuery } from '../../utils/graphqlClient';
 import { useAuth } from '../../context/AuthContext';
 import { useSelector } from 'react-redux';
 import DashboardPage from '../../components/DashboardPage';
@@ -33,14 +34,27 @@ const FreelancerSkillsBadges = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [quizzesRes, badgesRes, attemptsRes] = await Promise.all([
+        const [quizzesRes, badgesData, attemptsRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/api/quizzes`, { withCredentials: true }),
-          user?.id ? axios.get(`${API_BASE_URL}/api/quizzes/users/${user.id}/badges`, { withCredentials: true }) : Promise.resolve({ data: { success: true, data: [] } }),
+          user?.id ? graphqlQuery(`
+            query UserBadges($userId: String!) {
+              userBadges(userId: $userId) {
+                badge {
+                  _id
+                  title
+                  skillName
+                  description
+                  icon
+                }
+                awardedAt
+              }
+            }
+          `, { userId: user.id }) : Promise.resolve({ userBadges: [] }),
           user?.id ? axios.get(`${API_BASE_URL}/api/quizzes/users/${user.id}/attempts`, { withCredentials: true }) : Promise.resolve({ data: { success: true, data: [] } })
         ]);
         
         setQuizzes(quizzesRes.data.data || []);
-        setBadges(badgesRes.data.data || []);
+        setBadges(badgesData.userBadges || []);
         setAttempts(attemptsRes.data.data || []);
         setError(null);
       } catch (err) {
