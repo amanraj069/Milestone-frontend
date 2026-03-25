@@ -5,8 +5,10 @@ import ApplicationDetailsModal from '../../../components/employer/ApplicationDet
 import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
 import SmartFilter from '../../../components/SmartFilter';
 import axios from 'axios';
+import { graphqlRequest } from '../../../utils/graphqlClient';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const ENABLE_GQL_APPLICATIONS = import.meta.env.VITE_FF_GQL_APPLICATIONS === 'true';
 
 const APP_COLUMNS = [
   { key: 'freelancer', label: 'Freelancer' },
@@ -45,26 +47,82 @@ const EmployerApplications = () => {
   const fetchApplications = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/api/employer/job_applications/api/data`, { withCredentials: true });
-      if (response.data.success) {
-        let allApplications = response.data.data.applications;
-        
-        // Filter by jobId if provided in URL
-        if (jobIdFilter) {
-          allApplications = allApplications.filter(app => app.jobId === jobIdFilter);
+
+      let allApplications = [];
+      let sourceStats = null;
+
+      if (ENABLE_GQL_APPLICATIONS) {
+        try {
+          const data = await graphqlRequest({
+            query: `
+              query EmployerApplications($status: String, $sort: String, $limit: Int, $offset: Int) {
+                employerApplications(status: $status, sort: $sort, limit: $limit, offset: $offset) {
+                  applications {
+                    applicationId
+                    jobId
+                    freelancerId
+                    status
+                    appliedDate
+                    coverMessage
+                    resumeLink
+                    freelancerUserId
+                    freelancerName
+                    freelancerPicture
+                    freelancerEmail
+                    freelancerPhone
+                    skillRating
+                    jobTitle
+                    isPremium
+                  }
+                  stats {
+                    total
+                    pending
+                    accepted
+                    rejected
+                  }
+                }
+              }
+            `,
+            variables: {
+              status: 'all',
+              sort: 'premium_oldest',
+              limit: 500,
+              offset: 0,
+            },
+          });
+
+          allApplications = data?.employerApplications?.applications || [];
+          sourceStats = data?.employerApplications?.stats || null;
+        } catch (gqlError) {
+          console.warn('GraphQL applications fetch failed, using REST fallback:', gqlError.message);
         }
-        
-        setApplications(allApplications);
-        
-        // Calculate statistics based on filtered applications
-        const filteredStats = {
-          total: allApplications.length,
-          pending: allApplications.filter(app => app.status === 'Pending').length,
-          accepted: allApplications.filter(app => app.status === 'Accepted').length,
-          rejected: allApplications.filter(app => app.status === 'Rejected').length,
-        };
-        setStats(filteredStats);
       }
+
+      if (!allApplications.length) {
+        const response = await axios.get(`${API_BASE_URL}/api/employer/job_applications/api/data`, { withCredentials: true });
+        if (response.data.success) {
+          allApplications = response.data.data.applications || [];
+          sourceStats = response.data.data.stats || null;
+        }
+      }
+
+      // Filter by jobId if provided in URL
+      if (jobIdFilter) {
+        allApplications = allApplications.filter(app => app.jobId === jobIdFilter);
+      }
+
+      setApplications(allApplications);
+
+      // Calculate statistics based on filtered applications
+      const filteredStats = {
+        total: allApplications.length,
+        pending: allApplications.filter(app => app.status === 'Pending').length,
+        accepted: allApplications.filter(app => app.status === 'Accepted').length,
+        rejected: allApplications.filter(app => app.status === 'Rejected').length,
+      };
+
+      // Preserve old behavior for job-filtered view; otherwise trust API stats when available
+      setStats(jobIdFilter || !sourceStats ? filteredStats : sourceStats);
     } catch (error) {
       console.error('Error fetching applications:', error);
     } finally {

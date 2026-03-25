@@ -4,10 +4,13 @@ import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { useChatContext } from "../../context/ChatContext";
 import { useChatNotifications } from "../../context/ChatNotificationContext";
+import { graphqlRequest } from "../../utils/graphqlClient";
 import DashboardLayout from "../DashboardLayout";
 import "./Chat.css";
 
 const EMOJIS = ["😀", "😂", "😊", "😍", "🥰", "😎", "🤔", "😢", "😡", "👍", "👎", "❤️", "🎉", "🔥", "✨", "💯"];
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:9000";
+const ENABLE_GQL_CHAT = import.meta.env.VITE_FF_GQL_CHAT === "true";
 
 const Chat = () => {
   const { user } = useAuth();
@@ -75,7 +78,7 @@ const Chat = () => {
 
   const searchAndSelectUser = async (userId) => {
     try {
-      const response = await axios.get(`http://localhost:9000/api/chat/search-users?query=${userId}`, {
+      const response = await axios.get(`${API_BASE_URL}/api/chat/search-users?query=${encodeURIComponent(userId)}`, {
         withCredentials: true,
       });
       
@@ -161,16 +164,58 @@ const Chat = () => {
 
   const fetchConversations = async () => {
     try {
-      const response = await axios.get("http://localhost:9000/api/chat/conversations", {
-        withCredentials: true,
-      });
-      if (response.data.success) {
-        console.log('Fetched conversations:', response.data.conversations.map(c => ({
-          name: c.participant.name,
-          userId: c.participant.userId
-        })));
-        setConversations(response.data.conversations);
+      let fetchedConversations = [];
+
+      if (ENABLE_GQL_CHAT) {
+        try {
+          const data = await graphqlRequest({
+            query: `
+              query ChatConversations($limit: Int!, $offset: Int!) {
+                chatConversations(limit: $limit, offset: $offset) {
+                  conversationId
+                  unreadCount
+                  updatedAt
+                  participant {
+                    userId
+                    name
+                    picture
+                    role
+                  }
+                  lastMessage {
+                    messageId
+                    text
+                    sender
+                    timestamp
+                  }
+                }
+              }
+            `,
+            variables: {
+              limit: 100,
+              offset: 0,
+            },
+          });
+
+          fetchedConversations = data?.chatConversations || [];
+        } catch (gqlError) {
+          console.warn("GraphQL conversations fetch failed, using REST fallback:", gqlError.message);
+        }
       }
+
+      if (!fetchedConversations.length) {
+        const response = await axios.get(`${API_BASE_URL}/api/chat/conversations`, {
+          withCredentials: true,
+        });
+        if (response.data.success) {
+          fetchedConversations = response.data.conversations || [];
+        }
+      }
+
+      console.log('Fetched conversations:', fetchedConversations.map(c => ({
+        name: c.participant.name,
+        userId: c.participant.userId
+      })));
+      setConversations(fetchedConversations);
     } catch (error) {
       console.error("Error fetching conversations:", error);
     }
@@ -178,29 +223,69 @@ const Chat = () => {
 
   const fetchMessages = async (otherUserId) => {
     try {
-      const response = await axios.get(`http://localhost:9000/api/chat/messages/${otherUserId}`, {
-        withCredentials: true,
-      });
-      if (response.data.success) {
-        setMessages(response.data.messages);
-        
-        // Mark as read
-        if (response.data.conversationId) {
-          await axios.put(
-            `http://localhost:9000/api/chat/conversations/${response.data.conversationId}/read`,
-            {},
-            { withCredentials: true }
-          );
-          
-          // Update conversations list
-          setConversations(prev =>
-            prev.map(conv =>
-              conv.conversationId === response.data.conversationId
-                ? { ...conv, unreadCount: 0 }
-                : conv
-            )
-          );
+      let fetchedMessages = [];
+      let conversationId = null;
+
+      if (ENABLE_GQL_CHAT) {
+        try {
+          const data = await graphqlRequest({
+            query: `
+              query MessagesWithUser($userId: String!, $limit: Int!, $offset: Int!) {
+                messagesWithUser(userId: $userId, limit: $limit, offset: $offset) {
+                  conversationId
+                  messages {
+                    messageId
+                    conversationId
+                    from
+                    to
+                    messageData
+                    isRead
+                    createdAt
+                    updatedAt
+                  }
+                }
+              }
+            `,
+            variables: {
+              userId: otherUserId,
+              limit: 300,
+              offset: 0,
+            },
+          });
+
+          fetchedMessages = data?.messagesWithUser?.messages || [];
+          conversationId = data?.messagesWithUser?.conversationId || null;
+        } catch (gqlError) {
+          console.warn("GraphQL messages fetch failed, using REST fallback:", gqlError.message);
         }
+      }
+
+      if (!fetchedMessages.length && !conversationId) {
+        const response = await axios.get(`${API_BASE_URL}/api/chat/messages/${otherUserId}`, {
+          withCredentials: true,
+        });
+        if (response.data.success) {
+          fetchedMessages = response.data.messages || [];
+          conversationId = response.data.conversationId || null;
+        }
+      }
+
+      setMessages(fetchedMessages);
+
+      if (conversationId) {
+        await axios.put(
+          `${API_BASE_URL}/api/chat/conversations/${conversationId}/read`,
+          {},
+          { withCredentials: true }
+        );
+
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.conversationId === conversationId
+              ? { ...conv, unreadCount: 0 }
+              : conv
+          )
+        );
       }
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -217,7 +302,7 @@ const Chat = () => {
 
     try {
       const response = await axios.post(
-        `http://localhost:9000/api/chat/messages/${selectedConversation.participant.userId}`,
+        `${API_BASE_URL}/api/chat/messages/${selectedConversation.participant.userId}`,
         messageData,
         { withCredentials: true }
       );
@@ -248,7 +333,7 @@ const Chat = () => {
   const deleteMessage = async (messageId) => {
     try {
       const response = await axios.delete(
-        `http://localhost:9000/api/chat/messages/${messageId}`,
+        `${API_BASE_URL}/api/chat/messages/${messageId}`,
         { withCredentials: true }
       );
 
@@ -298,7 +383,7 @@ const Chat = () => {
       // Mark as read immediately
       if (message.conversationId) {
         axios.put(
-          `http://localhost:9000/api/chat/conversations/${message.conversationId}/read`,
+          `${API_BASE_URL}/api/chat/conversations/${message.conversationId}/read`,
           {},
           { withCredentials: true }
         );
@@ -415,7 +500,7 @@ const Chat = () => {
 
     setIsSearching(true);
     try {
-      const response = await axios.get(`http://localhost:9000/api/chat/search-users?query=${query}`, {
+      const response = await axios.get(`${API_BASE_URL}/api/chat/search-users?query=${encodeURIComponent(query)}`, {
         withCredentials: true,
       });
       if (response.data.success) {
