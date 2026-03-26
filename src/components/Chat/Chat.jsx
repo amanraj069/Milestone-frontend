@@ -10,7 +10,6 @@ import "./Chat.css";
 
 const EMOJIS = ["😀", "😂", "😊", "😍", "🥰", "😎", "🤔", "😢", "😡", "👍", "👎", "❤️", "🎉", "🔥", "✨", "💯"];
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:9000";
-const ENABLE_GQL_CHAT = import.meta.env.VITE_FF_GQL_CHAT === "true";
 
 const Chat = () => {
   const { user } = useAuth();
@@ -166,50 +165,44 @@ const Chat = () => {
     try {
       let fetchedConversations = [];
 
-      if (ENABLE_GQL_CHAT) {
-        try {
-          const data = await graphqlRequest({
-            query: `
-              query ChatConversations($limit: Int!, $offset: Int!) {
-                chatConversations(limit: $limit, offset: $offset) {
-                  conversationId
-                  unreadCount
-                  updatedAt
-                  participant {
-                    userId
-                    name
-                    picture
-                    role
-                  }
-                  lastMessage {
-                    messageId
-                    text
-                    sender
-                    timestamp
-                  }
-                }
+      const data = await graphqlRequest({
+        query: `
+          query ChatConversations($limit: Int!, $offset: Int!) {
+            chatConversations(limit: $limit, offset: $offset) {
+              conversationId
+              unreadCount
+              updatedAt
+              participant {
+                userId
+                name
+                picture
+                role
               }
-            `,
-            variables: {
-              limit: 100,
-              offset: 0,
-            },
-          });
+              lastMessage {
+                messageId
+                text
+                sender
+                timestamp
+              }
+            }
+          }
+        `,
+        variables: {
+          limit: 100,
+          offset: 0,
+        },
+      });
 
-          fetchedConversations = data?.chatConversations || [];
-        } catch (gqlError) {
-          console.warn("GraphQL conversations fetch failed, using REST fallback:", gqlError.message);
-        }
-      }
+      fetchedConversations = data?.chatConversations || [];
 
-      if (!fetchedConversations.length) {
-        const response = await axios.get(`${API_BASE_URL}/api/chat/conversations`, {
-          withCredentials: true,
-        });
-        if (response.data.success) {
-          fetchedConversations = response.data.conversations || [];
-        }
+      /*
+      const response = await axios.get(`${API_BASE_URL}/api/chat/conversations`, {
+        withCredentials: true,
+      });
+      if (response.data.success) {
+        fetchedConversations = response.data.conversations || [];
       }
+      */
 
       console.log('Fetched conversations:', fetchedConversations.map(c => ({
         name: c.participant.name,
@@ -226,49 +219,43 @@ const Chat = () => {
       let fetchedMessages = [];
       let conversationId = null;
 
-      if (ENABLE_GQL_CHAT) {
-        try {
-          const data = await graphqlRequest({
-            query: `
-              query MessagesWithUser($userId: String!, $limit: Int!, $offset: Int!) {
-                messagesWithUser(userId: $userId, limit: $limit, offset: $offset) {
-                  conversationId
-                  messages {
-                    messageId
-                    conversationId
-                    from
-                    to
-                    messageData
-                    isRead
-                    createdAt
-                    updatedAt
-                  }
-                }
+      const data = await graphqlRequest({
+        query: `
+          query MessagesWithUser($userId: String!, $limit: Int!, $offset: Int!) {
+            messagesWithUser(userId: $userId, limit: $limit, offset: $offset) {
+              conversationId
+              messages {
+                messageId
+                conversationId
+                from
+                to
+                messageData
+                isRead
+                createdAt
+                updatedAt
               }
-            `,
-            variables: {
-              userId: otherUserId,
-              limit: 300,
-              offset: 0,
-            },
-          });
+            }
+          }
+        `,
+        variables: {
+          userId: otherUserId,
+          limit: 300,
+          offset: 0,
+        },
+      });
 
-          fetchedMessages = data?.messagesWithUser?.messages || [];
-          conversationId = data?.messagesWithUser?.conversationId || null;
-        } catch (gqlError) {
-          console.warn("GraphQL messages fetch failed, using REST fallback:", gqlError.message);
-        }
-      }
+      fetchedMessages = data?.messagesWithUser?.messages || [];
+      conversationId = data?.messagesWithUser?.conversationId || null;
 
-      if (!fetchedMessages.length && !conversationId) {
-        const response = await axios.get(`${API_BASE_URL}/api/chat/messages/${otherUserId}`, {
-          withCredentials: true,
-        });
-        if (response.data.success) {
-          fetchedMessages = response.data.messages || [];
-          conversationId = response.data.conversationId || null;
-        }
+      /*
+      const response = await axios.get(`${API_BASE_URL}/api/chat/messages/${otherUserId}`, {
+        withCredentials: true,
+      });
+      if (response.data.success) {
+        fetchedMessages = response.data.messages || [];
+        conversationId = response.data.conversationId || null;
       }
+      */
 
       setMessages(fetchedMessages);
 

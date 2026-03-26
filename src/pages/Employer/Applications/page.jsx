@@ -8,7 +8,6 @@ import axios from 'axios';
 import { graphqlRequest } from '../../../utils/graphqlClient';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
-const ENABLE_GQL_APPLICATIONS = import.meta.env.VITE_FF_GQL_APPLICATIONS === 'true';
 
 const APP_COLUMNS = [
   { key: 'freelancer', label: 'Freelancer' },
@@ -51,60 +50,54 @@ const EmployerApplications = () => {
       let allApplications = [];
       let sourceStats = null;
 
-      if (ENABLE_GQL_APPLICATIONS) {
-        try {
-          const data = await graphqlRequest({
-            query: `
-              query EmployerApplications($status: String, $sort: String, $limit: Int, $offset: Int) {
-                employerApplications(status: $status, sort: $sort, limit: $limit, offset: $offset) {
-                  applications {
-                    applicationId
-                    jobId
-                    freelancerId
-                    status
-                    appliedDate
-                    coverMessage
-                    resumeLink
-                    freelancerUserId
-                    freelancerName
-                    freelancerPicture
-                    freelancerEmail
-                    freelancerPhone
-                    skillRating
-                    jobTitle
-                    isPremium
-                  }
-                  stats {
-                    total
-                    pending
-                    accepted
-                    rejected
-                  }
-                }
+      const data = await graphqlRequest({
+        query: `
+          query EmployerApplications($status: String, $sort: String, $limit: Int, $offset: Int) {
+            employerApplications(status: $status, sort: $sort, limit: $limit, offset: $offset) {
+              applications {
+                applicationId
+                jobId
+                freelancerId
+                status
+                appliedDate
+                coverMessage
+                resumeLink
+                freelancerUserId
+                freelancerName
+                freelancerPicture
+                freelancerEmail
+                freelancerPhone
+                skillRating
+                jobTitle
+                isPremium
               }
-            `,
-            variables: {
-              status: 'all',
-              sort: 'premium_oldest',
-              limit: 500,
-              offset: 0,
-            },
-          });
+              stats {
+                total
+                pending
+                accepted
+                rejected
+              }
+            }
+          }
+        `,
+        variables: {
+          status: 'all',
+          sort: 'premium_oldest',
+          limit: 500,
+          offset: 0,
+        },
+      });
 
-          allApplications = data?.employerApplications?.applications || [];
-          sourceStats = data?.employerApplications?.stats || null;
-        } catch (gqlError) {
-          console.warn('GraphQL applications fetch failed, using REST fallback:', gqlError.message);
-        }
-      }
+      allApplications = data?.employerApplications?.applications || [];
+      sourceStats = data?.employerApplications?.stats || null;
 
-      if (!allApplications.length) {
-        const response = await axios.get(`${API_BASE_URL}/api/employer/job_applications/api/data`, { withCredentials: true });
-        if (response.data.success) {
-          allApplications = response.data.data.applications || [];
-          sourceStats = response.data.data.stats || null;
-        }
+      /*
+      const response = await axios.get(`${API_BASE_URL}/api/employer/job_applications/api/data`, { withCredentials: true });
+      if (response.data.success) {
+        allApplications = response.data.data.applications || [];
+        sourceStats = response.data.data.stats || null;
       }
+      */
 
       // Filter by jobId if provided in URL
       if (jobIdFilter) {
