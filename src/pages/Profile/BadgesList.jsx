@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 export default function BadgesList({ userId }){
   const [badges, setBadges] = useState([]);
@@ -10,9 +11,21 @@ export default function BadgesList({ userId }){
 
   async function fetchBadges(){
     try {
-      const res = await fetch(`http://localhost:9000/api/quizzes/users/${userId}/badges`, { credentials: 'include' });
-      const j = await res.json();
-      if (j.success) setBadges(j.data);
+      const data = await graphqlQuery(`
+        query UserBadges($userId: String!) {
+          userBadges(userId: $userId) {
+            badge {
+              _id
+              title
+              skillName
+              description
+              icon
+            }
+            awardedAt
+          }
+        }
+      `, { userId });
+      setBadges(data.userBadges || []);
     } catch (err) {
       console.error('Error fetching badges:', err);
     }

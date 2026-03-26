@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { graphqlQuery } from '../utils/graphqlClient';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -29,18 +30,39 @@ const PublicFeedbackSection = ({ userId, userRole, overrideRating }) => {
       setLoading(true);
       setError(null);
 
-      // Fetch feedback stats and first few feedbacks
-      const [statsResponse, feedbacksResponse] = await Promise.all([
+      // Fetch feedback stats via REST (no N+1 - uses aggregation)
+      // Fetch feedbacks via GraphQL (eliminates N+1 user/job lookups)
+      const [statsResponse, feedbackData] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/feedback/public/stats/${userId}`),
-        axios.get(`${API_BASE_URL}/api/feedback/public/user/${userId}?limit=5`)
+        graphqlQuery(`
+          query PublicFeedbacks($userId: String!, $limit: Int) {
+            publicFeedbacksForUser(userId: $userId, limit: $limit) {
+              feedbacks {
+                _id
+                rating
+                comment
+                tags
+                anonymous
+                createdAt
+                jobTitle
+                fromUser {
+                  name
+                  picture
+                  role
+                }
+              }
+              total
+            }
+          }
+        `, { userId, limit: 5 })
       ]);
 
       if (statsResponse.data.success) {
         setStats(statsResponse.data.data);
       }
 
-      if (feedbacksResponse.data.success) {
-        setFeedbacks(feedbacksResponse.data.data);
+      if (feedbackData.publicFeedbacksForUser) {
+        setFeedbacks(feedbackData.publicFeedbacksForUser.feedbacks);
       }
     } catch (error) {
       console.error('Error fetching public feedback:', error);

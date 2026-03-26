@@ -5,6 +5,7 @@ import DashboardPage from '../../../components/DashboardPage';
 import { computeFees } from '../../../components/employer/BoostJobModal';
 import FeePaymentModal from '../../../components/employer/FeePaymentModal';
 import PaymentProcessingModal from '../../../components/employer/PaymentProcessingModal';
+import LocationMapEmbed from '../../../components/maps/LocationMapEmbed';
 
 // Validation schema for Step 1 - Job Details
 const jobDetailsSchema = Yup.object().shape({
@@ -20,8 +21,7 @@ const jobDetailsSchema = Yup.object().shape({
     .max(10000000, 'Budget cannot exceed ₹1,00,00,000')
     .required('Budget is required'),
   location: Yup.string()
-    .trim()
-    .max(100, 'Location must be less than 100 characters'),
+    .trim(),
   jobType: Yup.string()
     .oneOf(['full-time', 'part-time', 'contract', 'freelance'], 'Please select a valid job type')
     .required('Job type is required'),
@@ -92,6 +92,8 @@ const AddJob = () => {
   const [showFeePaymentModal, setShowFeePaymentModal] = useState(false);
   const [showPaymentProcessing, setShowPaymentProcessing] = useState(false);
   const [pendingJobData, setPendingJobData] = useState(null);
+  const [locationCoordinates, setLocationCoordinates] = useState(null);
+  const [resolvingLocation, setResolvingLocation] = useState(false);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -126,11 +128,89 @@ const AddJob = () => {
       ...formData,
       [name]: type === 'checkbox' ? checked : value
     });
+    if (name === 'location') {
+      setLocationCoordinates(null);
+    }
     setError('');
     // Clear field-specific error when user starts typing
     if (fieldErrors[name]) {
       setFieldErrors(prev => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const resolveLocationToCoordinates = async () => {
+    if (!formData.location.trim()) {
+      setError('Please enter a location first.');
+      return;
+    }
+    try {
+      setResolvingLocation(true);
+      setError('');
+      const url = `${apiBaseUrl}/api/geocode?limit=1&q=${encodeURIComponent(formData.location.trim())}`;
+      const response = await fetch(url);
+      const payload = await response.json();
+      const data = payload?.data || [];
+
+      if (!Array.isArray(data) || data.length === 0) {
+        setError('Could not find this location on map. Try a more specific address.');
+        return;
+      }
+
+      const hit = data[0];
+      const lat = Number(hit.lat);
+      const lng = Number(hit.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        setError('Location lookup returned invalid coordinates.');
+        return;
+      }
+
+      setLocationCoordinates({ lat, lng });
+      setFormData((prev) => ({
+        ...prev,
+        location: hit.display_name || prev.location,
+      }));
+    } catch (err) {
+      console.error('Location lookup failed:', err);
+      setError('Failed to resolve location. Please try again.');
+    } finally {
+      setResolvingLocation(false);
+    }
+  };
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported in this browser.');
+      return;
+    }
+
+    setResolvingLocation(true);
+    setError('');
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = Number(position.coords.latitude);
+        const lng = Number(position.coords.longitude);
+        setLocationCoordinates({ lat, lng });
+
+        try {
+          const reverseUrl = `${apiBaseUrl}/api/geocode/reverse?lat=${lat}&lon=${lng}`;
+          const reverseResponse = await fetch(reverseUrl);
+          const reversePayload = await reverseResponse.json();
+          const reverseData = reversePayload?.data;
+          if (reverseData?.display_name) {
+            setFormData((prev) => ({ ...prev, location: reverseData.display_name }));
+          }
+        } catch (reverseErr) {
+          console.error('Reverse geocoding failed:', reverseErr);
+        } finally {
+          setResolvingLocation(false);
+        }
+      },
+      () => {
+        setResolvingLocation(false);
+        setError('Could not access your location. Please allow location permission.');
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
   };
 
   const addMilestone = () => {
@@ -302,6 +382,7 @@ const AddJob = () => {
         title: formData.title,
         budget: parseFloat(formData.budget),
         location: formData.location,
+        locationCoordinates,
         jobType: formData.jobType,
         experienceLevel: formData.experienceLevel,
         remote: formData.remote,
@@ -493,7 +574,6 @@ const AddJob = () => {
                     name="location"
                     value={formData.location}
                     onChange={handleChange}
-                    maxLength={100}
                     placeholder="e.g., Mumbai, India"
                     className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       fieldErrors.location ? 'border-red-300 bg-red-50' : 'border-gray-300'
@@ -505,7 +585,25 @@ const AddJob = () => {
                     ) : (
                       <span></span>
                     )}
-                    <p className="text-xs text-gray-400">{formData.location.length}/100</p>
+                    <span></span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={resolveLocationToCoordinates}
+                      disabled={resolvingLocation || !formData.location.trim()}
+                      className="px-3 py-1.5 text-xs font-medium rounded-md border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {resolvingLocation ? 'Locating...' : 'Pin This Location'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={useCurrentLocation}
+                      disabled={resolvingLocation}
+                      className="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 text-gray-700 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Use Current Location
+                    </button>
                   </div>
                 </div>
                 <div className="flex items-center pt-7">
@@ -521,6 +619,12 @@ const AddJob = () => {
                   </label>
                 </div>
               </div>
+
+              <LocationMapEmbed
+                location={formData.location}
+                coordinates={locationCoordinates}
+                heightClassName="h-56"
+              />
 
               {/* Job Type and Experience Level */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

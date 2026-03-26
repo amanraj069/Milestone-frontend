@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Footer from '../../components/Home/Footer';
+import LocationMapEmbed from '../../components/maps/LocationMapEmbed';
 
 const JobDescription = () => {
   const { jobId } = useParams();
@@ -500,6 +501,17 @@ const JobDescription = () => {
                       </div>
                     </div>
                   )}
+
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                      Job Location on Map
+                    </h3>
+                    <LocationMapEmbed
+                      location={job.location}
+                      coordinates={job.locationCoordinates}
+                      heightClassName="h-72"
+                    />
+                  </div>
                 </div>
               </div>
             ) : (

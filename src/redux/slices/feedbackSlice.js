@@ -1,11 +1,14 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { graphqlQuery } from '../../utils/graphqlClient';
+
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 // Thunk to submit feedback
 export const submitFeedback = createAsyncThunk(
   'feedback/submitFeedback',
   async (feedbackData, { rejectWithValue }) => {
     try {
-      const response = await fetch('http://localhost:9000/api/feedback', {
+      const response = await fetch(`${API_BASE_URL}/api/feedback`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -27,67 +30,84 @@ export const submitFeedback = createAsyncThunk(
   }
 );
 
-// Thunk to load feedbacks for a job
+// Thunk to load feedbacks for a job — now uses GraphQL with DataLoader batching
 export const loadFeedbacksForJob = createAsyncThunk(
   'feedback/loadFeedbacksForJob',
   async (jobId, { rejectWithValue }) => {
     try {
-      const response = await fetch(`http://localhost:9000/api/feedback/job/${jobId}`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const data = await graphqlQuery(`
+        query FeedbacksForJob($jobId: String!) {
+          feedbacksForJob(jobId: $jobId) {
+            _id
+            jobId
+            fromUserId
+            toUserId
+            toRole
+            rating
+            comment
+            tags
+            anonymous
+            createdAt
+            fromUser {
+              name
+              picture
+            }
+          }
+        }
+      `, { jobId });
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        return rejectWithValue(result.error || 'Failed to load feedbacks');
-      }
-
-      return { jobId, feedbacks: result.data };
+      return { jobId, feedbacks: data.feedbacksForJob };
     } catch (error) {
       return rejectWithValue(error.message);
     }
   }
 );
 
-// Thunk to load feedbacks for a user
+// Thunk to load feedbacks for a user — now uses GraphQL with DataLoader batching
 export const loadFeedbacksForUser = createAsyncThunk(
   'feedback/loadFeedbacksForUser',
   async ({ userId, page = 1, limit = 20 }, { rejectWithValue }) => {
     try {
-      const response = await fetch(
-        `http://localhost:9000/api/feedback/user/${userId}?page=${page}&limit=${limit}`,
-        {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+      const data = await graphqlQuery(`
+        query FeedbacksForUser($userId: String!, $page: Int, $limit: Int) {
+          feedbacksForUser(userId: $userId, page: $page, limit: $limit) {
+            feedbacks {
+              _id
+              jobId
+              fromUserId
+              toUserId
+              toRole
+              rating
+              comment
+              tags
+              anonymous
+              createdAt
+              fromUser {
+                name
+                picture
+              }
+            }
+            total
+            page
+            limit
+          }
         }
-      );
+      `, { userId, page, limit });
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        return rejectWithValue(result.error || 'Failed to load feedbacks');
-      }
-
-      return { userId, feedbacks: result.data, total: result.total, page };
+      const result = data.feedbacksForUser;
+      return { userId, feedbacks: result.feedbacks, total: result.total, page: result.page };
     } catch (error) {
       return rejectWithValue(error.message);
     }
   }
 );
 
-// Thunk to load feedback stats for a user
+// Thunk to load feedback stats for a user (stats use aggregation, no N+1 — but kept for consistency)
 export const loadUserFeedbackStats = createAsyncThunk(
   'feedback/loadUserFeedbackStats',
   async (userId, { rejectWithValue }) => {
     try {
-      const response = await fetch(`http://localhost:9000/api/feedback/stats/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/feedback/stats/${userId}`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -108,12 +128,12 @@ export const loadUserFeedbackStats = createAsyncThunk(
   }
 );
 
-// Thunk to check if user can give feedback for a job
+// Thunk to check if user can give feedback for a job (stays REST no N+1 issue)
 export const checkCanGiveFeedback = createAsyncThunk(
   'feedback/checkCanGiveFeedback',
   async (jobId, { rejectWithValue }) => {
     try {
-      const response = await fetch(`http://localhost:9000/api/feedback/can-give/${jobId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/feedback/can-give/${jobId}`, {
         method: 'GET',
         credentials: 'include',
         headers: {

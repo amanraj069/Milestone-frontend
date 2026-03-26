@@ -1,11 +1,14 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
-// Thunk to load all badges
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+
+// Thunk to load all badges (stays REST — it's a simple list, no N+1)
 export const loadBadges = createAsyncThunk(
   'badges/loadBadges',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch('http://localhost:9000/api/quizzes/badges/list', {
+      const response = await fetch(`${API_BASE_URL}/api/quizzes/badges/list`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -26,26 +29,33 @@ export const loadBadges = createAsyncThunk(
   }
 );
 
-// Thunk to load user badges
+// Thunk to load user badges — now uses GraphQL with DataLoader batching
 export const loadUserBadges = createAsyncThunk(
   'badges/loadUserBadges',
   async (userId, { rejectWithValue }) => {
     try {
-      const response = await fetch(`http://localhost:9000/api/quizzes/users/${userId}/badges`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const data = await graphqlQuery(`
+        query UserBadges($userId: String!) {
+          userBadges(userId: $userId) {
+            badge {
+              _id
+              title
+              skillName
+              description
+              icon
+              criteria {
+                type
+                quizId
+                minPercentage
+              }
+              createdAt
+            }
+            awardedAt
+          }
+        }
+      `, { userId });
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        return rejectWithValue(result.error?.message || 'Failed to load user badges');
-      }
-
-      return { userId, badges: result.data };
+      return { userId, badges: data.userBadges };
     } catch (error) {
       return rejectWithValue(error.message);
     }

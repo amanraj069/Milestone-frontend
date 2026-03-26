@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DashboardPage from '../../../components/DashboardPage';
@@ -7,6 +7,7 @@ import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/Sma
 import SmartSearchInput from '../../../components/SmartSearchInput';
 import SmartFilter from '../../../components/SmartFilter';
 import { useChatContext } from '../../../context/ChatContext';
+import { graphqlQuery } from '../../../utils/graphqlClient';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -83,8 +84,39 @@ const FreelancerActiveJobs = () => {
   const fetchActiveJobs = async () => {
     try {
       setLoading(true); setError(null);
-      const response = await axios.get(`${API_BASE_URL}/api/freelancer/active_job/api`, { withCredentials: true });
-      if (response.data.success) setJobs(response.data.activeJobs || []);
+      const data = await graphqlQuery(`
+        query FreelancerActiveJobs {
+          freelancerActiveJobs {
+            id
+            title
+            company
+            logo
+            deadline
+            price
+            totalBudget
+            paidAmount
+            progress
+            tech
+            employerUserId
+            description
+            milestones {
+              milestoneId
+              description
+              deadline
+              payment
+              status
+              requested
+              completionPercentage
+            }
+            milestonesCount
+            completedMilestones
+            daysSinceStart
+            startDate
+            startDateRaw
+          }
+        }
+      `);
+      setJobs(data.freelancerActiveJobs || []);
     } catch (err) {
       setError('Failed to load active work. Please try again.');
     } finally { setLoading(false); }
@@ -93,8 +125,37 @@ const FreelancerActiveJobs = () => {
   const fetchApplications = async () => {
     try {
       setAppsLoading(true); setAppsError(null);
-      const response = await axios.get(`${API_BASE_URL}/api/freelancer/applications`, { withCredentials: true });
-      if (response.data.success) setApplications(response.data.applications || []);
+      const data = await graphqlQuery(`
+        query FreelancerApplications {
+          freelancerApplications {
+            applications {
+              applicationId
+              jobId
+              jobTitle
+              company
+              logo
+              appliedDate
+              status
+              coverMessage
+              resumeLink
+              budget
+              location
+              jobType
+              skillsRequired
+              experienceLevel
+            }
+            stats {
+              total
+              pending
+              accepted
+              rejected
+            }
+          }
+        }
+      `);
+      if (data.freelancerApplications) {
+        setApplications(data.freelancerApplications.applications || []);
+      }
     } catch (err) {
       setAppsError('Failed to load applications. Please try again.');
     } finally { setAppsLoading(false); }
