@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import DashboardLayout from '../../../components/DashboardLayout';
+import DashboardPage from '../../../components/DashboardPage';
 import LocationMapEmbed from '../../../components/maps/LocationMapEmbed';
 
 const EditJob = () => {
@@ -339,76 +339,58 @@ const EditJob = () => {
     }
   };
 
+  const headerAction = (
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+            currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
+          }`}>
+            {currentStep > 1 ? (
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            ) : '1'}
+          </div>
+          <span className={`text-sm font-medium ${currentStep >= 1 ? 'text-blue-600' : 'text-gray-500'}`}>
+            Job Details
+          </span>
+        </div>
+        <div className={`w-8 h-0.5 ${currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+        <div className="flex items-center gap-2">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+            currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
+          }`}>
+            2
+          </div>
+          <span className={`text-sm font-medium ${currentStep >= 2 ? 'text-blue-600' : 'text-gray-500'}`}>
+            Milestones
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
   if (initialLoading) {
     return (
-      <DashboardLayout>
-        <div className="p-8">
+      <DashboardPage title="Edit Job Listing" headerAction={headerAction}>
+        <p className="text-gray-500 -mt-6 mb-6">Update the job details and milestones</p>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex flex-col items-center justify-center py-20">
             <i className="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
             <p className="text-gray-600 text-lg">Loading job data...</p>
           </div>
         </div>
-      </DashboardLayout>
+      </DashboardPage>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="p-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Header with Step Indicator */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-l-4 border-green-600">
-            <div className="flex items-center justify-between gap-8">
-              {/* Title Section */}
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">Edit Job Listing</h1>
-                <p className="text-gray-600">Update the job details and milestones</p>
-              </div>
+    <DashboardPage title="Edit Job Listing" headerAction={headerAction}>
+      <p className="text-gray-500 -mt-6 mb-6">Update the job details and milestones</p>
 
-              {/* Step Indicator */}
-              <div className="flex items-center gap-4">
-                {/* Step 1 */}
-                <div className="flex flex-col items-center">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all ${
-                    currentStep >= 1 
-                      ? 'bg-blue-600 text-white shadow-lg' 
-                      : 'bg-gray-200 text-gray-500'
-                  }`}>
-                    {currentStep > 1 ? <i className="fas fa-check"></i> : '1'}
-                  </div>
-                  <span className={`text-xs font-medium mt-1 whitespace-nowrap ${
-                    currentStep >= 1 ? 'text-blue-600' : 'text-gray-500'
-                  }`}>
-                    Job Details
-                  </span>
-                </div>
-
-                {/* Connector Line */}
-                <div className={`h-1 w-16 rounded transition-all ${
-                  currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'
-                }`}></div>
-
-                {/* Step 2 */}
-                <div className="flex flex-col items-center">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all ${
-                    currentStep >= 2 
-                      ? 'bg-blue-600 text-white shadow-lg' 
-                      : 'bg-gray-200 text-gray-500'
-                  }`}>
-                    2
-                  </div>
-                  <span className={`text-xs font-medium mt-1 whitespace-nowrap ${
-                    currentStep >= 2 ? 'text-blue-600' : 'text-gray-500'
-                  }`}>
-                    Milestones
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Form Container - Reusing the same form structure as AddJob but with update logic */}
-          <div className="bg-white rounded-2xl shadow-lg p-8">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="p-6">
             {/* Show error at top only for Step 1 */}
             {currentStep === 1 && error && (
               <div className="bg-red-50 border-2 border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
@@ -453,25 +435,26 @@ const EditJob = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Location
-                    </label>
-                    <input
-                      type="text"
-                      name="location"
-                      value={formData.location}
-                      onChange={handleChange}
-                      placeholder="e.g., Mumbai, India"
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 transition-all"
-                    />
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    placeholder="e.g., Mumbai, India"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 transition-all"
+                  />
+
+                  <div className="mt-2 flex flex-col md:flex-row md:items-center gap-3">
+                    <div className="grid grid-cols-2 gap-2 w-full md:flex-1">
                       <button
                         type="button"
                         onClick={resolveLocationToCoordinates}
                         disabled={resolvingLocation || !formData.location.trim()}
-                        className="px-3 py-1.5 text-xs font-medium rounded-md border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-3 py-1.5 text-xs font-medium rounded-md border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {resolvingLocation ? 'Locating...' : 'Pin This Location'}
                       </button>
@@ -479,23 +462,24 @@ const EditJob = () => {
                         type="button"
                         onClick={useCurrentLocation}
                         disabled={resolvingLocation}
-                        className="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 text-gray-700 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 text-gray-700 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Use Current Location
                       </button>
                     </div>
-                  </div>
-                  <div className="flex items-center pt-8">
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="remote"
-                        checked={formData.remote}
-                        onChange={handleChange}
-                        className="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <span className="ml-3 text-gray-700 font-medium">Remote Work Available</span>
-                    </label>
+
+                    <div className="shrink-0 md:min-w-max">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="remote"
+                          checked={formData.remote}
+                          onChange={handleChange}
+                          className="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="ml-3 text-gray-700 font-medium">Remote Work Available</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -873,10 +857,9 @@ const EditJob = () => {
                 </div>
               </form>
             )}
-          </div>
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardPage>
   );
 };
 
