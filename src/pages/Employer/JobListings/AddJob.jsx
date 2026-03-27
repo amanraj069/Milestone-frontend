@@ -564,35 +564,36 @@ const AddJob = () => {
               </div>
 
               {/* Location and Remote */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Location
-                  </label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    placeholder="e.g., Mumbai, India"
-                    className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      fieldErrors.location ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                    }`}
-                  />
-                  <div className="flex justify-between mt-1">
-                    {fieldErrors.location ? (
-                      <p className="text-red-500 text-xs">{fieldErrors.location}</p>
-                    ) : (
-                      <span></span>
-                    )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  placeholder="e.g., Mumbai, India"
+                  className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    fieldErrors.location ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  }`}
+                />
+                <div className="flex justify-between mt-1">
+                  {fieldErrors.location ? (
+                    <p className="text-red-500 text-xs">{fieldErrors.location}</p>
+                  ) : (
                     <span></span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                  )}
+                  <span></span>
+                </div>
+
+                <div className="mt-2 flex flex-col md:flex-row md:items-center gap-3">
+                  <div className="grid grid-cols-2 gap-2 w-full md:flex-1">
                     <button
                       type="button"
                       onClick={resolveLocationToCoordinates}
                       disabled={resolvingLocation || !formData.location.trim()}
-                      className="px-3 py-1.5 text-xs font-medium rounded-md border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-3 py-1.5 text-xs font-medium rounded-md border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {resolvingLocation ? 'Locating...' : 'Pin This Location'}
                     </button>
@@ -600,23 +601,24 @@ const AddJob = () => {
                       type="button"
                       onClick={useCurrentLocation}
                       disabled={resolvingLocation}
-                      className="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 text-gray-700 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 text-gray-700 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Use Current Location
                     </button>
                   </div>
-                </div>
-                <div className="flex items-center pt-7">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="remote"
-                      checked={formData.remote}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Remote Work Available</span>
-                  </label>
+
+                  <div className="shrink-0 md:min-w-max">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="remote"
+                        checked={formData.remote}
+                        onChange={handleChange}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Remote Work Available</span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
