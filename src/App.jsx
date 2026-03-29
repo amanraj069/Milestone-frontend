@@ -81,6 +81,9 @@ import AdminUsers from './pages/Admin/Users';
 import AdminProfile from './pages/Admin/Profile';
 import AdminEditProfile from './pages/Admin/EditProfile';
 
+// Payment Demo
+import PaymentDemo from './pages/PaymentDemo';
+
 // 404 Page
 import NotFound from './pages/NotFound';
 
@@ -103,6 +106,7 @@ function App() {
                     <Route path="/freelancer/:freelancerId" element={<FreelancerPublicProfile />} />
                     <Route path="/blogs" element={<BlogList />} />
                     <Route path="/blogs/:blogId" element={<BlogDetail />} />
+                    <Route path="/payment-demo" element={<PaymentDemo />} />
                     
                     {/* Admin Routes */}
                     <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="Admin"><AdminDashboard /></ProtectedRoute>} />

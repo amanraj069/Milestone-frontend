@@ -5,7 +5,6 @@ import DashboardPage from '../../../components/DashboardPage';
 import SuccessModal from '../../../components/employer/SuccessModal';
 import PlanSelectionModal from '../../../components/employer/PlanSelectionModal';
 import UnsubscribeModal from '../../../components/employer/UnsubscribeModal';
-import PaymentProcessingModal from '../../../components/employer/PaymentProcessingModal';
 import { useAuth } from '../../../context/AuthContext';
 import { setSubscriptionPlan, resetSubscription } from '../../../redux/slices/subscriptionSlice';
 
@@ -23,8 +22,6 @@ const EmployerSubscription = () => {
   const [modalMessage, setModalMessage] = useState('');
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showUnsubscribeModal, setShowUnsubscribeModal] = useState(false);
-  const [showPaymentProcessing, setShowPaymentProcessing] = useState(false);
-  const [selectedPlanData, setSelectedPlanData] = useState(null);
 
   useEffect(() => {
     if (user?.subscription) {
@@ -42,31 +39,31 @@ const EmployerSubscription = () => {
   };
 
   const handlePlanSelection = async (planData) => {
+    setShowPlanModal(false);
     try {
-      setShowPlanModal(false);
-      setShowPaymentProcessing(true);
-      setSelectedPlanData(planData);
-    } catch (error) {
-      console.error('Error processing payment:', error);
-      setShowPaymentProcessing(false);
-      alert('Payment failed. Please try again.');
-    }
-  };
-
-  const handlePaymentComplete = async () => {
-    try {
-      setShowPaymentProcessing(false);
       setLoading(true);
-      
-      if (!selectedPlanData) {
-        throw new Error('No plan data available');
+
+      // If the verify endpoint already upgraded the subscription, skip the separate call
+      if (planData.subscriptionUpgraded) {
+        dispatch(setSubscriptionPlan({
+          plan: 'Premium',
+          duration: planData.duration,
+          expiryDate: new Date(new Date().setMonth(new Date().getMonth() + (planData.duration || 1))),
+        }));
+
+        await checkAuthStatus();
+        setCurrentDuration(planData.duration);
+        setModalMessage('Successfully upgraded to Premium Plan!');
+        setShowModal(true);
+        return;
       }
-      
+
+      // Fallback: call upgrade_subscription explicitly
       const response = await axios.post(
         `${API_BASE_URL}/api/employer/upgrade_subscription`,
         {
-          duration: selectedPlanData.duration,
-          paymentDetails: selectedPlanData.paymentDetails
+          duration: planData.duration,
+          paymentDetails: planData.paymentDetails
         },
         { withCredentials: true }
       );
@@ -74,12 +71,12 @@ const EmployerSubscription = () => {
       if (response.data.success) {
         dispatch(setSubscriptionPlan({
           plan: 'Premium',
-          duration: selectedPlanData.duration,
+          duration: planData.duration,
           expiryDate: response.data.expiryDate,
         }));
 
         await checkAuthStatus();
-        setCurrentDuration(selectedPlanData.duration);
+        setCurrentDuration(planData.duration);
         setModalMessage('Successfully upgraded to Premium Plan!');
         setShowModal(true);
       }
@@ -378,7 +375,6 @@ const EmployerSubscription = () => {
       <SuccessModal isOpen={showModal} onClose={() => setShowModal(false)} message={modalMessage} />
       <PlanSelectionModal isOpen={showPlanModal} onClose={() => setShowPlanModal(false)} onSelectPlan={handlePlanSelection} userType="Employer" />
       <UnsubscribeModal isOpen={showUnsubscribeModal} onClose={() => setShowUnsubscribeModal(false)} onConfirm={handleConfirmDowngrade} loading={loading} />
-      <PaymentProcessingModal isOpen={showPaymentProcessing} onComplete={handlePaymentComplete} />
     </DashboardPage>
   );
 };

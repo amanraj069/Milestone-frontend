@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
@@ -124,12 +124,34 @@ const FreelancerPayments = () => {
   const setActiveColFilter = (field) => (values) => setActiveColumnFilters(prev => ({ ...prev, [field]: values }));
   const [pastColumnFilters, setPastColumnFilters] = useState({ status: [], employer: [], job: [] });
   const setPastColFilter = (field) => (values) => setPastColumnFilters(prev => ({ ...prev, [field]: values }));
+  const [platformPayments, setPlatformPayments] = useState([]);
+  const [loadingPlatform, setLoadingPlatform] = useState(true);
+  const [viewMode, setViewMode] = useState('projects'); // 'projects' | 'platform'
   const navigate = useNavigate();
 
   const activeCols = useSmartColumnToggle(ACTIVE_COLUMNS, 'payments-active-cols');
   const completedCols = useSmartColumnToggle(COMPLETED_COLUMNS, 'payments-completed-cols');
 
-  useEffect(() => { fetchPayments(); }, []);
+  useEffect(() => { fetchPayments(); fetchPlatformPayments(); }, []);
+
+  const fetchPlatformPayments = async () => {
+    try {
+      setLoadingPlatform(true);
+      const res = await fetch(`${API_BASE_URL}/api/payment/my-payments`, { credentials: 'include' });
+      const data = await res.json();
+      if (data.success) setPlatformPayments(data.payments || []);
+    } catch (_) { /* silent */ }
+    finally { setLoadingPlatform(false); }
+  };
+
+  const verifiedPlatformPayments = useMemo(
+    () => platformPayments.filter(p => p.status === 'verified'),
+    [platformPayments]
+  );
+  const totalPlatformSpending = useMemo(
+    () => verifiedPlatformPayments.reduce((s, p) => s + (p.amount || 0), 0) / 100,
+    [verifiedPlatformPayments]
+  );
 
   const fetchPayments = async () => {
     try {
@@ -279,11 +301,31 @@ const FreelancerPayments = () => {
 
   return (
     <DashboardPage title="Payments">
-      <p className="text-gray-500 mb-6 -mt-4">Track your earnings and manage milestone payments</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 -mt-4">
+        <p className="text-gray-500">Track your earnings and manage milestone payments</p>
+        <button 
+          onClick={() => setViewMode(viewMode === 'projects' ? 'platform' : 'projects')}
+          className="inline-flex items-center px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+        >
+          {viewMode === 'projects' ? (
+            <>
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+              Platform Transactions
+            </>
+          ) : (
+             <>
+               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+               Back to Projects
+             </>
+          )}
+        </button>
+      </div>
 
-      {/*   Stat Cards      */}
-      {payments.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {viewMode === 'projects' ? (
+        <>
+          {/*   Stat Cards      */}
+          {payments.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Total Earned */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div className="flex items-center gap-3">
@@ -700,10 +742,115 @@ const FreelancerPayments = () => {
           </div>
         </div>
       )}
+        </>
+      ) : (
+      /* Platform Spending Section */
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">Platform Spending</h2>
+        </div>
+
+        {loadingPlatform ? (
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-200 border-t-blue-600 mx-auto mb-3"></div>
+            <p className="text-gray-400 text-sm">Loading platform transactions...</p>
+          </div>
+        ) : verifiedPlatformPayments.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+            <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 mb-1">No Platform Transactions Yet</h3>
+            <p className="text-gray-500 text-sm">Premium subscription purchases will appear here.</p>
+          </div>
+        ) : (
+          <>
+            {/* Total spending stat */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Total Platform Spending</p>
+                    <p className="text-2xl font-bold text-indigo-600">₹{totalPlatformSpending.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Transactions</p>
+                    <p className="text-2xl font-bold text-gray-900">{verifiedPlatformPayments.length}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Transactions table */}
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-gray-100">
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Type</th>
+                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Amount</th>
+                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Plan</th>
+                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {verifiedPlatformPayments.map((p) => {
+                      const label = p.paymentType === 'subscription' ? 'Premium Subscription' : p.paymentType === 'fee' ? 'Platform Fee' : (p.paymentType || 'Payment');
+                      const icon = p.paymentType === 'subscription'
+                        ? <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100"><svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg></span>
+                        : <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100"><svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg></span>;
+                      const dur = p.metadata?.planDuration;
+                      const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+                      return (
+                        <tr key={p._id || p.razorpayOrderId} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              {icon}
+                              <span className="text-sm font-semibold text-gray-900">{label}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className="text-sm font-bold text-gray-900">₹{((p.amount || 0) / 100).toLocaleString()}</span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            {dur ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                                {dur} month{dur > 1 ? 's' : ''}
+                              </span>
+                            ) : <span className="text-gray-400 text-sm">—</span>}
+                          </td>
+                          <td className="px-6 py-4 text-center text-sm text-gray-600">{dateStr}</td>
+                          <td className="px-6 py-4 text-center">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
+                              Completed
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+      )}
 
     </DashboardPage>
   );
 };
 
 export default FreelancerPayments;
-

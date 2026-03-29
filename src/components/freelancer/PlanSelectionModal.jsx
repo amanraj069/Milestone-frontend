@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
+import loadRazorpay from '../../utils/loadRazorpay';
+import RazorpayIcon from '../RazorpayIcon';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const PlanSelectionModal = ({ isOpen, onClose, onSelectPlan, userType }) => {
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [showPaymentStep, setShowPaymentStep] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState('');
 
   // Pricing based on user type
   const plans = userType === 'Employer' ? [
@@ -64,98 +68,146 @@ const PlanSelectionModal = ({ isOpen, onClose, onSelectPlan, userType }) => {
     },
   ];
 
-  const validationSchema = Yup.object({
-    cardNumber: Yup.string()
-      .matches(/^[0-9]{16}$/, 'Card number must be exactly 16 digits')
-      .required('Card number is required'),
-    expiryMonth: Yup.string()
-      .matches(/^(0[1-9]|1[0-2])$/, 'Invalid month (01-12)')
-      .required('Expiry month is required'),
-    expiryYear: Yup.string()
-      .matches(/^20[2-9][0-9]$/, 'Invalid year')
-      .test('not-expired', 'Card has expired', function(value) {
-        if (!value) return false;
-        const month = this.parent.expiryMonth;
-        if (!month) return true;
-        const currentDate = new Date();
-        const expiryDate = new Date(parseInt(value), parseInt(month) - 1);
-        return expiryDate >= currentDate;
-      })
-      .required('Expiry year is required'),
-    cvv: Yup.string()
-      .matches(/^[0-9]{3}$/, 'CVV must be exactly 3 digits')
-      .required('CVV is required'),
-  });
-
-  const formik = useFormik({
-    initialValues: {
-      cardNumber: '',
-      expiryMonth: '',
-      expiryYear: '',
-      cvv: '',
-    },
-    validationSchema,
-    validateOnChange: true,
-    validateOnBlur: true,
-    onSubmit: (values) => {
-      const plan = plans.find(p => p.id === selectedPlan);
-      const numericDuration = parseInt(plan.duration);
-      
-      onSelectPlan({
-        plan: selectedPlan,
-        duration: numericDuration,
-        durationText: plan.duration,
-        totalPrice: plan.totalPrice,
-        paymentDetails: {
-          cardNumber: values.cardNumber.slice(-4),
-          expiryMonth: values.expiryMonth,
-          expiryYear: values.expiryYear,
-        },
-      });
-    },
-  });
-
   const handleClose = () => {
+    if (paying) return;
     setClosing(true);
     setTimeout(() => {
       setClosing(false);
-      setShowPaymentForm(false);
+      setShowPaymentStep(false);
       setSelectedPlan(null);
-      formik.resetForm();
+      setPayError('');
       onClose();
     }, 180);
   };
 
   const handlePlanSelect = (planId) => {
     setSelectedPlan(planId);
-    setShowPaymentForm(true);
+    setShowPaymentStep(true);
+    setPayError('');
   };
 
   const handleBack = () => {
-    setShowPaymentForm(false);
+    setShowPaymentStep(false);
     setSelectedPlan(null);
-    formik.resetForm();
+    setPayError('');
   };
 
-  const getInputClass = (fieldName) => {
-    const hasError = formik.touched[fieldName] && formik.errors[fieldName];
-    const hasValue = formik.values[fieldName];
-    const isValid = formik.touched[fieldName] && !formik.errors[fieldName] && hasValue;
-    
-    let classes = 'w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-all';
-    
-    if (hasError) {
-      classes += ' border-red-500 focus:ring-red-200 bg-red-50';
-    } else if (isValid) {
-      classes += ' border-green-500 focus:ring-green-200 bg-green-50';
-    } else {
-      classes += ' border-gray-300 focus:ring-blue-200';
+  // Razorpay checkout flow
+  const handleRazorpayPayment = async () => {
+    const plan = plans.find(p => p.id === selectedPlan);
+    if (!plan) return;
+
+    setPaying(true);
+    setPayError('');
+
+    try {
+      // 1. Load Razorpay SDK
+      await loadRazorpay();
+
+      // 2. Create order on backend (amount in paise)
+      const orderRes = await fetch(`${BACKEND_URL}/api/payment/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          amount: plan.totalPrice * 100,
+          currency: 'INR',
+          paymentType: 'subscription',
+          metadata: {
+            planDuration: parseInt(plan.duration),
+            planDurationText: plan.duration,
+            planPrice: plan.totalPrice,
+          },
+        }),
+      });
+      const orderData = await orderRes.json();
+
+      if (!orderRes.ok || !orderData.success) {
+        throw new Error(orderData.message || 'Failed to create order');
+      }
+
+      // 3. Open Razorpay checkout
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Milestone',
+        description: `Premium ${plan.duration} Plan`,
+        order_id: orderData.orderId,
+        handler: async (response) => {
+          // 4. Verify payment on backend
+          try {
+            const verifyRes = await fetch(`${BACKEND_URL}/api/payment/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+            const verifyData = await verifyRes.json();
+
+            if (verifyRes.ok && verifyData.success) {
+              const numericDuration = parseInt(plan.duration);
+              onSelectPlan({
+                plan: selectedPlan,
+                duration: numericDuration,
+                durationText: plan.duration,
+                totalPrice: plan.totalPrice,
+                subscriptionUpgraded: verifyData.subscriptionUpgraded || false,
+                paymentDetails: {
+                  razorpayPaymentId: verifyData.paymentId,
+                  razorpayOrderId: response.razorpay_order_id,
+                },
+              });
+            } else {
+              setPayError(verifyData.message || 'Payment verification failed');
+            }
+          } catch (err) {
+            setPayError(err.message || 'Verification request failed');
+          } finally {
+            setPaying(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setPaying(false);
+          },
+        },
+        theme: { color: '#2563eb' },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', async (resp) => {
+        setPayError(resp.error?.description || 'Payment failed. Please try again.');
+        setPaying(false);
+        // Notify backend so the Payment record is marked as failed
+        try {
+          await fetch(`${BACKEND_URL}/api/payment/fail`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              razorpay_order_id: resp.error?.metadata?.order_id,
+              razorpay_payment_id: resp.error?.metadata?.payment_id,
+              error_reason: resp.error?.reason,
+            }),
+          });
+        } catch (_) { /* best-effort */ }
+      });
+      rzp.open();
+    } catch (error) {
+      console.error('Payment error:', error);
+      setPayError(error.message || 'Something went wrong');
+      setPaying(false);
     }
-    
-    return classes;
   };
 
   if (!isOpen) return null;
+
+  const activePlan = plans.find(p => p.id === selectedPlan);
 
   return (
     <div
@@ -183,7 +235,7 @@ const PlanSelectionModal = ({ isOpen, onClose, onSelectPlan, userType }) => {
         </button>
 
         <div className="p-8">
-          {!showPaymentForm ? (
+          {!showPaymentStep ? (
             <>
               <h2 className="text-3xl font-bold text-gray-800 mb-2 text-center">Choose Your Plan Duration</h2>
               <p className="text-gray-600 mb-8 text-center">Select the plan that works best for you</p>
@@ -243,133 +295,80 @@ const PlanSelectionModal = ({ isOpen, onClose, onSelectPlan, userType }) => {
               <button
                 className="mb-6 flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors"
                 onClick={handleBack}
+                disabled={paying}
               >
                 <i className="fas fa-arrow-left"></i> Back to Plans
               </button>
 
-              <h2 className="text-3xl font-bold text-gray-800 mb-4 text-center">Payment Details</h2>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center justify-center gap-2">
-                <i className="fas fa-check-circle text-blue-600"></i>
-                <span className="font-semibold text-gray-800">
-                  {plans.find(p => p.id === selectedPlan)?.duration} Plan - 
-                  ₹{plans.find(p => p.id === selectedPlan)?.totalPrice.toLocaleString()}
-                </span>
+              <h2 className="text-3xl font-bold text-gray-800 mb-4 text-center">Confirm & Pay</h2>
+
+              {/* Selected plan summary */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6 max-w-lg mx-auto">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <i className="fas fa-check-circle text-blue-600"></i>
+                    <span className="font-semibold text-gray-800">Premium — {activePlan?.duration}</span>
+                  </div>
+                  {activePlan?.discount > 0 && (
+                    <span className="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                      {activePlan.discount}% OFF
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-extrabold text-gray-900">₹{activePlan?.totalPrice.toLocaleString()}</span>
+                  <span className="text-sm text-gray-500">total</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">₹{activePlan?.monthlyPrice}/month</p>
               </div>
 
-              <form onSubmit={formik.handleSubmit} className="max-w-2xl mx-auto space-y-5">
-                <div>
-                  <label htmlFor="cardNumber" className="block text-sm font-semibold text-gray-700 mb-2">
-                    Card Number
-                  </label>
-                  <input
-                    id="cardNumber"
-                    name="cardNumber"
-                    type="text"
-                    maxLength="16"
-                    placeholder="1234567890123456"
-                    className={getInputClass('cardNumber')}
-                    value={formik.values.cardNumber}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                  />
-                  {formik.touched.cardNumber && formik.errors.cardNumber && (
-                    <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
-                      <i className="fas fa-exclamation-circle"></i>
-                      {formik.errors.cardNumber}
-                    </div>
-                  )}
-                  {formik.touched.cardNumber && !formik.errors.cardNumber && formik.values.cardNumber && (
-                    <div className="mt-2 text-sm text-green-600 flex items-center gap-2">
-                      <i className="fas fa-check-circle"></i>
-                      Valid card number
-                    </div>
-                  )}
+              {/* Error message */}
+              {payError && (
+                <div className="max-w-lg mx-auto mb-5 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                  <i className="fas fa-exclamation-circle shrink-0"></i>
+                  <span>{payError}</span>
+                  <button onClick={() => setPayError('')} className="ml-auto text-red-400 hover:text-red-600">
+                    <i className="fas fa-times"></i>
+                  </button>
                 </div>
+              )}
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label htmlFor="expiryMonth" className="block text-sm font-semibold text-gray-700 mb-2">
-                      Expiry Month
-                    </label>
-                    <input
-                      id="expiryMonth"
-                      name="expiryMonth"
-                      type="text"
-                      maxLength="2"
-                      placeholder="MM"
-                      className={getInputClass('expiryMonth')}
-                      value={formik.values.expiryMonth}
-                      onChange={formik.handleChange}
-                      onBlur={formik.handleBlur}
-                    />
-                    {formik.touched.expiryMonth && formik.errors.expiryMonth && (
-                      <div className="mt-2 text-xs text-red-600 flex items-center gap-1">
-                        <i className="fas fa-exclamation-circle"></i>
-                        {formik.errors.expiryMonth}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label htmlFor="expiryYear" className="block text-sm font-semibold text-gray-700 mb-2">
-                      Expiry Year
-                    </label>
-                    <input
-                      id="expiryYear"
-                      name="expiryYear"
-                      type="text"
-                      maxLength="4"
-                      placeholder="YYYY"
-                      className={getInputClass('expiryYear')}
-                      value={formik.values.expiryYear}
-                      onChange={formik.handleChange}
-                      onBlur={formik.handleBlur}
-                    />
-                    {formik.touched.expiryYear && formik.errors.expiryYear && (
-                      <div className="mt-2 text-xs text-red-600 flex items-center gap-1">
-                        <i className="fas fa-exclamation-circle"></i>
-                        {formik.errors.expiryYear}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label htmlFor="cvv" className="block text-sm font-semibold text-gray-700 mb-2">
-                      CVV
-                    </label>
-                    <input
-                      id="cvv"
-                      name="cvv"
-                      type="text"
-                      maxLength="3"
-                      placeholder="123"
-                      className={getInputClass('cvv')}
-                      value={formik.values.cvv}
-                      onChange={formik.handleChange}
-                      onBlur={formik.handleBlur}
-                    />
-                    {formik.touched.cvv && formik.errors.cvv && (
-                      <div className="mt-2 text-xs text-red-600 flex items-center gap-1">
-                        <i className="fas fa-exclamation-circle"></i>
-                        {formik.errors.cvv}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
+              {/* Pay button */}
+              <div className="max-w-lg mx-auto">
                 <button
-                  type="submit"
+                  onClick={handleRazorpayPayment}
+                  disabled={paying}
                   className="w-full py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                  disabled={!formik.isValid || !formik.dirty}
                 >
-                  <i className="fas fa-lock"></i>
-                  Pay ₹{plans.find(p => p.id === selectedPlan)?.totalPrice.toLocaleString()}
+                  {paying ? (
+                    <>
+                      <svg className="h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      </svg>
+                      Processing…
+                    </>
+                  ) : (
+                    <>
+                      <RazorpayIcon className="w-5 h-5" />
+                      Pay ₹{activePlan?.totalPrice.toLocaleString()} with Razorpay
+                    </>
+                  )}
                 </button>
-              </form>
+              </div>
 
-              <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center justify-center gap-2 text-sm text-gray-600">
-                <i className="fas fa-shield-alt text-green-600"></i>
-                Your payment information is encrypted and secure
+              {/* Security & test credentials */}
+              <div className="max-w-lg mx-auto mt-5 space-y-3">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center justify-center gap-2 text-sm text-gray-600">
+                  <i className="fas fa-shield-alt text-green-600"></i>
+                  Payments are securely processed by Razorpay
+                </div>
+                {/* Test credentials hint */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
+                  <p className="font-semibold mb-1">Test Mode — Use these credentials:</p>
+                  <p>UPI (recommended): <code className="bg-amber-100 px-1 rounded">success@razorpay</code></p>
+                  <p>Card: <code className="bg-amber-100 px-1 rounded">5104 0155 5555 5558</code>, any CVV, any future expiry</p>
+                </div>
               </div>
             </>
           )}

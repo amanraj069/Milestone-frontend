@@ -3,7 +3,6 @@ import axios from 'axios';
 import DashboardPage from '../../../components/DashboardPage';
 import SuccessModal from '../../../components/freelancer/SuccessModal';
 import PlanSelectionModal from '../../../components/freelancer/PlanSelectionModal';
-import PaymentProcessingModal from '../../../components/freelancer/PaymentProcessingModal';
 import UnsubscribeModal from '../../../components/freelancer/UnsubscribeModal';
 import { useAuth } from '../../../context/AuthContext';
 import { useDispatch, useSelector } from 'react-redux';
@@ -21,9 +20,7 @@ const FreelancerSubscription = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [showPlanSelectionModal, setShowPlanSelectionModal] = useState(false);
-  const [showPaymentProcessing, setShowPaymentProcessing] = useState(false);
   const [showUnsubscribeModal, setShowUnsubscribeModal] = useState(false);
-  const [selectedPlanData, setSelectedPlanData] = useState(null);
 
   useEffect(() => {
     if (user?.subscription) {
@@ -40,25 +37,32 @@ const FreelancerSubscription = () => {
     setShowPlanSelectionModal(true);
   };
 
-  const handlePlanSelection = (planData) => {
-    setSelectedPlanData(planData);
+  const handlePlanSelection = async (planData) => {
     setShowPlanSelectionModal(false);
-    setShowPaymentProcessing(true);
-  };
-
-  const handlePaymentComplete = async () => {
     try {
       setLoading(true);
-      
-      if (!selectedPlanData) {
-        throw new Error('No plan data available');
+
+      // If the verify endpoint already upgraded the subscription, skip the separate call
+      if (planData.subscriptionUpgraded) {
+        dispatch(setSubscriptionPlan({
+          plan: 'Premium',
+          duration: planData.duration,
+          expiryDate: new Date(new Date().setMonth(new Date().getMonth() + (planData.duration || 1))),
+        }));
+
+        await checkAuthStatus();
+        setCurrentDuration(planData.duration);
+        setModalMessage('Successfully upgraded to Premium Plan!');
+        setShowModal(true);
+        return;
       }
-      
+
+      // Fallback: call upgrade_subscription explicitly
       const response = await axios.post(
         `${API_BASE_URL}/api/freelancer/upgrade_subscription`,
         {
-          duration: selectedPlanData.duration,
-          paymentDetails: selectedPlanData.paymentDetails
+          duration: planData.duration,
+          paymentDetails: planData.paymentDetails
         },
         { withCredentials: true }
       );
@@ -66,12 +70,12 @@ const FreelancerSubscription = () => {
       if (response.data.success) {
         dispatch(setSubscriptionPlan({
           plan: 'Premium',
-          duration: selectedPlanData.duration,
+          duration: planData.duration,
           expiryDate: response.data.expiryDate,
         }));
         
         await checkAuthStatus();
-        setCurrentDuration(selectedPlanData.duration);
+        setCurrentDuration(planData.duration);
         setModalMessage('Successfully upgraded to Premium Plan!');
         setShowModal(true);
       }
@@ -80,7 +84,6 @@ const FreelancerSubscription = () => {
       alert(error.response?.data?.error || 'Failed to upgrade subscription. Please try again.');
     } finally {
       setLoading(false);
-      setShowPaymentProcessing(false);
     }
   };
 
@@ -272,7 +275,6 @@ const FreelancerSubscription = () => {
       {/* Modals */}
       <SuccessModal isOpen={showModal} onClose={() => setShowModal(false)} message={modalMessage} />
       <PlanSelectionModal isOpen={showPlanSelectionModal} onClose={() => setShowPlanSelectionModal(false)} onSelectPlan={handlePlanSelection} />
-      <PaymentProcessingModal isOpen={showPaymentProcessing} onComplete={handlePaymentComplete} />
       <UnsubscribeModal isOpen={showUnsubscribeModal} onClose={() => setShowUnsubscribeModal(false)} onConfirm={handleConfirmDowngrade} loading={loading} />
     </DashboardPage>
   );

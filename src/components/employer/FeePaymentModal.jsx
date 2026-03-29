@@ -1,64 +1,116 @@
-import React from 'react';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
+import React, { useState } from 'react';
+import loadRazorpay from '../../utils/loadRazorpay';
+import RazorpayIcon from '../RazorpayIcon';
 
-const cardSchema = Yup.object({
-  cardNumber: Yup.string()
-    .matches(/^[0-9]{16}$/, 'Card number must be exactly 16 digits')
-    .required('Card number is required'),
-  expiryMonth: Yup.string()
-    .matches(/^(0[1-9]|1[0-2])$/, 'Invalid month (01-12)')
-    .required('Expiry month is required'),
-  expiryYear: Yup.string()
-    .matches(/^20[2-9][0-9]$/, 'Invalid year')
-    .test('not-expired', 'Card has expired', function (value) {
-      const month = this.parent.expiryMonth;
-      if (!value || !month) return true;
-      return new Date(parseInt(value), parseInt(month) - 1) >= new Date();
-    })
-    .required('Expiry year is required'),
-  cvv: Yup.string()
-    .matches(/^[0-9]{3}$/, 'CVV must be exactly 3 digits')
-    .required('CVV is required'),
-});
-
-const getInputClass = (name, formik) => {
-  const hasError = formik.touched[name] && formik.errors[name];
-  const hasValue = formik.values[name];
-  const isValid = formik.touched[name] && !formik.errors[name] && hasValue;
-  return `w-full px-4 py-3.5 border-2 rounded-lg text-base transition-all font-mono ${
-    hasError
-      ? 'border-red-500 bg-red-50'
-      : isValid
-      ? 'border-green-500 bg-green-50'
-      : 'border-gray-300'
-  } focus:outline-none focus:border-indigo-600 focus:shadow-[0_0_0_4px_rgba(79,70,229,0.1)]`;
-};
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const FeePaymentModal = ({ isOpen, onClose, onConfirm, fees, budget, isBoosted }) => {
-  const formik = useFormik({
-    initialValues: { cardNumber: '', expiryMonth: '', expiryYear: '', cvv: '' },
-    validationSchema: cardSchema,
-    validateOnChange: true,
-    validateOnBlur: true,
-    onSubmit: (values) => {
-      onConfirm({
-        cardLast4: values.cardNumber.slice(-4),
-        expiryMonth: values.expiryMonth,
-        expiryYear: values.expiryYear,
-      });
-    },
-  });
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState('');
 
   if (!isOpen) return null;
 
   const feeAmount = fees.platformFeeAmount;
   const isFree = feeAmount === 0;
 
+  const handleClose = () => {
+    if (paying) return;
+    setPayError('');
+    onClose();
+  };
+
+  // Razorpay checkout flow for platform fee
+  const handleRazorpayPayment = async () => {
+    setPaying(true);
+    setPayError('');
+
+    try {
+      await loadRazorpay();
+
+      // Amount in paise — round to avoid floating point issues
+      const amountInPaise = Math.round(feeAmount * 100);
+
+      const orderRes = await fetch(`${BACKEND_URL}/api/payment/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          amount: amountInPaise,
+          currency: 'INR',
+          paymentType: 'platform_fee',
+          metadata: {
+            isBoosted: isBoosted || false,
+            feeRate: fees.totalFeeRate,
+            feeAmount: feeAmount,
+          },
+        }),
+      });
+      const orderData = await orderRes.json();
+
+      if (!orderRes.ok || !orderData.success) {
+        throw new Error(orderData.message || 'Failed to create order');
+      }
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Milestone',
+        description: `Platform Fee — ₹${feeAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        order_id: orderData.orderId,
+        handler: async (response) => {
+          try {
+            const verifyRes = await fetch(`${BACKEND_URL}/api/payment/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+            const verifyData = await verifyRes.json();
+
+            if (verifyRes.ok && verifyData.success) {
+              onConfirm({
+                razorpayPaymentId: verifyData.paymentId,
+                razorpayOrderId: response.razorpay_order_id,
+              });
+            } else {
+              setPayError(verifyData.message || 'Payment verification failed');
+            }
+          } catch (err) {
+            setPayError(err.message || 'Verification request failed');
+          } finally {
+            setPaying(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setPaying(false);
+          },
+        },
+        theme: { color: isBoosted ? '#d97706' : '#4f46e5' },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (resp) => {
+        setPayError(resp.error?.description || 'Payment failed. Please try again.');
+        setPaying(false);
+      });
+      rzp.open();
+    } catch (error) {
+      console.error('Payment error:', error);
+      setPayError(error.message || 'Something went wrong');
+      setPaying(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black/75 flex items-center justify-center z-[1000] animate-[fadeIn_300ms_ease]"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="bg-white rounded-3xl p-10 max-w-lg w-[90%] max-h-[90vh] overflow-y-auto relative animate-[slideUp_400ms_ease]"
@@ -67,7 +119,7 @@ const FeePaymentModal = ({ isOpen, onClose, onConfirm, fees, budget, isBoosted }
         {/* Close button */}
         <button
           className="absolute top-5 right-5 bg-transparent border-none text-2xl text-gray-600 cursor-pointer transition-all w-10 h-10 flex items-center justify-center rounded-full hover:text-black hover:bg-gray-100"
-          onClick={onClose}
+          onClick={handleClose}
         >
           <i className="fas fa-times" />
         </button>
@@ -120,7 +172,7 @@ const FeePaymentModal = ({ isOpen, onClose, onConfirm, fees, budget, isBoosted }
             <div className="flex gap-3 mt-2">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="flex-1 px-4 py-3.5 border-2 border-gray-300 rounded-xl text-gray-600 font-semibold text-base hover:bg-gray-50 transition-all"
               >
                 Back
@@ -135,128 +187,64 @@ const FeePaymentModal = ({ isOpen, onClose, onConfirm, fees, budget, isBoosted }
             </div>
           </div>
         ) : (
-          <form onSubmit={formik.handleSubmit} noValidate className="mt-2">
-            {/* Card Number */}
-            <div className="mb-5">
-              <label htmlFor="cardNumber" className="block text-sm font-semibold text-gray-900 mb-2">
-                Card Number
-              </label>
-              <input
-                id="cardNumber"
-                name="cardNumber"
-                type="text"
-                maxLength={16}
-                placeholder="1234567890123456"
-                className={getInputClass('cardNumber', formik)}
-                value={formik.values.cardNumber}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-              />
-              {formik.touched.cardNumber && formik.errors.cardNumber && (
-                <div className="text-red-500 text-sm mt-1.5 flex items-center gap-1.5 font-medium">
-                  <i className="fas fa-exclamation-circle" /> {formik.errors.cardNumber}
-                </div>
-              )}
-              {formik.touched.cardNumber && !formik.errors.cardNumber && formik.values.cardNumber && (
-                <div className="text-green-600 text-sm mt-1.5 flex items-center gap-1.5 font-medium">
-                  <i className="fas fa-check-circle" /> Valid card number
-                </div>
-              )}
-            </div>
-
-            {/* Month / Year / CVV */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="mb-5">
-                <label htmlFor="expiryMonth" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Expiry Month
-                </label>
-                <input
-                  id="expiryMonth"
-                  name="expiryMonth"
-                  type="text"
-                  maxLength={2}
-                  placeholder="MM"
-                  className={getInputClass('expiryMonth', formik)}
-                  value={formik.values.expiryMonth}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                />
-                {formik.touched.expiryMonth && formik.errors.expiryMonth && (
-                  <div className="text-red-500 text-sm mt-1.5 flex items-center gap-1.5 font-medium">
-                    <i className="fas fa-exclamation-circle" /> {formik.errors.expiryMonth}
-                  </div>
-                )}
+          <div className="mt-2">
+            {/* Error message */}
+            {payError && (
+              <div className="mb-5 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                <i className="fas fa-exclamation-circle shrink-0" />
+                <span>{payError}</span>
+                <button onClick={() => setPayError('')} className="ml-auto text-red-400 hover:text-red-600">
+                  <i className="fas fa-times" />
+                </button>
               </div>
-
-              <div className="mb-5">
-                <label htmlFor="expiryYear" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Expiry Year
-                </label>
-                <input
-                  id="expiryYear"
-                  name="expiryYear"
-                  type="text"
-                  maxLength={4}
-                  placeholder="YYYY"
-                  className={getInputClass('expiryYear', formik)}
-                  value={formik.values.expiryYear}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                />
-                {formik.touched.expiryYear && formik.errors.expiryYear && (
-                  <div className="text-red-500 text-sm mt-1.5 flex items-center gap-1.5 font-medium">
-                    <i className="fas fa-exclamation-circle" /> {formik.errors.expiryYear}
-                  </div>
-                )}
-              </div>
-
-              <div className="mb-5">
-                <label htmlFor="cvv" className="block text-sm font-semibold text-gray-900 mb-2">
-                  CVV
-                </label>
-                <input
-                  id="cvv"
-                  name="cvv"
-                  type="text"
-                  maxLength={3}
-                  placeholder="123"
-                  className={getInputClass('cvv', formik)}
-                  value={formik.values.cvv}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                />
-                {formik.touched.cvv && formik.errors.cvv && (
-                  <div className="text-red-500 text-sm mt-1.5 flex items-center gap-1.5 font-medium">
-                    <i className="fas fa-exclamation-circle" /> {formik.errors.cvv}
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
 
             {/* Actions */}
-            <div className="flex gap-3 mt-2">
+            <div className="flex gap-3">
               <button
                 type="button"
-                onClick={onClose}
-                className="flex-1 px-4 py-3.5 border-2 border-gray-300 rounded-xl text-gray-600 font-semibold text-base hover:bg-gray-50 transition-all"
+                onClick={handleClose}
+                disabled={paying}
+                className="flex-1 px-4 py-3.5 border-2 border-gray-300 rounded-xl text-gray-600 font-semibold text-base hover:bg-gray-50 transition-all disabled:opacity-50"
               >
                 Back
               </button>
               <button
-                type="submit"
-                disabled={!formik.isValid || !formik.dirty}
+                type="button"
+                onClick={handleRazorpayPayment}
+                disabled={paying}
                 className="flex-[2] px-4 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white border-none rounded-xl text-lg font-bold cursor-pointer transition-all flex items-center justify-center gap-3 hover:scale-105 hover:shadow-[0_8px_24px_rgba(16,185,129,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                <i className="fas fa-lock" />
-                Pay ₹{feeAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {paying ? (
+                  <>
+                    <svg className="h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    Processing…
+                  </>
+                ) : (
+                  <>
+                    <RazorpayIcon className="w-5 h-5" />
+                    Pay ₹{feeAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} with Razorpay
+                  </>
+                )}
               </button>
             </div>
 
-            <div className="text-center text-gray-600 text-sm mt-4 flex items-center justify-center gap-2">
-              <i className="fas fa-shield-alt" />
-              Your payment information is encrypted and secure
+            {/* Security & test credentials */}
+            <div className="mt-5 space-y-3">
+              <div className="text-center text-gray-600 text-sm flex items-center justify-center gap-2">
+                <i className="fas fa-shield-alt text-green-600" />
+                Payments are securely processed by Razorpay
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
+                <p className="font-semibold mb-1">Test Mode — Use these credentials:</p>
+                <p>UPI (recommended): <code className="bg-amber-100 px-1 rounded">success@razorpay</code></p>
+                <p>Card: <code className="bg-amber-100 px-1 rounded">5104 0155 5555 5558</code>, any CVV, any future expiry</p>
+              </div>
             </div>
-          </form>
+          </div>
         )}
 
         <style>{`
