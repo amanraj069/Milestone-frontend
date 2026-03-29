@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { graphqlQuery } from '../../utils/graphqlClient';
 
 import Footer from '../../components/Home/Footer';
 
@@ -9,6 +8,7 @@ const PublicJobListing = () => {
   const auth = useAuth();
   const user = auth?.user;
   const getDashboardRoute = auth?.getDashboardRoute;
+  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
@@ -48,40 +48,17 @@ const PublicJobListing = () => {
 
   const loadJobs = async () => {
     try {
-      const data = await graphqlQuery(`
-        query PublicJobs {
-          publicJobs {
-            jobId
-            employerId
-            title
-            imageUrl
-            budget {
-              amount
-              period
-            }
-            location
-            jobType
-            experienceLevel
-            remote
-            postedDate
-            description {
-              skills
-            }
-            applicationCount
-            applicationCap
-            isSponsored
-            isBoosted
-            tier
-          }
-        }
-      `);
+      const response = await fetch(`${apiBaseUrl}/api/jobs/api`, {
+        credentials: 'include',
+      });
+      const data = await response.json();
 
-      if (data?.publicJobs) {
-        setJobs(data.publicJobs);
+      if (data.success) {
+        setJobs(data.jobs);
         
         // Extract unique skills from all jobs
         const skillsSet = new Set();
-        data.publicJobs.forEach(job => {
+        data.jobs.forEach(job => {
           if (job.description && job.description.skills) {
             job.description.skills.forEach(skill => {
               skillsSet.add(skill);
