@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../../components/DashboardLayout';
+import { graphqlRequest } from '../../../utils/graphqlClient';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
@@ -19,16 +20,41 @@ const TransactionDetails = () => {
   const fetchTransactionDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/employer/transactions/${jobId}`, {
-        credentials: 'include'
+      setError(null);
+
+      const data = await graphqlRequest({
+        query: `
+          query EmployerTransactionDetail($jobId: String!) {
+            employerTransactionDetail(jobId: $jobId) {
+              jobId
+              jobTitle
+              freelancerId
+              freelancerName
+              freelancerPicture
+              freelancerEmail
+              status
+              startDate
+              endDate
+              totalBudget
+              paidAmount
+              paymentPercentage
+              projectCompletion
+              milestones {
+                milestoneId
+                sno
+                description
+                payment
+                deadline
+                status
+                requested
+              }
+            }
+          }
+        `,
+        variables: { jobId },
       });
-      const data = await response.json();
-      
-      if (data.success) {
-        setTransaction(data.data);
-      } else {
-        setError(data.error || 'Failed to fetch transaction details');
-      }
+
+      setTransaction(data?.employerTransactionDetail || null);
     } catch (err) {
       setError('Failed to fetch transaction details');
       console.error('Error fetching transaction details:', err);
