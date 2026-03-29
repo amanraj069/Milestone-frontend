@@ -195,15 +195,6 @@ const Chat = () => {
 
       fetchedConversations = data?.chatConversations || [];
 
-      /*
-      const response = await axios.get(`${API_BASE_URL}/api/chat/conversations`, {
-        withCredentials: true,
-      });
-      if (response.data.success) {
-        fetchedConversations = response.data.conversations || [];
-      }
-      */
-
       console.log('Fetched conversations:', fetchedConversations.map(c => ({
         name: c.participant.name,
         userId: c.participant.userId
@@ -246,16 +237,6 @@ const Chat = () => {
 
       fetchedMessages = data?.messagesWithUser?.messages || [];
       conversationId = data?.messagesWithUser?.conversationId || null;
-
-      /*
-      const response = await axios.get(`${API_BASE_URL}/api/chat/messages/${otherUserId}`, {
-        withCredentials: true,
-      });
-      if (response.data.success) {
-        fetchedMessages = response.data.messages || [];
-        conversationId = response.data.conversationId || null;
-      }
-      */
 
       setMessages(fetchedMessages);
 
@@ -447,7 +428,24 @@ const Chat = () => {
     );
   };
 
+  const resolveTimestamp = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  };
+
+  const getSortableTime = (value) => {
+    const parsed = resolveTimestamp(value);
+    return parsed ? new Date(parsed).getTime() : 0;
+  };
+
   const updateConversationLastMessage = (message) => {
+    const messageTimestamp =
+      resolveTimestamp(message.createdAt) ||
+      resolveTimestamp(message.updatedAt) ||
+      resolveTimestamp(message.timestamp) ||
+      new Date().toISOString();
+
     setConversations(prev => {
       const updated = prev.map(conv =>
         conv.participant.userId === message.from || conv.participant.userId === message.to
@@ -457,13 +455,17 @@ const Chat = () => {
                 messageId: message.messageId,
                 text: message.messageData,
                 sender: message.from,
-                timestamp: message.createdAt,
+                timestamp: messageTimestamp,
               },
-              updatedAt: message.createdAt,
+              updatedAt: messageTimestamp,
             }
           : conv
       );
-      return updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      return updated.sort((a, b) => {
+        const aTime = getSortableTime(a.lastMessage?.timestamp || a.updatedAt);
+        const bTime = getSortableTime(b.lastMessage?.timestamp || b.updatedAt);
+        return bTime - aTime;
+      });
     });
   };
 
@@ -558,7 +560,9 @@ const Chat = () => {
   };
 
   const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
+    const resolved = resolveTimestamp(timestamp);
+    if (!resolved) return "";
+    const date = new Date(resolved);
     const now = new Date();
     const diff = now - date;
     
@@ -661,9 +665,9 @@ const Chat = () => {
                             {conversation.participant.name}
                             <span className="role-badge">{conversation.participant.role}</span>
                           </span>
-                          {conversation.lastMessage && (
+                          {(conversation.lastMessage || conversation.updatedAt) && (
                             <span className="conversation-time">
-                              {formatTime(conversation.lastMessage.timestamp)}
+                              {formatTime(conversation.lastMessage.timestamp || conversation.updatedAt)}
                             </span>
                           )}
                         </div>
@@ -741,7 +745,7 @@ const Chat = () => {
                             </button>
                           </div>
                           <div className="message-footer">
-                            <span className="message-time">{formatTime(message.createdAt)}</span>
+                            <span className="message-time">{formatTime(message.createdAt || message.updatedAt)}</span>
                             {message.from === user.id && (
                               <div className={`read-ticks ${message.isRead ? 'read' : 'unread'}`}>
                                 <svg viewBox="0 0 24 24">

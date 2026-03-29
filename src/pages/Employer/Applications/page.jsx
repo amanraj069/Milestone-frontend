@@ -91,14 +91,6 @@ const EmployerApplications = () => {
       allApplications = data?.employerApplications?.applications || [];
       sourceStats = data?.employerApplications?.stats || null;
 
-      /*
-      const response = await axios.get(`${API_BASE_URL}/api/employer/job_applications/api/data`, { withCredentials: true });
-      if (response.data.success) {
-        allApplications = response.data.data.applications || [];
-        sourceStats = response.data.data.stats || null;
-      }
-      */
-
       // Filter by jobId if provided in URL
       if (jobIdFilter) {
         allApplications = allApplications.filter(app => app.jobId === jobIdFilter);
