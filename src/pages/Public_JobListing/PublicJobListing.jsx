@@ -8,6 +8,7 @@ const PublicJobListing = () => {
   const auth = useAuth();
   const user = auth?.user;
   const getDashboardRoute = auth?.getDashboardRoute;
+  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
@@ -47,10 +48,11 @@ const PublicJobListing = () => {
 
   const loadJobs = async () => {
     try {
-      const response = await fetch('http://localhost:9000/api/jobs/api', {
+      const response = await fetch(`${apiBaseUrl}/api/jobs/api`, {
         credentials: 'include',
       });
       const data = await response.json();
+
       if (data.success) {
         setJobs(data.jobs);
         
