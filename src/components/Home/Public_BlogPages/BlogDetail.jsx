@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { graphqlQuery } from '../../../utils/graphqlClient';
 
 const BlogDetail = () => {
   const { blogId } = useParams();
@@ -16,7 +17,6 @@ const BlogDetail = () => {
     email: '',
     message: ''
   });
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -34,42 +34,66 @@ const BlogDetail = () => {
   const fetchBlogDetails = async () => {
     try {
       setLoading(true);
-      
-      // Fetch blog details
-      const blogResponse = await fetch(`${apiBaseUrl}/api/blogs/${blogId}`);
-      if (blogResponse.ok) {
-        const data = await blogResponse.json();
-        if (data.success && data.blog) {
-          setBlog(data.blog);
-        } else {
-          navigate('/blogs');
-          return;
-        }
-      } else {
+      const data = await graphqlQuery(
+        `
+          query PublicBlogDetail($blogId: String!) {
+            publicBlogDetail(blogId: $blogId) {
+              blog {
+                blogId
+                slug
+                title
+                tagline
+                category
+                imageUrl
+                author
+                content {
+                  heading
+                  description
+                }
+                readTime
+                featured
+                status
+                views
+                likes
+                createdAt
+              }
+              recentBlogs {
+                blogId
+                title
+                tagline
+                category
+                imageUrl
+                author
+                readTime
+                createdAt
+              }
+              featuredBlog {
+                blogId
+                title
+                tagline
+                category
+                imageUrl
+                author
+                readTime
+                createdAt
+              }
+            }
+          }
+        `,
+        { blogId }
+      );
+
+      if (!data?.publicBlogDetail?.blog) {
         navigate('/blogs');
         return;
       }
 
-      // Fetch recent blogs
-      const recentResponse = await fetch(`${apiBaseUrl}/api/blogs/latest`);
-      if (recentResponse.ok) {
-        const recentData = await recentResponse.json();
-        // Filter out current blog
-        if (recentData.success && recentData.blogs) {
-          setRecentBlogs(recentData.blogs.filter(b => b.blogId !== blogId).slice(0, 3));
-        }
-      }
-
-      // Fetch featured blog
-      const featuredResponse = await fetch(`${apiBaseUrl}/api/blogs/featured`);
-      if (featuredResponse.ok) {
-        const featuredData = await featuredResponse.json();
-        if (featuredData.success && featuredData.blog && featuredData.blog.blogId !== blogId) {
-          setFeaturedBlog(featuredData.blog);
-        }
-      }
+      setBlog(data.publicBlogDetail.blog);
+      setRecentBlogs(data.publicBlogDetail.recentBlogs || []);
+      setFeaturedBlog(data.publicBlogDetail.featuredBlog || null);
     } catch (error) {
       console.error('Error fetching blog details:', error);
+      navigate('/blogs');
     } finally {
       setLoading(false);
     }

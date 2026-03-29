@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 import Footer from '../../components/Home/Footer';
 
@@ -47,16 +48,40 @@ const PublicJobListing = () => {
 
   const loadJobs = async () => {
     try {
-      const response = await fetch('http://localhost:9000/api/jobs/api', {
-        credentials: 'include',
-      });
-      const data = await response.json();
-      if (data.success) {
-        setJobs(data.jobs);
+      const data = await graphqlQuery(`
+        query PublicJobs {
+          publicJobs {
+            jobId
+            employerId
+            title
+            imageUrl
+            budget {
+              amount
+              period
+            }
+            location
+            jobType
+            experienceLevel
+            remote
+            postedDate
+            description {
+              skills
+            }
+            applicationCount
+            applicationCap
+            isSponsored
+            isBoosted
+            tier
+          }
+        }
+      `);
+
+      if (data?.publicJobs) {
+        setJobs(data.publicJobs);
         
         // Extract unique skills from all jobs
         const skillsSet = new Set();
-        data.jobs.forEach(job => {
+        data.publicJobs.forEach(job => {
           if (job.description && job.description.skills) {
             job.description.skills.forEach(skill => {
               skillsSet.add(skill);
