@@ -4,10 +4,12 @@ import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { useChatContext } from "../../context/ChatContext";
 import { useChatNotifications } from "../../context/ChatNotificationContext";
+import { graphqlRequest } from "../../utils/graphqlClient";
 import DashboardLayout from "../DashboardLayout";
 import "./Chat.css";
 
 const EMOJIS = ["😀", "😂", "😊", "😍", "🥰", "😎", "🤔", "😢", "😡", "👍", "👎", "❤️", "🎉", "🔥", "✨", "💯"];
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:9000";
 
 const Chat = () => {
   const { user } = useAuth();
@@ -75,7 +77,7 @@ const Chat = () => {
 
   const searchAndSelectUser = async (userId) => {
     try {
-      const response = await axios.get(`http://localhost:9000/api/chat/search-users?query=${userId}`, {
+      const response = await axios.get(`${API_BASE_URL}/api/chat/search-users?query=${encodeURIComponent(userId)}`, {
         withCredentials: true,
       });
       
@@ -161,16 +163,43 @@ const Chat = () => {
 
   const fetchConversations = async () => {
     try {
-      const response = await axios.get("http://localhost:9000/api/chat/conversations", {
-        withCredentials: true,
+      let fetchedConversations = [];
+
+      const data = await graphqlRequest({
+        query: `
+          query ChatConversations($limit: Int!, $offset: Int!) {
+            chatConversations(limit: $limit, offset: $offset) {
+              conversationId
+              unreadCount
+              updatedAt
+              participant {
+                userId
+                name
+                picture
+                role
+              }
+              lastMessage {
+                messageId
+                text
+                sender
+                timestamp
+              }
+            }
+          }
+        `,
+        variables: {
+          limit: 100,
+          offset: 0,
+        },
       });
-      if (response.data.success) {
-        console.log('Fetched conversations:', response.data.conversations.map(c => ({
-          name: c.participant.name,
-          userId: c.participant.userId
-        })));
-        setConversations(response.data.conversations);
-      }
+
+      fetchedConversations = data?.chatConversations || [];
+
+      console.log('Fetched conversations:', fetchedConversations.map(c => ({
+        name: c.participant.name,
+        userId: c.participant.userId
+      })));
+      setConversations(fetchedConversations);
     } catch (error) {
       console.error("Error fetching conversations:", error);
     }
@@ -178,29 +207,53 @@ const Chat = () => {
 
   const fetchMessages = async (otherUserId) => {
     try {
-      const response = await axios.get(`http://localhost:9000/api/chat/messages/${otherUserId}`, {
-        withCredentials: true,
+      let fetchedMessages = [];
+      let conversationId = null;
+
+      const data = await graphqlRequest({
+        query: `
+          query MessagesWithUser($userId: String!, $limit: Int!, $offset: Int!) {
+            messagesWithUser(userId: $userId, limit: $limit, offset: $offset) {
+              conversationId
+              messages {
+                messageId
+                conversationId
+                from
+                to
+                messageData
+                isRead
+                createdAt
+                updatedAt
+              }
+            }
+          }
+        `,
+        variables: {
+          userId: otherUserId,
+          limit: 300,
+          offset: 0,
+        },
       });
-      if (response.data.success) {
-        setMessages(response.data.messages);
-        
-        // Mark as read
-        if (response.data.conversationId) {
-          await axios.put(
-            `http://localhost:9000/api/chat/conversations/${response.data.conversationId}/read`,
-            {},
-            { withCredentials: true }
-          );
-          
-          // Update conversations list
-          setConversations(prev =>
-            prev.map(conv =>
-              conv.conversationId === response.data.conversationId
-                ? { ...conv, unreadCount: 0 }
-                : conv
-            )
-          );
-        }
+
+      fetchedMessages = data?.messagesWithUser?.messages || [];
+      conversationId = data?.messagesWithUser?.conversationId || null;
+
+      setMessages(fetchedMessages);
+
+      if (conversationId) {
+        await axios.put(
+          `${API_BASE_URL}/api/chat/conversations/${conversationId}/read`,
+          {},
+          { withCredentials: true }
+        );
+
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.conversationId === conversationId
+              ? { ...conv, unreadCount: 0 }
+              : conv
+          )
+        );
       }
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -217,7 +270,7 @@ const Chat = () => {
 
     try {
       const response = await axios.post(
-        `http://localhost:9000/api/chat/messages/${selectedConversation.participant.userId}`,
+        `${API_BASE_URL}/api/chat/messages/${selectedConversation.participant.userId}`,
         messageData,
         { withCredentials: true }
       );
@@ -248,7 +301,7 @@ const Chat = () => {
   const deleteMessage = async (messageId) => {
     try {
       const response = await axios.delete(
-        `http://localhost:9000/api/chat/messages/${messageId}`,
+        `${API_BASE_URL}/api/chat/messages/${messageId}`,
         { withCredentials: true }
       );
 
@@ -298,7 +351,7 @@ const Chat = () => {
       // Mark as read immediately
       if (message.conversationId) {
         axios.put(
-          `http://localhost:9000/api/chat/conversations/${message.conversationId}/read`,
+          `${API_BASE_URL}/api/chat/conversations/${message.conversationId}/read`,
           {},
           { withCredentials: true }
         );
@@ -375,7 +428,24 @@ const Chat = () => {
     );
   };
 
+  const resolveTimestamp = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  };
+
+  const getSortableTime = (value) => {
+    const parsed = resolveTimestamp(value);
+    return parsed ? new Date(parsed).getTime() : 0;
+  };
+
   const updateConversationLastMessage = (message) => {
+    const messageTimestamp =
+      resolveTimestamp(message.createdAt) ||
+      resolveTimestamp(message.updatedAt) ||
+      resolveTimestamp(message.timestamp) ||
+      new Date().toISOString();
+
     setConversations(prev => {
       const updated = prev.map(conv =>
         conv.participant.userId === message.from || conv.participant.userId === message.to
@@ -385,13 +455,17 @@ const Chat = () => {
                 messageId: message.messageId,
                 text: message.messageData,
                 sender: message.from,
-                timestamp: message.createdAt,
+                timestamp: messageTimestamp,
               },
-              updatedAt: message.createdAt,
+              updatedAt: messageTimestamp,
             }
           : conv
       );
-      return updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      return updated.sort((a, b) => {
+        const aTime = getSortableTime(a.lastMessage?.timestamp || a.updatedAt);
+        const bTime = getSortableTime(b.lastMessage?.timestamp || b.updatedAt);
+        return bTime - aTime;
+      });
     });
   };
 
@@ -415,7 +489,7 @@ const Chat = () => {
 
     setIsSearching(true);
     try {
-      const response = await axios.get(`http://localhost:9000/api/chat/search-users?query=${query}`, {
+      const response = await axios.get(`${API_BASE_URL}/api/chat/search-users?query=${encodeURIComponent(query)}`, {
         withCredentials: true,
       });
       if (response.data.success) {
@@ -486,7 +560,9 @@ const Chat = () => {
   };
 
   const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
+    const resolved = resolveTimestamp(timestamp);
+    if (!resolved) return "";
+    const date = new Date(resolved);
     const now = new Date();
     const diff = now - date;
     
@@ -589,9 +665,9 @@ const Chat = () => {
                             {conversation.participant.name}
                             <span className="role-badge">{conversation.participant.role}</span>
                           </span>
-                          {conversation.lastMessage && (
+                          {(conversation.lastMessage || conversation.updatedAt) && (
                             <span className="conversation-time">
-                              {formatTime(conversation.lastMessage.timestamp)}
+                              {formatTime(conversation.lastMessage.timestamp || conversation.updatedAt)}
                             </span>
                           )}
                         </div>
@@ -669,7 +745,7 @@ const Chat = () => {
                             </button>
                           </div>
                           <div className="message-footer">
-                            <span className="message-time">{formatTime(message.createdAt)}</span>
+                            <span className="message-time">{formatTime(message.createdAt || message.updatedAt)}</span>
                             {message.from === user.id && (
                               <div className={`read-ticks ${message.isRead ? 'read' : 'unread'}`}>
                                 <svg viewBox="0 0 24 24">

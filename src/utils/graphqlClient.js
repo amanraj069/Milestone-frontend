@@ -24,3 +24,7 @@ export async function graphqlQuery(query, variables = {}) {
 
   return result.data;
 }
+
+export const graphqlRequest = async ({ query, variables = {} }) => {
+  return graphqlQuery(query, variables);
+};
