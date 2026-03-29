@@ -84,7 +84,6 @@ const PlanSelectionModal = ({ isOpen, onClose, onSelectPlan, userType }) => {
             const verifyRes = await fetch(`${BACKEND_URL}/api/payment/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
@@ -100,7 +99,6 @@ const PlanSelectionModal = ({ isOpen, onClose, onSelectPlan, userType }) => {
                 duration: numericDuration,
                 durationText: plan.duration,
                 totalPrice: plan.totalPrice,
-                subscriptionUpgraded: verifyData.subscriptionUpgraded || false,
                 paymentDetails: {
                   razorpayPaymentId: verifyData.paymentId,
                   razorpayOrderId: response.razorpay_order_id,
@@ -124,22 +122,9 @@ const PlanSelectionModal = ({ isOpen, onClose, onSelectPlan, userType }) => {
       };
 
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', async (resp) => {
+      rzp.on('payment.failed', (resp) => {
         setPayError(resp.error?.description || 'Payment failed. Please try again.');
         setPaying(false);
-        // Notify backend so the Payment record is marked as failed
-        try {
-          await fetch(`${BACKEND_URL}/api/payment/fail`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              razorpay_order_id: resp.error?.metadata?.order_id,
-              razorpay_payment_id: resp.error?.metadata?.payment_id,
-              error_reason: resp.error?.reason,
-            }),
-          });
-        } catch (_) { /* best-effort */ }
       });
       rzp.open();
     } catch (error) {

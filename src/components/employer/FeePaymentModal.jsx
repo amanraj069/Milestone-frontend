@@ -63,7 +63,6 @@ const FeePaymentModal = ({ isOpen, onClose, onConfirm, fees, budget, isBoosted }
             const verifyRes = await fetch(`${BACKEND_URL}/api/payment/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,

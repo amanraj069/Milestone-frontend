@@ -50,6 +50,14 @@ const STATUS_FILTERS = [
   { value: 'left', label: 'Left' },
 ];
 
+const PLATFORM_COLUMNS = [
+  { key: 'type', label: 'Type' },
+  { key: 'amount', label: 'Amount' },
+  { key: 'plan', label: 'Plan Details' },
+  { key: 'date', label: 'Date' },
+  { key: 'status', label: 'Status' },
+];
+
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function getAvailableYears(payments) {
@@ -127,10 +135,18 @@ const FreelancerPayments = () => {
   const [platformPayments, setPlatformPayments] = useState([]);
   const [loadingPlatform, setLoadingPlatform] = useState(true);
   const [viewMode, setViewMode] = useState('projects'); // 'projects' | 'platform'
+  
+  // Platform Spending Controls
+  const [platformSearchTerm, setPlatformSearchTerm] = useState('');
+  const [platformSortBy, setPlatformSortBy] = useState('newest');
+  const [platformColumnFilters, setPlatformColumnFilters] = useState({ typeLabel: [], plan: [] });
+  const setPlatformColFilter = (field) => (values) => setPlatformColumnFilters(prev => ({ ...prev, [field]: values }));
+  
   const navigate = useNavigate();
 
   const activeCols = useSmartColumnToggle(ACTIVE_COLUMNS, 'payments-active-cols');
   const completedCols = useSmartColumnToggle(COMPLETED_COLUMNS, 'payments-completed-cols');
+  const platformCols = useSmartColumnToggle(PLATFORM_COLUMNS, 'payments-platform-cols');
 
   useEffect(() => { fetchPayments(); fetchPlatformPayments(); }, []);
 
@@ -144,14 +160,62 @@ const FreelancerPayments = () => {
     finally { setLoadingPlatform(false); }
   };
 
-  const verifiedPlatformPayments = useMemo(
-    () => platformPayments.filter(p => p.status === 'verified'),
-    [platformPayments]
-  );
+  const verifiedPlatformPayments = useMemo(() => {
+    return platformPayments
+      .filter(p => p.status === 'verified')
+      .map(p => ({
+         ...p,
+         typeLabel: p.paymentType === 'subscription' ? 'Premium Subscription' : p.paymentType === 'fee' ? 'Platform Fee' : (p.paymentType || 'Payment'),
+         planDetails: p.metadata?.planDuration ? `${p.metadata.planDuration} months` : '—'
+      }));
+  }, [platformPayments]);
+  
   const totalPlatformSpending = useMemo(
     () => verifiedPlatformPayments.reduce((s, p) => s + (p.amount || 0), 0) / 100,
     [verifiedPlatformPayments]
   );
+
+  const thisMonthSpending = useMemo(() => {
+    const now = new Date();
+    return verifiedPlatformPayments.filter(p => {
+       const d = new Date(p.createdAt);
+       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).reduce((s, p) => s + (p.amount || 0), 0) / 100;
+  }, [verifiedPlatformPayments]);
+
+  const latestTransactionAmount = useMemo(() => {
+    // Already sorted by newest in backend, but just in case
+    const sorted = [...verifiedPlatformPayments].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return sorted.length > 0 ? (sorted[0].amount || 0) / 100 : 0;
+  }, [verifiedPlatformPayments]);
+
+  const processedPlatformPayments = useMemo(() => {
+    let result = [...verifiedPlatformPayments];
+
+    // Column Filters
+    if (platformColumnFilters.typeLabel && platformColumnFilters.typeLabel.length > 0) {
+      result = result.filter(p => platformColumnFilters.typeLabel.includes(p.typeLabel));
+    }
+    if (platformColumnFilters.plan && platformColumnFilters.plan.length > 0) {
+      result = result.filter(p => platformColumnFilters.plan.includes(p.planDetails));
+    }
+    
+    // Search
+    if (platformSearchTerm) {
+      const term = platformSearchTerm.toLowerCase();
+      result = result.filter(p => {
+         return p.typeLabel.toLowerCase().includes(term) || p.planDetails.toLowerCase().includes(term);
+      });
+    }
+
+    // Sort
+    if (platformSortBy === 'newest') result.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+    else if (platformSortBy === 'oldest') result.sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
+    else if (platformSortBy === 'amount-high') result.sort((a,b) => (b.amount || 0) - (a.amount || 0));
+    else if (platformSortBy === 'amount-low') result.sort((a,b) => (a.amount || 0) - (b.amount || 0));
+
+    return result;
+  }, [verifiedPlatformPayments, platformSearchTerm, platformSortBy, platformColumnFilters]);
 
   const fetchPayments = async () => {
     try {
@@ -177,7 +241,7 @@ const FreelancerPayments = () => {
     };
     const { bg, text, dot, label } = config[status] || { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500', label: status };
     return (
-      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${bg} ${text}`}>
+      <span className={`inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-sm font-medium ${bg} ${text}`}>
         <span className={`w-2 h-2 rounded-full ${dot} mr-2`}></span>{label}
       </span>
     );
@@ -304,8 +368,11 @@ const FreelancerPayments = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 -mt-4">
         <p className="text-gray-500">Track your earnings and manage milestone payments</p>
         <button 
-          onClick={() => setViewMode(viewMode === 'projects' ? 'platform' : 'projects')}
-          className="inline-flex items-center px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+          onClick={() => {
+            setViewMode(viewMode === 'projects' ? 'platform' : 'projects');
+            setPlatformSearchTerm(''); 
+          }}
+          className="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:-translate-y-0.5"
         >
           {viewMode === 'projects' ? (
             <>
@@ -515,7 +582,7 @@ const FreelancerPayments = () => {
                       )}
                       {activeCols.visible.has('action') && (
                         <td className="px-6 py-5 text-center">
-                          <button onClick={() => handleViewDetails(payment.jobId)} className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                          <button onClick={() => handleViewDetails(payment.jobId)} className="inline-flex items-center whitespace-nowrap px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
                             <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                             View Details
                           </button>
@@ -650,7 +717,7 @@ const FreelancerPayments = () => {
                       )}
                       {completedCols.visible.has('action') && (
                         <td className="px-6 py-5 text-center">
-                          <button onClick={() => handleViewDetails(payment.jobId)} className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                          <button onClick={() => handleViewDetails(payment.jobId)} className="inline-flex items-center whitespace-nowrap px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
                             <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                             View Details
                           </button>
@@ -746,48 +813,101 @@ const FreelancerPayments = () => {
       ) : (
       /* Platform Spending Section */
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">Platform Spending</h2>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-1.5 bg-indigo-600 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900">Platform Spending</h2>
+          </div>
         </div>
 
         {loadingPlatform ? (
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-200 border-t-blue-600 mx-auto mb-3"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-4 border-indigo-200 border-t-indigo-600 mx-auto mb-3"></div>
             <p className="text-gray-400 text-sm">Loading platform transactions...</p>
           </div>
         ) : verifiedPlatformPayments.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
-            <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
+            <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
             </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-1">No Platform Transactions Yet</h3>
-            <p className="text-gray-500 text-sm">Premium subscription purchases will appear here.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Platform Transactions Yet</h3>
+            <p className="text-gray-500 text-sm max-w-sm mx-auto">Your premium subscriptions and other platform purchases will appear here.</p>
           </div>
         ) : (
           <>
-            {/* Total spending stat */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            {/* 4 Stat cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                  <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Total Platform Spending</p>
-                    <p className="text-2xl font-bold text-indigo-600">₹{totalPlatformSpending.toLocaleString()}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Spent</p>
+                    <p className="text-2xl font-bold text-gray-900">₹{totalPlatformSpending.toLocaleString()}</p>
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                  <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Transactions</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">This Month</p>
+                    <p className="text-2xl font-bold text-gray-900">₹{thisMonthSpending.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Latest Txn</p>
+                    <p className="text-2xl font-bold text-gray-900">₹{latestTransactionAmount.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Txns</p>
                     <p className="text-2xl font-bold text-gray-900">{verifiedPlatformPayments.length}</p>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Controls Row */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-4">
+              <div className="flex-1">
+                <SmartSearchInput
+                  value={platformSearchTerm}
+                  onChange={setPlatformSearchTerm}
+                  placeholder="Search transactions..."
+                />
+              </div>
+              <div className="flex items-center gap-3 min-w-[200px]">
+                <select
+                  value={platformSortBy}
+                  onChange={(e) => setPlatformSortBy(e.target.value)}
+                  className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer shadow-sm"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="amount-high">Amount: High to Low</option>
+                  <option value="amount-low">Amount: Low to High</option>
+                </select>
+                <SmartColumnToggle 
+                  columns={PLATFORM_COLUMNS} 
+                  visible={platformCols.visible} 
+                  onChange={platformCols.setVisible} 
+                />
               </div>
             </div>
 
@@ -796,47 +916,98 @@ const FreelancerPayments = () => {
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
-                    <tr className="bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-gray-100">
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Type</th>
-                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Amount</th>
-                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Plan</th>
-                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                    <tr className="bg-gray-50/50 border-b border-gray-100">
+                      {platformCols.visible.has('type') && (
+                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center gap-2">
+                            Type
+                            <SmartFilter
+                              label="Type"
+                              data={verifiedPlatformPayments}
+                              field="typeLabel"
+                              selectedValues={platformColumnFilters.typeLabel || []}
+                              onFilterChange={setPlatformColFilter('typeLabel')}
+                            />
+                          </div>
+                        </th>
+                      )}
+                      {platformCols.visible.has('amount') && (
+                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Amount</th>
+                      )}
+                      {platformCols.visible.has('plan') && (
+                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center justify-center gap-2">
+                            Plan Details
+                            <SmartFilter
+                              label="Plan"
+                              data={verifiedPlatformPayments}
+                              field="planDetails"
+                              selectedValues={platformColumnFilters.plan || []}
+                              onFilterChange={setPlatformColFilter('plan')}
+                            />
+                          </div>
+                        </th>
+                      )}
+                      {platformCols.visible.has('date') && (
+                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Date</th>
+                      )}
+                      {platformCols.visible.has('status') && (
+                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {verifiedPlatformPayments.map((p) => {
-                      const label = p.paymentType === 'subscription' ? 'Premium Subscription' : p.paymentType === 'fee' ? 'Platform Fee' : (p.paymentType || 'Payment');
+                    {processedPlatformPayments.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="px-6 py-12 text-center">
+                          <div className="text-gray-500">
+                            <p className="text-sm font-medium mb-1">No matching transactions</p>
+                            <p className="text-xs">Try adjusting your search or sort criteria</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : processedPlatformPayments.map((p) => {
                       const icon = p.paymentType === 'subscription'
                         ? <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100"><svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg></span>
-                        : <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100"><svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg></span>;
-                      const dur = p.metadata?.planDuration;
-                      const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+                        : <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100"><svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span>;
+
                       return (
-                        <tr key={p._id || p.razorpayOrderId} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              {icon}
-                              <span className="text-sm font-semibold text-gray-900">{label}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className="text-sm font-bold text-gray-900">₹{((p.amount || 0) / 100).toLocaleString()}</span>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            {dur ? (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
-                                {dur} month{dur > 1 ? 's' : ''}
+                        <tr key={p._id} className="hover:bg-gray-50/50 transition-colors">
+                          {platformCols.visible.has('type') && (
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center gap-3">
+                                {icon}
+                                <span className="text-sm font-medium text-gray-900">{p.typeLabel}</span>
+                              </div>
+                            </td>
+                          )}
+                          {platformCols.visible.has('amount') && (
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <span className="text-sm font-bold text-gray-900">₹{(p.amount / 100).toLocaleString()}</span>
+                            </td>
+                          )}
+                          {platformCols.visible.has('plan') && (
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                {p.planDetails}
                               </span>
-                            ) : <span className="text-gray-400 text-sm">—</span>}
-                          </td>
-                          <td className="px-6 py-4 text-center text-sm text-gray-600">{dateStr}</td>
-                          <td className="px-6 py-4 text-center">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                              <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
-                              Completed
-                            </span>
-                          </td>
+                            </td>
+                          )}
+                          {platformCols.visible.has('date') && (
+                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+                              {new Date(p.createdAt).toLocaleDateString('en-IN', {
+                                year: 'numeric', month: 'short', day: 'numeric'
+                              })}
+                            </td>
+                          )}
+                          {platformCols.visible.has('status') && (
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
+                                Completed
+                              </span>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
