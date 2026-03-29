@@ -4,7 +4,6 @@ import * as Yup from 'yup';
 import DashboardPage from '../../../components/DashboardPage';
 import { computeFees } from '../../../components/employer/BoostJobModal';
 import FeePaymentModal from '../../../components/employer/FeePaymentModal';
-import PaymentProcessingModal from '../../../components/employer/PaymentProcessingModal';
 import LocationMapEmbed from '../../../components/maps/LocationMapEmbed';
 
 // Validation schema for Step 1 - Job Details
@@ -90,7 +89,6 @@ const AddJob = () => {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [showFeePaymentModal, setShowFeePaymentModal] = useState(false);
-  const [showPaymentProcessing, setShowPaymentProcessing] = useState(false);
   const [pendingJobData, setPendingJobData] = useState(null);
   const [locationCoordinates, setLocationCoordinates] = useState(null);
   const [resolvingLocation, setResolvingLocation] = useState(false);
@@ -423,15 +421,9 @@ const AddJob = () => {
     }
   };
 
-  // Called when payment card form is submitted (or fee is 0)
-  const handlePaymentConfirm = (paymentDetails) => {
+  // Called when Razorpay payment succeeds (or fee is 0)
+  const handlePaymentConfirm = async (paymentDetails) => {
     setShowFeePaymentModal(false);
-    setShowPaymentProcessing(true);
-  };
-
-  // Called when PaymentProcessingModal finishes its animation
-  const handlePaymentProcessingComplete = async () => {
-    setShowPaymentProcessing(false);
     if (!pendingJobData) return;
     setLoading(true);
     setError('');
@@ -440,7 +432,7 @@ const AddJob = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(pendingJobData),
+        body: JSON.stringify({ ...pendingJobData, paymentDetails }),
       });
       const data = await response.json();
       if (response.ok && data.success) {
@@ -1229,11 +1221,6 @@ const AddJob = () => {
         );
       })()}
 
-      {/* ── Payment Processing Spinner ── */}
-      <PaymentProcessingModal
-        isOpen={showPaymentProcessing}
-        onComplete={handlePaymentProcessingComplete}
-      />
     </DashboardPage>
   );
 };
