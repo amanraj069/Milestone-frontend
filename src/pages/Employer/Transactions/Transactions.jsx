@@ -4,8 +4,21 @@ import DashboardPage from '../../../components/DashboardPage';
 import SmartFilter from '../../../components/SmartFilter';
 import SmartSearchInput from '../../../components/SmartSearchInput';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/SmartColumnToggle';
+import { graphqlQuery } from '../../../utils/graphqlClient';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+
+const EMPLOYER_TRANSACTIONS_QUERY = `
+  query EmployerTransactions {
+    employerTransactions {
+      data {
+        jobId jobTitle freelancerId freelancerName freelancerPicture freelancerEmail
+        status startDate endDate totalBudget paidAmount paymentPercentage
+        projectCompletion milestonesCount completedMilestones pendingRequests
+      }
+    }
+  }
+`;
 
 const EmployerTransactions = () => {
   const [transactions, setTransactions] = useState([]);
@@ -131,18 +144,14 @@ const EmployerTransactions = () => {
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/employer/transactions`, {
-        credentials: 'include'
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        setTransactions(data.data);
+      const result = await graphqlQuery(EMPLOYER_TRANSACTIONS_QUERY);
+      if (result?.employerTransactions) {
+        setTransactions(result.employerTransactions.data || []);
       } else {
-        setError(data.error || 'Failed to fetch transactions');
+        setError('Failed to fetch transactions');
       }
     } catch (err) {
-      setError('Failed to fetch transactions');
+      setError(err.message || 'Failed to fetch transactions');
       console.error('Error fetching transactions:', err);
     } finally {
       setLoading(false);
