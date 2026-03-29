@@ -4,8 +4,18 @@ import RatingAdjustmentModal from '../../components/RatingAdjustmentModal';
 import RatingHistoryModal from '../../components/RatingHistoryModal';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+
+const ADMIN_USERS_QUERY = `
+  query AdminUsers {
+    adminUsers {
+      users { userId name email role subscription picture location rating createdAt roleId profilePath subscriptionDuration subscriptionExpiryDate }
+      total
+    }
+  }
+`;
 
 const COLUMNS = [
   { key: 'user',         label: 'User',         defaultVisible: true },
@@ -42,11 +52,8 @@ const AdminUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users`, { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) setUsers(data.users);
-      }
+      const result = await graphqlQuery(ADMIN_USERS_QUERY);
+      if (result?.adminUsers?.users) setUsers(result.adminUsers.users);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {

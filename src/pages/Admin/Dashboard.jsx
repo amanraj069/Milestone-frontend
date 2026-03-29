@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import DashboardPage from '../../components/DashboardPage';
-
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 // ─── Metric Detail Modal ───
 const MetricModal = ({ isOpen, onClose, metric }) => {
@@ -60,6 +59,18 @@ const KPIItem = ({ label, value, icon, accent, badge, onClick, isClickable = tru
   </div>
 );
 
+const ADMIN_DASHBOARD_REVENUE_QUERY = `
+  query AdminDashboardRevenue {
+    adminDashboardRevenue {
+      monthlyRevenue { label year month subscriptionRevenue platformFeeRevenue totalRevenue jobsPosted }
+      totals { totalRevenue subscriptionRevenue platformFees thisMonthRevenue revenueGrowth }
+      engagement { jobCompletionRate hireRate activeUsers totalUsers premiumUsers conversionRate recentJobs recentApplications avgJobsPerMonth }
+      recentPlatformFees { jobId title budget durationDays applicantCount feeRate feeAmount postedDate status employerName companyName }
+      feeStructure { baseRate description range tiers { platform { range modifier label } applicationCap { range modifier label } } }
+    }
+  }
+`;
+
 const AdminDashboard = () => {
   const { user } = useAuth();
   const [data, setData] = useState(null);
@@ -69,11 +80,8 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchRevenue = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/admin/dashboard/revenue`, { credentials: 'include' });
-        if (res.ok) {
-          const result = await res.json();
-          if (result.success) setData(result.data);
-        }
+        const result = await graphqlQuery(ADMIN_DASHBOARD_REVENUE_QUERY);
+        if (result?.adminDashboardRevenue) setData(result.adminDashboardRevenue);
       } catch (error) {
         console.error('Error fetching dashboard revenue:', error);
       } finally {

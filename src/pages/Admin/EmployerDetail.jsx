@@ -2,9 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import { useChatContext } from '../../context/ChatContext';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 const AVATAR_FALLBACK = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png';
+
+const ADMIN_EMPLOYER_DETAIL_QUERY = `
+  query AdminEmployerDetail($employerId: String!) {
+    adminEmployerDetail(employerId: $employerId) {
+      employerId userId name email phone picture location aboutMe
+      companyName websiteLink rating subscription subscriptionDuration subscriptionExpiryDate joinedDate
+      jobListingsCount currentHiresCount pastHiresCount
+      jobs { jobId title budget status jobType experienceLevel location postedDate applicationDeadline applicantsCount hasAssignedFreelancer }
+      currentFreelancers { freelancerId name email picture rating startDate }
+      pastFreelancers { freelancerId name email picture rating }
+    }
+  }
+`;
 
 const jobStatusColors = {
   open:   'bg-green-100 text-green-700',
@@ -23,8 +36,8 @@ const EmployerDetail = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/admin/employers/${employerId}`, { credentials: 'include' });
-        if (res.ok) { const d = await res.json(); if (d.success) setEmp(d.employer); }
+        const result = await graphqlQuery(ADMIN_EMPLOYER_DETAIL_QUERY, { employerId });
+        if (result?.adminEmployerDetail) setEmp(result.adminEmployerDetail);
       } catch (e) { console.error(e); } finally { setLoading(false); }
     })();
   }, [employerId]);

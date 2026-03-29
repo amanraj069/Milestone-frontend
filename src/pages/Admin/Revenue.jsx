@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import DashboardPage from '../../components/DashboardPage';
-
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 /* ───────────────── SVG Donut Chart ───────────────── */
 const DonutChart = ({ segments, size = 180, thickness = 32, centerLabel, centerSub }) => {
@@ -72,7 +71,7 @@ const UserGrowthChart = ({ data }) => {
     return { year: d.getFullYear(), month: d.getMonth() + 1 };
   });
   const lookup = {};
-  (data || []).forEach(m => { lookup[`${m._id.year}-${m._id.month}`] = m.count; });
+  (data || []).forEach(m => { lookup[`${m.year}-${m.month}`] = m.count; });
   const chartData = months12.map(m => ({
     _id: { year: m.year, month: m.month },
     count: lookup[`${m.year}-${m.month}`] || 0,
@@ -133,6 +132,29 @@ const UserGrowthChart = ({ data }) => {
   );
 };
 
+const ADMIN_PLATFORM_QUERY = `
+  query AdminPlatform {
+    adminStatistics {
+      userGrowth { year month count }
+      jobsByStatus { key count }
+      jobsByType { key count }
+      jobsByExperience { key count }
+      applicationsByStatus { key count }
+      complaintsByStatus { key count }
+      subscriptionDist { role subscription count }
+      recentSignups
+      newJobsThisMonth
+    }
+    adminDashboardOverview {
+      users { total freelancers employers moderators premium basic }
+      jobs { total active }
+      applications { total pending }
+      blogs { total }
+      quizzes { total }
+    }
+  }
+`;
+
 /* ───────────────── Main Component ───────────────── */
 const AdminPlatform = () => {
   const [stats, setStats] = useState(null);
@@ -142,12 +164,9 @@ const AdminPlatform = () => {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [r1, r2] = await Promise.all([
-          fetch(`${API_BASE}/api/admin/statistics`, { credentials: 'include' }),
-          fetch(`${API_BASE}/api/admin/dashboard/overview`, { credentials: 'include' }),
-        ]);
-        if (r1.ok) { const d = await r1.json(); if (d.success) setStats(d.data); }
-        if (r2.ok) { const d = await r2.json(); if (d.success) setOverview(d.data); }
+        const result = await graphqlQuery(ADMIN_PLATFORM_QUERY);
+        if (result?.adminStatistics) setStats(result.adminStatistics);
+        if (result?.adminDashboardOverview) setOverview(result.adminDashboardOverview);
       } catch (error) {
         console.error('Error fetching platform data:', error);
       } finally {
@@ -175,21 +194,19 @@ const AdminPlatform = () => {
 
   /* ── Normalise data ── */
   const userGrowth       = stats?.userGrowth || [];
-  const jobsByStatus     = stats?.jobsByStatus || [];
-  const jobsByType       = stats?.jobsByType || [];
-  const jobsByExp        = stats?.jobsByExperience || [];
-  const appsByStatus     = stats?.applicationsByStatus || [];
-  const complaintsByStatus = stats?.complaintsByStatus || [];
-  const subscriptionDist = stats?.subscriptionDist || [];
-  const avgBudgetByType  = stats?.avgBudgetByType || [];
+  const jobsByStatus     = (stats?.jobsByStatus || []).map(j => ({ _id: j.key, count: j.count }));
+  const jobsByType       = (stats?.jobsByType || []).map(j => ({ _id: j.key, count: j.count }));
+  const jobsByExp        = (stats?.jobsByExperience || []).map(j => ({ _id: j.key, count: j.count }));
+  const appsByStatus     = (stats?.applicationsByStatus || []).map(a => ({ _id: a.key, count: a.count }));
+  const complaintsByStatus = (stats?.complaintsByStatus || []).map(c => ({ _id: c.key, count: c.count }));
   const recentSignups    = stats?.recentSignups || 0;
   const newJobsThisMonth = stats?.newJobsThisMonth || 0;
 
   const ovUsers  = overview?.users || {};
   const ovJobs   = overview?.jobs || {};
   const ovApps   = overview?.applications || {};
-  const ovBlogs  = overview?.content?.blogs || overview?.blogs?.total || 0;
-  const ovQuizzes= overview?.content?.quizzes || overview?.quiz?.total || 0;
+  const ovBlogs  = overview?.blogs?.total || 0;
+  const ovQuizzes= overview?.quizzes?.total || 0;
 
   /* Jobs by type colour map */
   const TYPE_COLORS = { 'Fixed': '#4f46e5', 'Hourly': '#7c3aed', 'Milestone': '#0ea5e9', 'Contract': '#14b8a6' };

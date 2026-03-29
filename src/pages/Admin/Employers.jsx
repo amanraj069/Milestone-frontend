@@ -4,8 +4,16 @@ import DashboardPage from '../../components/DashboardPage';
 import { useChatContext } from '../../context/ChatContext';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const ADMIN_EMPLOYERS_QUERY = `
+  query AdminEmployers {
+    adminEmployers {
+      employers { employerId userId name email phone picture location companyName rating subscription isPremium subscriptionDuration subscriptionExpiryDate jobListingsCount hiredCount currentHires pastHires joinedDate }
+      total
+    }
+  }
+`;
 
 const COLUMNS = [
   { key: 'photo',        label: 'Photo',        defaultVisible: true },
@@ -54,8 +62,8 @@ const AdminEmployers = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/admin/employers`, { credentials: 'include' });
-        if (res.ok) { const d = await res.json(); if (d.success) setEmployers(d.employers); }
+        const result = await graphqlQuery(ADMIN_EMPLOYERS_QUERY);
+        if (result?.adminEmployers?.employers) setEmployers(result.adminEmployers.employers);
       } catch (e) { console.error(e); } finally { setLoading(false); }
     })();
   }, []);

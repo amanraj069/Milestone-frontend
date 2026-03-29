@@ -2,9 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import { useChatContext } from '../../context/ChatContext';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 const AVATAR_FALLBACK = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png';
+
+const ADMIN_FREELANCER_DETAIL_QUERY = `
+  query AdminFreelancerDetail($freelancerId: String!) {
+    adminFreelancerDetail(freelancerId: $freelancerId) {
+      freelancerId userId name email phone picture location aboutMe rating
+      subscription subscriptionDuration subscriptionExpiryDate joinedDate
+      skills experience education portfolio resume
+      isCurrentlyWorking currentJobTitle
+      applicationsCount acceptedCount rejectedCount pendingCount
+      recentApplications { applicationId jobTitle companyName employerName budget status appliedDate }
+    }
+  }
+`;
 
 const statusColors = {
   Accepted: 'bg-green-100 text-green-700',
@@ -23,8 +36,15 @@ const FreelancerDetail = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/admin/freelancers/${freelancerId}`, { credentials: 'include' });
-        if (res.ok) { const d = await res.json(); if (d.success) setFl(d.freelancer); }
+        const result = await graphqlQuery(ADMIN_FREELANCER_DETAIL_QUERY, { freelancerId });
+        if (result?.adminFreelancerDetail) {
+          const data = result.adminFreelancerDetail;
+          // Parse JSON-stringified arrays back to objects
+          data.experience = (data.experience || []).map(e => { try { return JSON.parse(e); } catch { return {}; } });
+          data.education = (data.education || []).map(e => { try { return JSON.parse(e); } catch { return {}; } });
+          data.portfolio = (data.portfolio || []).map(p => { try { return JSON.parse(p); } catch { return {}; } });
+          setFl(data);
+        }
       } catch (e) { console.error(e); } finally { setLoading(false); }
     })();
   }, [freelancerId]);

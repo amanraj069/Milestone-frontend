@@ -4,8 +4,16 @@ import DashboardPage from '../../components/DashboardPage';
 import { useChatContext } from '../../context/ChatContext';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const ADMIN_FREELANCERS_QUERY = `
+  query AdminFreelancers {
+    adminFreelancers {
+      freelancers { freelancerId userId name email phone picture location rating skills subscription isPremium subscriptionDuration subscriptionExpiryDate applicationsCount isCurrentlyWorking joinedDate }
+      total
+    }
+  }
+`;
 
 const COLUMNS = [
   { key: 'photo',        label: 'Photo',        defaultVisible: true },
@@ -52,8 +60,8 @@ const AdminFreelancers = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/admin/freelancers`, { credentials: 'include' });
-        if (res.ok) { const d = await res.json(); if (d.success) setFreelancers(d.freelancers); }
+        const result = await graphqlQuery(ADMIN_FREELANCERS_QUERY);
+        if (result?.adminFreelancers?.freelancers) setFreelancers(result.adminFreelancers.freelancers);
       } catch (e) { console.error(e); } finally { setLoading(false); }
     })();
   }, []);

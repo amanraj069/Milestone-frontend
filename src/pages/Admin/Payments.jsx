@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
-
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 const COLUMNS = [
   { key: 'job',        label: 'Job',        defaultVisible: true },
@@ -24,6 +23,15 @@ const SORT_OPTIONS = [
   { value: 'job-desc',    label: 'Job: Z → A' },
 ];
 
+const ADMIN_PAYMENTS_QUERY = `
+  query AdminPayments {
+    adminPayments {
+      payments { jobId jobTitle milestoneId milestoneDescription amount status employerName companyName freelancerName date }
+      total
+    }
+  }
+`;
+
 const AdminPayments = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,11 +49,8 @@ const AdminPayments = () => {
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/admin/payments`, { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) setPayments(data.payments);
-        }
+        const result = await graphqlQuery(ADMIN_PAYMENTS_QUERY);
+        if (result?.adminPayments?.payments) setPayments(result.adminPayments.payments);
       } catch (error) {
         console.error('Error fetching payments:', error);
       } finally {
