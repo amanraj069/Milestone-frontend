@@ -46,9 +46,14 @@ export default function PaymentButton({
         throw new Error(orderData.message || "Failed to create order");
       }
 
+      const razorpayKey = orderData.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID;
+      if (!razorpayKey) {
+        throw new Error("Payment configuration is missing. Please contact support.");
+      }
+
       // 3. Open Razorpay checkout
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        key: razorpayKey,
         amount: orderData.amount,
         currency: orderData.currency,
         name: "Milestone",
