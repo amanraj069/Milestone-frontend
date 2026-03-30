@@ -155,12 +155,12 @@ const LocationMapEmbed = ({
   const position = [resolvedCoordinates.lat, resolvedCoordinates.lng];
 
   return (
-    <div className={`rounded-xl border border-gray-200 overflow-hidden bg-white ${className}`}>
+    <div className={`rounded-xl border border-gray-200 overflow-hidden bg-white relative z-0 ${className}`}>
       <div className="px-4 py-2.5 border-b border-gray-100">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Map Preview</p>
         <p className="text-sm text-gray-700 truncate">{trimmedLocation || "Pinned Location"}</p>
       </div>
-      <div className={heightClassName}>
+      <div className={`${heightClassName} relative z-0`}>
         <MapContainer center={position} zoom={13} style={{ height: "100%", width: "100%" }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <Marker position={position}>

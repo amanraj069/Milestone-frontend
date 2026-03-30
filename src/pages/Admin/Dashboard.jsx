@@ -714,7 +714,7 @@ const AdminDashboard = () => {
       />
 
       {/* ─── Monthly Revenue Chart with Gridlines ─── */}
-      <div className="bg-white rounded-xl border border-gray-200 mb-6 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 mb-6">
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-gray-900">Monthly Revenue Trend</h3>
@@ -754,7 +754,7 @@ const AdminDashboard = () => {
               />
               </svg>
               {/* Bars */}
-              <div className="flex items-end gap-1.5 h-56 relative z-20">
+              <div className="flex items-end gap-1.5 h-56 relative">
                 {normalizedMonthly.map((m, i) => {
                   const subH = maxMonthlyRevenueNorm > 0 ? (m.subscriptionRevenue / maxMonthlyRevenueNorm) * 100 : 0;
                   const feeH = maxMonthlyRevenueNorm > 0 ? (m.platformFeeRevenue / maxMonthlyRevenueNorm) * 100 : 0;
@@ -762,23 +762,23 @@ const AdminDashboard = () => {
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center group relative">
                       {/* Tooltip */}
-                      <div className="absolute bottom-full mb-2 hidden group-hover:block z-30">
-                        <div className="bg-slate-900 text-white text-[11px] rounded-lg px-3.5 py-2.5 whitespace-nowrap shadow-xl border border-slate-700">
-                          <p className="font-bold text-xs mb-1">{m.label}</p>
-                          <div className="space-y-0.5">
+                      <div className={`absolute bottom-full mb-2 hidden group-hover:block z-50 pointer-events-auto ${i >= normalizedMonthly.length - 2 ? 'right-0' : 'left-1/2 -translate-x-1/2'}`}>
+                        <div className="bg-white text-gray-800 text-[11px] rounded-lg px-3.5 py-2.5 whitespace-nowrap shadow-xl border border-gray-200">
+                          <p className="font-bold text-sm mb-1 text-gray-900">{m.label}</p>
+                          <div className="space-y-1">
                             <div className="flex justify-between gap-6">
-                              <span className="text-slate-400">Subscriptions</span>
-                              <span className="font-semibold">{formatFull(m.subscriptionRevenue)}</span>
+                              <span className="text-gray-500">Subscriptions</span>
+                              <span className="font-semibold text-gray-800">{formatFull(m.subscriptionRevenue)}</span>
                             </div>
                             <div className="flex justify-between gap-6">
-                              <span className="text-slate-400">Platform Fees</span>
-                              <span className="font-semibold">{formatFull(m.platformFeeRevenue)}</span>
+                              <span className="text-gray-500">Platform Fees</span>
+                              <span className="font-semibold text-gray-800">{formatFull(m.platformFeeRevenue)}</span>
                             </div>
-                            <div className="border-t border-slate-700 mt-1 pt-1 flex justify-between gap-6">
-                              <span className="text-slate-300 font-semibold">Total</span>
-                              <span className="font-bold text-emerald-400">{formatFull(m.totalRevenue)}</span>
+                            <div className="border-t border-gray-200 mt-1 pt-1 flex justify-between gap-6">
+                              <span className="text-gray-700 font-bold">Total</span>
+                              <span className="font-bold text-emerald-600">{formatFull(m.totalRevenue)}</span>
                             </div>
-                            <div className="flex justify-between gap-6 text-slate-500">
+                            <div className="flex justify-between gap-6 text-gray-400">
                               <span>Jobs posted</span>
                               <span>{m.jobsPosted}</span>
                             </div>
