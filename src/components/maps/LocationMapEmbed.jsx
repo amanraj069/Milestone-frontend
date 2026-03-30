@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -7,12 +8,87 @@ const LocationMapEmbed = ({
   heightClassName = "h-72",
   className = "",
 }) => {
+  const parseCoordinate = (value) => {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
   const trimmedLocation = (location || "").trim();
+  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:9000";
   const hasLocationText = trimmedLocation.length > 0;
+  const isRemoteLocation = /(^remote$|\bremote\b)/i.test(trimmedLocation);
+  const lat = parseCoordinate(coordinates?.lat);
+  const lng = parseCoordinate(coordinates?.lng);
+  const [resolvedCoordinates, setResolvedCoordinates] = useState(
+    lat !== null && lng !== null ? { lat, lng } : null,
+  );
+  const [isResolvingCoordinates, setIsResolvingCoordinates] = useState(false);
+
+  useEffect(() => {
+    if (lat !== null && lng !== null) {
+      setResolvedCoordinates({ lat, lng });
+      setIsResolvingCoordinates(false);
+      return;
+    }
+    setResolvedCoordinates(null);
+  }, [lat, lng]);
+
+  useEffect(() => {
+    if (lat !== null && lng !== null) return;
+    if (!hasLocationText || isRemoteLocation) return;
+
+    let cancelled = false;
+    const controller = new AbortController();
+
+    const resolveFromLocation = async () => {
+      try {
+        setIsResolvingCoordinates(true);
+        const response = await fetch(
+          `${apiBaseUrl}/api/geocode?q=${encodeURIComponent(trimmedLocation)}&limit=1`,
+          {
+            credentials: "include",
+            signal: controller.signal,
+          },
+        );
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+        const firstResult = data?.data?.[0];
+        const resolvedLat = parseCoordinate(firstResult?.lat);
+        const resolvedLng = parseCoordinate(firstResult?.lon ?? firstResult?.lng);
+
+        if (!cancelled && resolvedLat !== null && resolvedLng !== null) {
+          setResolvedCoordinates({ lat: resolvedLat, lng: resolvedLng });
+        }
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          console.warn("Failed to resolve map coordinates from location", error);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsResolvingCoordinates(false);
+        }
+      }
+    };
+
+    resolveFromLocation();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [apiBaseUrl, hasLocationText, isRemoteLocation, lat, lng, trimmedLocation]);
+
   const hasCoordinates =
-    coordinates &&
-    Number.isFinite(Number(coordinates.lat)) &&
-    Number.isFinite(Number(coordinates.lng));
+    resolvedCoordinates &&
+    resolvedCoordinates.lat !== null &&
+    resolvedCoordinates.lng !== null;
 
   if (!hasCoordinates) {
     const mapsSearchUrl = hasLocationText
@@ -37,15 +113,28 @@ const LocationMapEmbed = ({
                 Type city or address, then click <span className="font-medium">Pin This Location</span>.
               </p>
             </>
+          ) : isResolvingCoordinates ? (
+            <>
+              <p className="text-base font-semibold text-gray-800">Locating map preview...</p>
+              <p className="mt-1 text-sm text-gray-600">
+                Finding coordinates for <span className="font-medium">{trimmedLocation}</span>.
+              </p>
+            </>
           ) : (
             <>
               <p className="text-base font-semibold text-gray-800">Location added</p>
               <p className="mt-1 text-sm text-gray-600">
                 <span className="font-medium">{trimmedLocation}</span>
               </p>
-              <p className="mt-2 text-sm text-gray-600">
-                Click <span className="font-medium">Pin This Location</span> to generate exact map coordinates.
-              </p>
+              {isRemoteLocation ? (
+                <p className="mt-2 text-sm text-gray-600">
+                  Remote jobs do not have a fixed map pin.
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-gray-600">
+                  Click <span className="font-medium">Pin This Location</span> to generate exact map coordinates.
+                </p>
+              )}
               {mapsSearchUrl && (
                 <a
                   href={mapsSearchUrl}
@@ -63,7 +152,7 @@ const LocationMapEmbed = ({
     );
   }
 
-  const position = [coordinates.lat, coordinates.lng];
+  const position = [resolvedCoordinates.lat, resolvedCoordinates.lng];
 
   return (
     <div className={`rounded-xl border border-gray-200 overflow-hidden bg-white ${className}`}>
