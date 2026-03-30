@@ -4,6 +4,34 @@ import { useAuth } from '../../context/AuthContext';
 import Footer from '../../components/Home/Footer';
 import LocationMapEmbed from '../../components/maps/LocationMapEmbed';
 
+const normalizeMilestones = (jobData) => {
+  const rawMilestones = Array.isArray(jobData?.milestones)
+    ? jobData.milestones
+    : Array.isArray(jobData?.projectMilestones)
+    ? jobData.projectMilestones
+    : Array.isArray(jobData?.paymentSchedule)
+    ? jobData.paymentSchedule
+    : [];
+
+  return rawMilestones
+    .filter(Boolean)
+    .map((milestone) => {
+      const paymentValue =
+        milestone?.payment ?? milestone?.amount ?? milestone?.budget ?? null;
+
+      return {
+        description:
+          milestone?.description || milestone?.title || milestone?.name || 'Milestone',
+        deadline:
+          milestone?.deadline || milestone?.dueDate || milestone?.targetDate || 'TBD',
+        payment:
+          paymentValue !== null && paymentValue !== undefined && paymentValue !== ''
+            ? String(paymentValue)
+            : 'TBD',
+      };
+    });
+};
+
 const JobDescription = () => {
   const { jobId } = useParams();
   const navigate = useNavigate();
@@ -27,7 +55,7 @@ const JobDescription = () => {
 
   useEffect(() => {
     fetchJobDetails();
-  }, [jobId]);
+  }, [jobId, user?.role]);
 
   // Update tab from URL params
   useEffect(() => {
@@ -52,7 +80,32 @@ const JobDescription = () => {
       const data = await response.json();
 
       if (data.success) {
-        setJob(data.job);
+        let mergedJob = data.job || {};
+
+        if ((!Array.isArray(mergedJob.milestones) || mergedJob.milestones.length === 0) && user?.role === 'Employer') {
+          try {
+            const privateResponse = await fetch(`${apiBaseUrl}/api/employer/job-listings/${jobId}`, {
+              credentials: 'include',
+            });
+            const privateData = await privateResponse.json();
+
+            if (privateData?.success && privateData?.data) {
+              mergedJob = {
+                ...mergedJob,
+                ...privateData.data,
+                companyName: mergedJob.companyName,
+                budget: mergedJob.budget,
+              };
+            }
+          } catch (privateFetchError) {
+            console.warn('Could not fetch private job milestones:', privateFetchError);
+          }
+        }
+
+        setJob({
+          ...mergedJob,
+          milestones: normalizeMilestones(mergedJob),
+        });
       } else {
         setError('Job not found');
       }
