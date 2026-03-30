@@ -1,29 +1,63 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
-// Async thunk to fetch complaints
+// GraphQL query for moderator complaints
+const MODERATOR_COMPLAINTS_QUERY = `
+  query {
+    moderatorComplaints(page: 1, limit: 1000) {
+      complaints {
+        complaintId
+        complainantType
+        complainantId
+        complainantName
+        complainantUserId
+        freelancerId
+        freelancerName
+        freelancerUserId
+        freelancerRating
+        employerId
+        employerName
+        employerUserId
+        employerRating
+        jobId
+        jobTitle
+        complaintType
+        priority
+        subject
+        description
+        status
+        moderatorNotes
+        createdAt
+        updatedAt
+        resolvedAt
+      }
+      total
+    }
+  }
+`;
+
+// Async thunk to fetch complaints using GraphQL
 export const fetchComplaints = createAsyncThunk(
   'complaints/fetchComplaints',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/api/moderator/complaints`,
-        { withCredentials: true }
-      );
+      const data = await graphqlQuery(MODERATOR_COMPLAINTS_QUERY);
       
-      if (response.data.success) {
-        return response.data.complaints || [];
+      if (data?.moderatorComplaints?.complaints) {
+        return data.moderatorComplaints.complaints;
       }
       return rejectWithValue('Failed to fetch complaints');
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch complaints');
+      return rejectWithValue(error.message || 'Failed to fetch complaints');
     }
   }
 );
 
 // Async thunk to update complaint status
+// Note: Still uses REST endpoint until GraphQL mutation is implemented
 export const updateComplaintStatus = createAsyncThunk(
   'complaints/updateStatus',
   async ({ complaintId, status, moderatorNotes }, { rejectWithValue }) => {
