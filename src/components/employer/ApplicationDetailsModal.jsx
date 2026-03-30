@@ -123,7 +123,8 @@ const ApplicationDetailsModal = ({ application, onClose }) => {
   };
 
   const handleViewProfile = () => {
-    const profileId = detail.freelancerUserId || detail.freelancerId;
+    const profileId = detail.freelancerId || detail.freelancerUserId;
+    if (!profileId) return;
     navigate(`/freelancer/${profileId}`);
   };
 
