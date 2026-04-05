@@ -1,0 +1,21 @@
+# VCS and editor
+.git
+.gitignore
+.vscode
+.idea
+
+# Dependencies and build outputs
+node_modules
+dist
+coverage
+
+# Local env files
+.env
+.env.*
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Docs and misc
+README.md
