@@ -126,10 +126,10 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-navy-50 to-navy-100 p-5">
-      <div className="flex max-w-5xl w-full bg-white rounded-3xl overflow-hidden shadow-2xl min-h-[600px] border border-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-navy-50 to-navy-100 p-3 sm:p-5">
+      <div className="flex max-w-5xl w-full bg-white rounded-2xl lg:rounded-3xl overflow-hidden shadow-2xl lg:min-h-[600px] border border-gray-100">
         {/* Left Side - Form */}
-        <div className="flex-1 p-12 flex items-center justify-center bg-white">
+        <div className="w-full lg:flex-1 p-5 sm:p-8 lg:p-12 flex items-center justify-center bg-white">
           <div className="w-full max-w-sm">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-5 flex items-center gap-2 text-sm font-medium">
@@ -248,7 +248,7 @@ const Login = () => {
         </div>
 
         {/* Right Side - Branding */}
-        <div className="flex-1 bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 text-white px-12 py-16 flex items-center justify-center relative overflow-hidden">
+        <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 text-white px-12 py-16 items-center justify-center relative overflow-hidden">
           <div className="absolute inset-0 opacity-10" style={{
             background: 'radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.2) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(255, 255, 255, 0.15) 0%, transparent 50%)'
           }}></div>
