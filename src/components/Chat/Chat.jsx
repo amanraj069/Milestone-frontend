@@ -28,9 +28,10 @@ const Chat = () => {
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [replyTo, setReplyTo] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(() => window.innerWidth <= 768);
   const [isConversationsSidebarCollapsed, setIsConversationsSidebarCollapsed] = useState(() => {
-    // Auto-collapse on screens below 1080px
-    return window.innerWidth < 1080;
+    // Auto-collapse only on tablet widths, not phones
+    return window.innerWidth >= 768 && window.innerWidth < 1080;
   });
   const [contextMenu, setContextMenu] = useState(null);
   
@@ -41,8 +42,12 @@ const Chat = () => {
   // Handle responsive sidebar collapse on window resize
   useEffect(() => {
     const handleResize = () => {
-      // Only auto-collapse/expand if user hasn't manually toggled
-      if (window.innerWidth < 1080 && !isConversationsSidebarCollapsed) {
+      const mobile = window.innerWidth <= 768;
+      setIsMobileView(mobile);
+
+      if (mobile) {
+        setIsConversationsSidebarCollapsed(false);
+      } else if (window.innerWidth < 1080 && !isConversationsSidebarCollapsed) {
         setIsConversationsSidebarCollapsed(true);
       }
     };
@@ -587,16 +592,18 @@ const Chat = () => {
       <div className="chat-main-container">
         <div className="chat-layout">
           {/* Conversations Sidebar */}
-          <div className={`conversations-sidebar ${isConversationsSidebarCollapsed ? 'collapsed' : ''}`}>
+          <div className={`conversations-sidebar ${isConversationsSidebarCollapsed ? 'collapsed' : ''} ${isMobileView && selectedConversation ? 'mobile-hidden' : ''}`}>
             <div className="conversations-header">
               <div className="conversations-header-top">
                 <h2>Messages</h2>
-                <button 
-                  className="collapse-btn"
-                  onClick={() => setIsConversationsSidebarCollapsed(!isConversationsSidebarCollapsed)}
-                >
-                  {isConversationsSidebarCollapsed ? '←' : '→'}
-                </button>
+                {!isMobileView && (
+                  <button 
+                    className="collapse-btn"
+                    onClick={() => setIsConversationsSidebarCollapsed(!isConversationsSidebarCollapsed)}
+                  >
+                    {isConversationsSidebarCollapsed ? '←' : '→'}
+                  </button>
+                )}
               </div>
               {!isConversationsSidebarCollapsed && (
                 <div className="search-box">
@@ -689,11 +696,20 @@ const Chat = () => {
           </div>
 
           {/* Chat Area */}
-          <div className={`chat-area ${!isConversationsSidebarCollapsed ? 'expanded-sidebar' : ''}`}>
+          <div className={`chat-area ${!isMobileView && !isConversationsSidebarCollapsed ? 'expanded-sidebar' : ''} ${isMobileView && !selectedConversation ? 'mobile-hidden' : ''}`}>
             {selectedConversation ? (
               <>
                 <div className="chat-header">
                   <div className="chat-header-info">
+                    {isMobileView && (
+                      <button
+                        className="mobile-back-btn"
+                        onClick={() => setSelectedConversation(null)}
+                        aria-label="Back to conversations"
+                      >
+                        ←
+                      </button>
+                    )}
                     <div className="chat-header-avatar">
                       <img src={selectedConversation.participant.picture} alt={selectedConversation.participant.name} />
                     </div>

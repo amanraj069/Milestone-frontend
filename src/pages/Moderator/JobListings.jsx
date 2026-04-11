@@ -275,7 +275,7 @@ const ModeratorJobListings = () => {
       <p className="text-gray-500 mt-1">View and manage all job postings</p>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 mb-4">
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
