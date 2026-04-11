@@ -288,17 +288,6 @@ const EditEmployerProfile = () => {
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          
-          <button 
-            onClick={() => navigate('/employer/profile')}
-            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit}>
           {/* Profile Image Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">

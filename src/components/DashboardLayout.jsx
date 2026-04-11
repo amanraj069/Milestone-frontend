@@ -28,6 +28,7 @@ const DashboardLayout = ({ children }) => {
   const dispatch = useDispatch();
   const [isPremium, setIsPremium] = useState(false);
   const [pendingApplicationsCount, setPendingApplicationsCount] = useState(0);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const unreadCount = useSelector(selectUnreadCount);
   const { socket } = useSocket();
@@ -135,6 +136,10 @@ const DashboardLayout = ({ children }) => {
     };
   }, [checkAuthStatus]);
 
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
   const handleLogout = async () => {
     await logout();
     navigate('/login');
@@ -205,14 +210,69 @@ const DashboardLayout = ({ children }) => {
     return user.role;
   };
 
+  const getMobileHeaderConfig = () => {
+    const path = location.pathname;
+
+    // Use back button on mobile for deep employer job listing flows.
+    if (path === '/employer/job-listings/new') {
+      return { title: 'Post New Job', backTo: '/employer/job-listings' };
+    }
+
+    if (path === '/employer/profile/edit') {
+      return { title: 'Edit Profile', backTo: '/employer/profile' };
+    }
+
+    if (/^\/employer\/job-listings\/edit\/.+/.test(path)) {
+      return { title: 'Edit Job Listing', backTo: '/employer/job-listings' };
+    }
+
+    const exactTitleMap = {
+      '/employer/profile': 'Employer Profile',
+      '/employer/job-listings': 'Job Listings',
+      '/employer/current-jobs': 'Current Jobs',
+      '/employer/applications': 'Applications',
+      '/employer/work-history': 'Work History',
+      '/employer/subscription': 'Subscription',
+      '/employer/transactions': 'Transactions',
+      '/employer/notifications': 'Notifications',
+      '/employer/chat': 'Chat',
+      '/freelancer/profile': 'Freelancer Profile',
+      '/freelancer/active-jobs': 'My Jobs',
+      '/freelancer/job-history': 'Job History',
+      '/freelancer/payments': 'Payments',
+      '/freelancer/subscription': 'Subscription',
+      '/freelancer/notifications': 'Notifications',
+      '/freelancer/chat': 'Chat',
+      '/admin/dashboard': 'Admin Dashboard',
+      '/moderator/job-listings': 'Job Listings',
+    };
+
+    if (exactTitleMap[path]) {
+      return { title: exactTitleMap[path], backTo: null };
+    }
+
+    const activeMenuItem = menuItems.find((item) => item.path === path);
+    if (activeMenuItem) {
+      return { title: activeMenuItem.name, backTo: null };
+    }
+
+    return { title: 'Dashboard', backTo: null };
+  };
+
+  const mobileHeader = getMobileHeaderConfig();
+
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex min-h-dvh bg-gray-50 overflow-x-hidden">
       {/* Sidebar */}
-      <aside className="w-72 bg-gradient-to-b from-blue-900 via-blue-800 to-blue-700 text-white flex flex-col shadow-2xl">
+      <aside
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-blue-900 via-blue-800 to-blue-700 text-white flex flex-col shadow-2xl transform transition-transform duration-300 ease-out ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
         {/* Header */}
         <div className="p-6 border-b border-blue-600/30">
           <div className="flex items-center gap-2 mb-4">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <h1 className="text-4xl font-extrabold leading-tight">Dashboard</h1>
             {/* {isPremium && (
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center shadow-lg">
@@ -326,10 +386,40 @@ const DashboardLayout = ({ children }) => {
         </div>
       </aside>
 
+      {isSidebarOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-label="Close menu overlay"
+        />
+      )}
+
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <button
+            type="button"
+            className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-600 text-white"
+            onClick={() => {
+              if (mobileHeader.backTo) {
+                navigate(mobileHeader.backTo);
+              } else {
+                setIsSidebarOpen(true);
+              }
+            }}
+            aria-label={mobileHeader.backTo ? 'Go back' : 'Open menu'}
+          >
+            <i className={`fas ${mobileHeader.backTo ? 'fa-arrow-left' : 'fa-bars'}`}></i>
+          </button>
+          <h2 className="text-2xl font-black text-gray-900 leading-none truncate max-w-[60vw] text-center">{mobileHeader.title}</h2>
+          <div className="w-10 h-10" aria-hidden="true"></div>
+        </div>
+
+        <main className="flex-1 overflow-y-auto min-w-0">
+          {children}
+        </main>
+      </div>
     </div>
   );
 };

@@ -452,9 +452,9 @@ const AddJob = () => {
   };
 
   const headerAction = (
-    <div className="flex items-center gap-4">
+    <div className="w-full sm:w-auto flex items-center gap-2 sm:gap-4 overflow-x-auto">
       {/* Step Indicator */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-max">
         <div className="flex items-center gap-2">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
             currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
@@ -465,7 +465,7 @@ const AddJob = () => {
               </svg>
             ) : '1'}
           </div>
-          <span className={`text-sm font-medium ${currentStep >= 1 ? 'text-blue-600' : 'text-gray-500'}`}>
+          <span className={`hidden sm:inline text-sm font-medium ${currentStep >= 1 ? 'text-blue-600' : 'text-gray-500'}`}>
             Job Details
           </span>
         </div>
@@ -476,7 +476,7 @@ const AddJob = () => {
           }`}>
             2
           </div>
-          <span className={`text-sm font-medium ${currentStep >= 2 ? 'text-blue-600' : 'text-gray-500'}`}>
+          <span className={`hidden sm:inline text-sm font-medium ${currentStep >= 2 ? 'text-blue-600' : 'text-gray-500'}`}>
             Milestones
           </span>
         </div>
@@ -484,13 +484,27 @@ const AddJob = () => {
     </div>
   );
 
+  const pageTitle = (
+    <span className="inline-flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => navigate('/employer/job-listings')}
+        className="inline-flex sm:hidden items-center justify-center w-9 h-9 rounded-lg bg-gray-100 text-gray-700 border border-gray-200"
+        aria-label="Go back to job listings"
+      >
+        <i className="fas fa-arrow-left text-sm"></i>
+      </button>
+      <span>Post New Job</span>
+    </span>
+  );
+
   return (
-    <DashboardPage title="Post New Job" headerAction={headerAction}>
-      <p className="text-gray-500 -mt-6 mb-6">Fill in the details to create a new job listing</p>
+    <DashboardPage title={pageTitle} headerAction={headerAction}>
+      <p className="text-gray-500 mt-0 sm:-mt-6 mb-6 text-sm sm:text-base">Fill in the details to create a new job listing</p>
 
       {/* Form Container */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {/* Show error at top only for Step 1 */}
           {currentStep === 1 && error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6 flex items-center gap-2 text-sm">
@@ -825,7 +839,7 @@ const AddJob = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/employer/job-listings')}
-                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
+                  className="hidden sm:flex flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors items-center justify-center"
                 >
                   Cancel
                 </button>
