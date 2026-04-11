@@ -362,13 +362,13 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-navy-50 to-navy-100 p-5">
-      <div className="flex max-w-5xl w-full bg-white rounded-3xl overflow-hidden shadow-2xl min-h-[600px] border border-gray-100">
+    <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-navy-50 to-navy-100 p-3 sm:p-5">
+      <div className="flex max-w-5xl w-full bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl md:min-h-[600px] border border-gray-100">
         {/* Left Side - Form */}
-        <div className="flex-1 p-12 flex items-center justify-center bg-white">
+        <div className="w-full md:flex-1 p-5 sm:p-8 lg:p-12 flex items-center justify-center bg-white">
           <div className="w-full max-w-sm">
             {/* Step Indicator */}
-            <div className="text-center mb-8">
+            <div className="text-center mb-6 sm:mb-8">
               <div className="inline-flex items-center gap-1 bg-gradient-to-r from-navy-50 to-navy-100 px-4 py-2 rounded-full text-sm font-medium text-gray-600 border border-gray-200">
                 <span className="text-navy-700 font-bold">{currentStep}</span>
                 <span className="text-gray-500">of 3</span>
@@ -378,9 +378,9 @@ const Signup = () => {
             {/* Step 1: Basic Information */}
             {currentStep === 1 && (
               <>
-                <div className="text-center mb-8">
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Milestone</h2>
-                  <p className="text-base text-gray-600">Let's start with the basics</p>
+                <div className="text-center mb-6 sm:mb-8">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Welcome to Milestone</h2>
+                  <p className="text-sm sm:text-base text-gray-600">Let's start with the basics</p>
                 </div>
                 
                 {error && (
@@ -401,7 +401,7 @@ const Signup = () => {
                       placeholder="Enter your full name"
                       autoComplete="name"
                       autoFocus
-                      className={`px-4 py-3 border-2 rounded-lg text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
+                      className={`px-3.5 sm:px-4 py-2.5 sm:py-3 border-2 rounded-lg text-[15px] sm:text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
                         fieldErrors.name 
                           ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-50' 
                           : formData.name.trim().length >= 2 
@@ -425,7 +425,7 @@ const Signup = () => {
                       onChange={handleChange}
                       placeholder="Enter your email address"
                       autoComplete="email"
-                      className={`px-4 py-3 border-2 rounded-lg text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
+                      className={`px-3.5 sm:px-4 py-2.5 sm:py-3 border-2 rounded-lg text-[15px] sm:text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
                         fieldErrors.email 
                           ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-50' 
                           : formData.email && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email) 
@@ -446,7 +446,7 @@ const Signup = () => {
                       name="role"
                       value={formData.role}
                       onChange={handleChange}
-                      className={`px-4 py-3 border-2 rounded-lg text-base bg-gray-50 transition-all outline-none text-gray-900 focus:bg-white focus:ring-4 ${
+                      className={`px-3.5 sm:px-4 py-2.5 sm:py-3 border-2 rounded-lg text-[15px] sm:text-base bg-gray-50 transition-all outline-none text-gray-900 focus:bg-white focus:ring-4 ${
                         fieldErrors.role 
                           ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-50' 
                           : formData.role
@@ -467,7 +467,7 @@ const Signup = () => {
                     )}
                   </div>
 
-                  <button type="submit" disabled={loading} className="px-6 py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-base inline-flex items-center justify-center gap-2 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white w-full hover:from-navy-900 hover:via-navy-800 hover:to-navy-700 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed">
+                  <button type="submit" disabled={loading} className="px-5 sm:px-6 py-3 sm:py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-[15px] sm:text-base inline-flex items-center justify-center gap-2 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white w-full hover:from-navy-900 hover:via-navy-800 hover:to-navy-700 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed">
                     {loading ? (
                       <>
                         <i className="fas fa-spinner fa-spin"></i>
@@ -492,9 +492,9 @@ const Signup = () => {
             {/* Step 2: Password Setup */}
             {currentStep === 2 && (
               <>
-                <div className="text-center mb-8">
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">Secure Your Account</h2>
-                  <p className="text-base text-gray-600">Create a strong password to protect your account</p>
+                <div className="text-center mb-6 sm:mb-8">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Secure Your Account</h2>
+                  <p className="text-sm sm:text-base text-gray-600">Create a strong password to protect your account</p>
                 </div>
 
                 <div className="bg-gradient-to-r from-navy-50 to-navy-100 border border-gray-200 rounded-xl p-4 mb-6 flex items-center justify-between shadow-sm">
@@ -529,7 +529,7 @@ const Signup = () => {
                         placeholder="Create a strong password"
                         autoComplete="off"
                         autoFocus
-                        className={`px-4 py-3 pr-12 border-2 rounded-lg text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 w-full ${
+                        className={`px-3.5 sm:px-4 py-2.5 sm:py-3 pr-11 sm:pr-12 border-2 rounded-lg text-[15px] sm:text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 w-full ${
                           fieldErrors.password 
                             ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-50' 
                             : formData.password && 
@@ -570,7 +570,7 @@ const Signup = () => {
                         onChange={handleChange}
                         placeholder="Confirm your password"
                         autoComplete="off"
-                        className={`px-4 py-3 pr-12 border-2 rounded-lg text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 w-full ${
+                        className={`px-3.5 sm:px-4 py-2.5 sm:py-3 pr-11 sm:pr-12 border-2 rounded-lg text-[15px] sm:text-base bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400 w-full ${
                           fieldErrors.confirmPassword 
                             ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-50' 
                             : formData.confirmPassword && formData.confirmPassword === formData.password
@@ -594,11 +594,11 @@ const Signup = () => {
                   </div>
 
                   <div className="flex gap-3 mt-6">
-                    <button type="button" onClick={handlePrevStep} className="px-6 py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-base inline-flex items-center justify-center gap-2 bg-transparent border-2 border-navy-700 text-navy-700 hover:bg-navy-700 hover:text-white hover:-translate-y-0.5 flex-none min-w-[100px]">
+                    <button type="button" onClick={handlePrevStep} className="px-5 sm:px-6 py-3 sm:py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-[15px] sm:text-base inline-flex items-center justify-center gap-2 bg-transparent border-2 border-navy-700 text-navy-700 hover:bg-navy-700 hover:text-white hover:-translate-y-0.5 flex-none min-w-[96px] sm:min-w-[100px]">
                       <i className="fas fa-arrow-left"></i>
                       <span>Back</span>
                     </button>
-                    <button type="submit" disabled={loading} className="flex-1 px-6 py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-base inline-flex items-center justify-center gap-2 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white hover:from-navy-900 hover:via-navy-800 hover:to-navy-700 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none">
+                    <button type="submit" disabled={loading} className="flex-1 px-5 sm:px-6 py-3 sm:py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-[15px] sm:text-base inline-flex items-center justify-center gap-2 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white hover:from-navy-900 hover:via-navy-800 hover:to-navy-700 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none">
                       {loading ? (
                         <>
                           <i className="fas fa-spinner fa-spin"></i>
@@ -619,9 +619,9 @@ const Signup = () => {
             {/* Step 3: OTP Verification */}
             {currentStep === 3 && (
               <>
-                <div className="text-center mb-8">
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">Verify Your Email</h2>
-                  <p className="text-base text-gray-600">We've sent a 6-digit OTP to <strong>{formData.email}</strong></p>
+                <div className="text-center mb-6 sm:mb-8">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Verify Your Email</h2>
+                  <p className="text-sm sm:text-base text-gray-600">We've sent a 6-digit OTP to <strong>{formData.email}</strong></p>
                 </div>
                 
                 {error && (
@@ -634,7 +634,7 @@ const Signup = () => {
                 <div className="flex flex-col gap-5">
                   <div className="flex flex-col gap-3">
                     <label className="text-sm font-medium text-gray-700 text-center">Enter OTP</label>
-                    <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
+                    <div className="flex justify-center gap-1.5 sm:gap-2" onPaste={handleOtpPaste}>
                       {otpDigits.map((digit, index) => (
                         <input
                           key={index}
@@ -646,7 +646,7 @@ const Signup = () => {
                           onKeyDown={(e) => handleOtpKeyDown(index, e)}
                           autoFocus={index === 0}
                           maxLength={1}
-                          className={`w-12 h-14 border-2 rounded-lg text-xl bg-white transition-all outline-none text-gray-900 text-center font-bold ${
+                          className={`w-10 h-12 sm:w-12 sm:h-14 border-2 rounded-lg text-lg sm:text-xl bg-white transition-all outline-none text-gray-900 text-center font-bold ${
                             digit 
                               ? 'border-navy-500 bg-navy-50' 
                               : 'border-gray-300'
@@ -663,7 +663,7 @@ const Signup = () => {
                     type="button" 
                     onClick={handleVerifyOtp} 
                     disabled={loading || formData.otp.length !== 6}
-                    className="px-6 py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-base inline-flex items-center justify-center gap-2 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white w-full hover:from-navy-900 hover:via-navy-800 hover:to-navy-700 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="px-5 sm:px-6 py-3 sm:py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-[15px] sm:text-base inline-flex items-center justify-center gap-2 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white w-full hover:from-navy-900 hover:via-navy-800 hover:to-navy-700 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <>
@@ -693,7 +693,7 @@ const Signup = () => {
                   <button 
                     type="button" 
                     onClick={handlePrevStep} 
-                    className="px-6 py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-base inline-flex items-center justify-center gap-2 bg-transparent border-2 border-navy-700 text-navy-700 hover:bg-navy-700 hover:text-white hover:-translate-y-0.5"
+                    className="px-5 sm:px-6 py-3 sm:py-3.5 rounded-lg font-semibold cursor-pointer transition-all text-[15px] sm:text-base inline-flex items-center justify-center gap-2 bg-transparent border-2 border-navy-700 text-navy-700 hover:bg-navy-700 hover:text-white hover:-translate-y-0.5"
                   >
                     <i className="fas fa-arrow-left"></i>
                     <span>Back to Password</span>
@@ -705,7 +705,7 @@ const Signup = () => {
         </div>
 
         {/* Right Side - Branding */}
-        <div className="flex-1 bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 text-white px-12 py-16 flex items-center justify-center relative overflow-hidden">
+        <div className="hidden md:flex md:flex-1 bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 text-white px-12 py-16 items-center justify-center relative overflow-hidden">
           <div className="absolute inset-0 opacity-10" style={{
             background: 'radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.2) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(255, 255, 255, 0.15) 0%, transparent 50%)'
           }}></div>
