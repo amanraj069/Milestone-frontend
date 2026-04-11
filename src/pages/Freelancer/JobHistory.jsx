@@ -121,7 +121,7 @@ export default function FreelancerJobHistory() {
 
   return (
     <DashboardPage title="Job History">
-      <p className="text-gray-500 -mt-6 mb-6">View your completed and past jobs</p>
+      <p className="text-gray-500 mt-0 sm:-mt-6 mb-6 text-sm sm:text-base">View your completed and past jobs</p>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">

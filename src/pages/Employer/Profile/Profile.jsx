@@ -156,7 +156,7 @@ const EmployerProfile = () => {
 
   if (loading) {
     return (
-      <DashboardPage title="Employer Profile">
+      <DashboardPage title="Profile">
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
@@ -169,7 +169,7 @@ const EmployerProfile = () => {
 
   if (!profileData) {
     return (
-      <DashboardPage title="Employer Profile">
+      <DashboardPage title="Profile">
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <p className="text-gray-600">No profile data available.</p>
@@ -183,9 +183,9 @@ const EmployerProfile = () => {
   const hasCompanyDetails = employerData?.companyDetails?.isSubmitted === true;
 
   return (
-    <DashboardPage title="Employer Profile">
+    <DashboardPage title="Profile">
       {/* Header with description and action button */}
-      <div className="flex items-start justify-between gap-3 mb-6 mt-0 sm:-mt-2">
+      <div className="flex items-center justify-between gap-3 mb-6 mt-0 sm:-mt-2">
         <p className="text-gray-600 text-sm sm:text-base pr-2">Manage your company profile and information</p>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
           {isUnapprovedEmployer && (

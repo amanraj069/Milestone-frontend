@@ -98,7 +98,7 @@ const FreelancerSkillsBadges = () => {
 
   return (
     <DashboardPage title="Skills & Badges">
-      <p className="text-gray-500 -mt-6 mb-6">Earn badges by completing skill assessments</p>
+      <p className="text-gray-500 mt-0 sm:-mt-6 mb-6 text-sm sm:text-base">Earn badges by completing skill assessments</p>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

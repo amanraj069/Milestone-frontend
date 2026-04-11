@@ -143,18 +143,33 @@ const FreelancerProfile = () => {
     );
   }
 
-  const editProfileButton = (
-    <button 
-      onClick={() => navigate('/freelancer/profile/edit')}
-      className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center gap-2"
-    >
-      Edit Profile
-    </button>
-  );
-
   return (
-    <DashboardPage title="Profile" headerAction={editProfileButton}>
+    <DashboardPage title="Profile">
       <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between gap-3 mb-6 mt-0 sm:-mt-2">
+          <p className="text-gray-600 text-sm sm:text-base pr-2">Manage your profile by adding projects and your resume</p>
+          <button
+            onClick={() => navigate('/freelancer/profile/edit')}
+            className="inline-flex items-center justify-center h-10 w-10 sm:h-auto sm:w-auto sm:px-5 sm:py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors gap-2 text-sm sm:text-base shrink-0"
+            aria-label="Edit profile"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-4 h-4"
+            >
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+            </svg>
+            <span className="hidden sm:inline">Edit Profile</span>
+          </button>
+        </div>
+
         {/* Profile Header — two-column: left = profile card, right = reviews */}
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 mb-6">
 

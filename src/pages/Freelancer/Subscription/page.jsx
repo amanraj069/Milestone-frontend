@@ -144,7 +144,7 @@ const FreelancerSubscription = () => {
 
   return (
     <DashboardPage title="Subscription">
-      <p className="text-gray-500 mb-6 -mt-4">Manage your subscription and unlock premium features</p>
+      <p className="text-gray-500 mt-0 sm:-mt-4 mb-6 text-sm sm:text-base">Manage your subscription and unlock premium features</p>
 
       <div className="max-w-6xl mx-auto space-y-6">
         <div className={`rounded-2xl overflow-hidden border ${isPremium ? 'border-blue-300' : 'border-gray-200'} bg-white shadow-sm`}>
