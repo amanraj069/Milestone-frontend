@@ -106,10 +106,10 @@ const ModeratorComplaints = () => {
 
   return (
     <DashboardPage title="Complaints">
-      <p className="text-gray-500 -mt-6 mb-6">View and manage all registered complaints</p>
+      <p className="text-gray-500 mt-1 mb-6">View and manage all registered complaints</p>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-6">
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -117,7 +117,7 @@ const ModeratorComplaints = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Total Complaints</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{stats.total}</p>
             </div>
           </div>
         </div>
@@ -129,7 +129,7 @@ const ModeratorComplaints = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Pending</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.pending}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{stats.pending}</p>
             </div>
           </div>
         </div>
@@ -141,7 +141,7 @@ const ModeratorComplaints = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Under Review</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.underReview}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{stats.underReview}</p>
             </div>
           </div>
         </div>
@@ -153,7 +153,7 @@ const ModeratorComplaints = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Resolved</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.resolved}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{stats.resolved}</p>
             </div>
           </div>
         </div>

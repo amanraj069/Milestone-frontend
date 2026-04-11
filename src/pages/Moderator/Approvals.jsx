@@ -205,10 +205,10 @@ const ModeratorApprovals = () => {
       <style>{modalStyles}</style>
       
       {/* Page Subtitle */}
-      <p className="text-gray-500 -mt-6">Review and approve employer registrations</p>
+      <p className="text-gray-500 mt-1">Review and approve employer registrations</p>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-4">
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -216,7 +216,7 @@ const ModeratorApprovals = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Total Employers</p>
-              <p className="text-2xl font-bold text-gray-800">{totalEmployers}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{totalEmployers}</p>
             </div>
           </div>
         </div>
@@ -228,7 +228,7 @@ const ModeratorApprovals = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Pending Approval</p>
-              <p className="text-2xl font-bold text-gray-800">{pendingCount}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{pendingCount}</p>
             </div>
           </div>
         </div>
@@ -240,7 +240,7 @@ const ModeratorApprovals = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Approved</p>
-              <p className="text-2xl font-bold text-gray-800">{approvedCount}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{approvedCount}</p>
             </div>
           </div>
         </div>
@@ -252,7 +252,7 @@ const ModeratorApprovals = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Rejected</p>
-              <p className="text-2xl font-bold text-gray-800">{rejectedCount}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{rejectedCount}</p>
             </div>
           </div>
         </div>

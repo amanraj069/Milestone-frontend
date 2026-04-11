@@ -279,10 +279,10 @@ const ModeratorFreelancers = () => {
       {/* Inject modal animation styles */}
       <style>{modalStyles}</style>
 
-      <p className="text-gray-500 -mt-6">View and manage all registered freelancers</p>
+      <p className="text-gray-500 mt-1">View and manage all registered freelancers</p>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-4">
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -290,7 +290,7 @@ const ModeratorFreelancers = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Total Freelancers</p>
-              <p className="text-2xl font-bold text-gray-800">{totalFreelancers}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{totalFreelancers}</p>
             </div>
           </div>
         </div>
@@ -302,7 +302,7 @@ const ModeratorFreelancers = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Average Rating</p>
-              <p className="text-2xl font-bold text-gray-800">{avgRating}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{avgRating}</p>
             </div>
           </div>
         </div>
@@ -314,7 +314,7 @@ const ModeratorFreelancers = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Days Average</p>
-              <p className="text-2xl font-bold text-gray-800">{avgDays}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{avgDays}</p>
             </div>
           </div>
         </div>
@@ -326,7 +326,7 @@ const ModeratorFreelancers = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Success Rate</p>
-              <p className="text-2xl font-bold text-gray-800">{successRate}%</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{successRate}%</p>
             </div>
           </div>
         </div>
