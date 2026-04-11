@@ -158,19 +158,19 @@ const EmployerJobListings = () => {
       headerAction={
         <Link
           to="/employer/job-listings/new"
-          className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
+          className="w-full sm:w-auto justify-center bg-gradient-to-r from-blue-600 to-blue-500 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
         >
           <i className="fas fa-plus"></i>
           <span>Post New Job</span>
         </Link>
       }
     >
-      <div className="mb-6 mt-8">
-        <p className="text-gray-600">Browse and manage your posted job opportunities</p>
+      <div className="mb-5 sm:mb-6 mt-3 sm:mt-8">
+        <p className="text-gray-600 text-sm sm:text-base">Browse and manage your posted job opportunities</p>
       </div>
 
           {/* Search and Filters */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6">
             <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
               <div className="flex-1 min-w-0">
                 <SmartSearchInput
@@ -193,7 +193,7 @@ const EmployerJobListings = () => {
               <select
                 value={activeFilter}
                 onChange={(e) => setActiveFilter(e.target.value)}
-                className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full lg:w-auto h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="All jobs filter"
               >
                 <option>All Jobs</option>
@@ -207,7 +207,7 @@ const EmployerJobListings = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full lg:w-auto h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Sort jobs"
               >
                 <option value="oldest-posted">Oldest Posted</option>
@@ -219,7 +219,7 @@ const EmployerJobListings = () => {
           </div>
 
           {/* Job Listings */}
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20">
                 <i className="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
@@ -262,28 +262,28 @@ const EmployerJobListings = () => {
                 {filteredJobs.map(job => (
                   <div
                     key={job.jobId}
-                    className={`border-2 rounded-xl p-5 transition-all hover:shadow-lg flex gap-5 items-center ${
+                    className={`border-2 rounded-xl p-4 sm:p-5 transition-all hover:shadow-lg flex flex-col md:flex-row gap-4 sm:gap-5 items-start md:items-center ${
                       job.isBoosted
                         ? 'border-yellow-400 shadow-md shadow-yellow-100 hover:border-yellow-500'
                         : 'border-gray-200 hover:border-blue-600'
                     }`}
                   >
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 self-center md:self-start">
                       <img
                         src={job.imageUrl || '/assets/company_logo.jpg'}
                         alt="Company"
-                        className="w-32 h-32 rounded-lg object-cover"
+                        className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg object-cover"
                       />
                     </div>
 
-                    <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                    <div className="flex-1 min-w-0 w-full">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 break-words">
                         {job.title}
-                        <span className="ml-2 text-sm font-normal text-gray-500">
+                        <span className="ml-2 text-xs sm:text-sm font-normal text-gray-500">
                           ({job.applicationCount || 0}/{job.applicationCap != null ? job.applicationCap : <span className="text-base">∞</span>})
                         </span>
                       </h3>
-                      <div className="text-blue-600 font-semibold text-lg mb-3">
+                      <div className="text-blue-600 font-semibold text-base sm:text-lg mb-3">
                         ₹{typeof job.budget === 'number' ? job.budget.toLocaleString('en-IN') : job.budget}
                       </div>
                       <div className="flex gap-2 mb-3 flex-wrap">
@@ -293,7 +293,7 @@ const EmployerJobListings = () => {
                           </span>
                         ))}
                       </div>
-                      <div className="flex gap-4 text-gray-600 text-sm flex-wrap">
+                      <div className="flex gap-2 sm:gap-4 text-gray-600 text-xs sm:text-sm flex-wrap">
                         <span className="flex items-center gap-2">
                           <i className="fas fa-map-marker-alt text-blue-600"></i>
                           {job.location || 'Not specified'}
@@ -315,21 +315,21 @@ const EmployerJobListings = () => {
                       </div>
                     </div>
 
-                    <div className="flex-shrink-0 flex flex-col gap-2 items-stretch min-w-[140px]">
+                    <div className="w-full md:w-auto flex-shrink-0 flex flex-col sm:flex-row md:flex-col gap-2 items-stretch md:min-w-[140px]">
                       <button
                         onClick={() => navigate(`/employer/applications?jobId=${job.jobId}`)}
-                        className="border-2 border-blue-600 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-semibold whitespace-nowrap flex items-center justify-center gap-2 text-sm"
+                        className="w-full border-2 border-blue-600 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-semibold whitespace-nowrap flex items-center justify-center gap-2 text-sm"
                       >
                         <i className="fas fa-users"></i>
                         <span>{job.applicationCount || 0} applicants</span>
                       </button>
                       <button
                         onClick={() => navigate(`/jobs/${job.jobId}`)}
-                        className="border-2 border-blue-600 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium text-sm"
+                        className="w-full border-2 border-blue-600 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium text-sm"
                       >
                         <i className="fas fa-eye mr-2"></i>View
                       </button>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 w-full">
                         <button
                           onClick={() => navigate(`/employer/job-listings/edit/${job.jobId}`)}
                           title="Edit"
@@ -356,8 +356,8 @@ const EmployerJobListings = () => {
 
       {/* Delete Confirmation Modal */}
       {deleteModal.show && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl transform transition-all">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl p-5 sm:p-8 max-w-md w-full max-h-[90dvh] overflow-y-auto shadow-2xl transform transition-all">
             <div className="text-center">
               <div className="text-red-500 text-6xl mb-4">
                 <i className="fas fa-exclamation-triangle"></i>
@@ -366,17 +366,17 @@ const EmployerJobListings = () => {
               <p className="text-gray-600 mb-6">
                 Are you sure you want to delete this job listing? This action cannot be undone.
               </p>
-              <div className="flex gap-3 justify-center">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
                   onClick={() => setDeleteModal({ show: false, jobId: null })}
-                  className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all font-semibold"
+                  className="w-full sm:w-auto px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all font-semibold"
                 >
                   <i className="fas fa-times mr-2"></i>
                   Cancel
                 </button>
                 <button
                   onClick={() => handleDelete(deleteModal.jobId)}
-                  className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all font-semibold"
+                  className="w-full sm:w-auto px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all font-semibold"
                 >
                   <i className="fas fa-check mr-2"></i>
                   Yes, Delete
