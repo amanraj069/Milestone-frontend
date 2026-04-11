@@ -222,12 +222,20 @@ const DashboardLayout = ({ children }) => {
       return { title: 'Edit Profile', backTo: '/employer/profile' };
     }
 
+    if (path === '/freelancer/profile/edit') {
+      return { title: 'Edit Profile', backTo: '/freelancer/profile' };
+    }
+
+    if (/^\/freelancer\/payments\/.+/.test(path)) {
+      return { title: 'Payment Details', backTo: '/freelancer/payments' };
+    }
+
     if (/^\/employer\/job-listings\/edit\/.+/.test(path)) {
       return { title: 'Edit Job Listing', backTo: '/employer/job-listings' };
     }
 
     const exactTitleMap = {
-      '/employer/profile': 'Employer Profile',
+      '/employer/profile': 'Profile',
       '/employer/job-listings': 'Job Listings',
       '/employer/current-jobs': 'Current Jobs',
       '/employer/applications': 'Applications',
@@ -236,7 +244,7 @@ const DashboardLayout = ({ children }) => {
       '/employer/transactions': 'Transactions',
       '/employer/notifications': 'Notifications',
       '/employer/chat': 'Chat',
-      '/freelancer/profile': 'Freelancer Profile',
+      '/freelancer/profile': 'Profile',
       '/freelancer/active-jobs': 'My Jobs',
       '/freelancer/job-history': 'Job History',
       '/freelancer/payments': 'Payments',

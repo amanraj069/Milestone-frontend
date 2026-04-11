@@ -365,24 +365,25 @@ const FreelancerPayments = () => {
 
   return (
     <DashboardPage title="Payments">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 -mt-4">
-        <p className="text-gray-500">Track your earnings and manage milestone payments</p>
+      <div className="flex items-start justify-between gap-3 mb-6 mt-0 sm:-mt-4">
+        <p className="text-gray-500 text-sm sm:text-base pr-2">Track your earnings and manage milestone payments</p>
         <button 
           onClick={() => {
             setViewMode(viewMode === 'projects' ? 'platform' : 'projects');
             setPlatformSearchTerm(''); 
           }}
-          className="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:-translate-y-0.5"
+          className="inline-flex items-center justify-center h-10 w-10 sm:h-auto sm:w-auto sm:px-5 sm:py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:-translate-y-0.5 shrink-0"
+          aria-label={viewMode === 'projects' ? 'Open platform transactions' : 'Back to projects'}
         >
           {viewMode === 'projects' ? (
             <>
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-              Platform Transactions
+              <svg className="w-4 h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+              <span className="hidden sm:inline">Platform Transactions</span>
             </>
           ) : (
              <>
-               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-               Back to Projects
+               <svg className="w-4 h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+               <span className="hidden sm:inline">Back to Projects</span>
              </>
           )}
         </button>

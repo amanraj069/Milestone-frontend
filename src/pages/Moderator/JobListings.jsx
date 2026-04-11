@@ -272,10 +272,10 @@ const ModeratorJobListings = () => {
       <style>{modalStyles}</style>
       
       {/* Page Subtitle */}
-      <p className="text-gray-500 -mt-6">View and manage all job postings</p>
+      <p className="text-gray-500 mt-1">View and manage all job postings</p>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 mb-4">
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -283,7 +283,7 @@ const ModeratorJobListings = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Total Jobs</p>
-              <p className="text-2xl font-bold text-gray-800">{totalJobs}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{totalJobs}</p>
             </div>
           </div>
         </div>
@@ -295,7 +295,7 @@ const ModeratorJobListings = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Total Budget</p>
-              <p className="text-xl font-bold text-gray-800">Rs.{totalBudget.toFixed(2)}</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-800 leading-tight break-all">Rs.{totalBudget.toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -307,7 +307,7 @@ const ModeratorJobListings = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Open Jobs</p>
-              <p className="text-2xl font-bold text-gray-800">{openJobs}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{openJobs}</p>
             </div>
           </div>
         </div>
@@ -319,7 +319,7 @@ const ModeratorJobListings = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Companies Hiring</p>
-              <p className="text-2xl font-bold text-gray-800">{companiesHiring}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{companiesHiring}</p>
             </div>
           </div>
         </div>
@@ -332,7 +332,7 @@ const ModeratorJobListings = () => {
         </div>
 
         {/* Search Row with Sort and Column Toggle */}
-        <div className="relative flex items-center gap-4">
+        <div className="relative flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -348,7 +348,7 @@ const ModeratorJobListings = () => {
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
             <div className="text-xs text-gray-500">Sort By</div>
             <select
               value={sortBy}
@@ -363,21 +363,22 @@ const ModeratorJobListings = () => {
               <option value="applicants-low-high">Applicants Low - High</option>
             </select>
 
-            {/* Column toggle */}
+            <button
+              onClick={clearAllFilters}
+              disabled={!hasActiveFilters}
+              className={`px-3 py-2 rounded-md text-sm font-medium border ${hasActiveFilters ? 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'}`}
+            >
+              Clear Filters
+            </button>
+          </div>
+
+          <div className="w-full lg:w-auto lg:ml-auto">
             <SmartColumnToggle
               columns={columnsDef}
               visible={visibleColumns}
               onChange={setVisibleColumns}
               storageKey="moderator_job_listings_columns"
             />
-
-            <button
-              onClick={clearAllFilters}
-              disabled={!hasActiveFilters}
-              className={`px-3 py-2 ml-2 rounded-md text-sm font-medium border ${hasActiveFilters ? 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'}`}
-            >
-              Clear Filters
-            </button>
           </div>
         </div>
       </div>

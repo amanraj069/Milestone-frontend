@@ -155,18 +155,19 @@ const EmployerJobListings = () => {
   return (
     <DashboardPage 
       title="Job Listings"
-      headerAction={
+      headerAction={null}
+    >
+      <div className="mb-5 sm:mb-6 mt-3 sm:mt-8 flex items-center justify-between gap-3">
+        <p className="text-gray-600 text-sm sm:text-base flex-1">Browse and manage your posted job opportunities</p>
         <Link
           to="/employer/job-listings/new"
-          className="w-full sm:w-auto justify-center bg-gradient-to-r from-blue-600 to-blue-500 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
+          title="Post New Job"
+          aria-label="Post New Job"
+          className="h-10 w-10 sm:h-auto sm:w-auto sm:px-5 sm:py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-600 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm"
         >
           <i className="fas fa-plus"></i>
-          <span>Post New Job</span>
+          <span className="hidden sm:inline">Post New Job</span>
         </Link>
-      }
-    >
-      <div className="mb-5 sm:mb-6 mt-3 sm:mt-8">
-        <p className="text-gray-600 text-sm sm:text-base">Browse and manage your posted job opportunities</p>
       </div>
 
           {/* Search and Filters */}

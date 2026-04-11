@@ -11,13 +11,15 @@ const DashboardPage = ({ title, headerAction, children }) => {
             {headerAction}
           </div>
           <div className="hidden lg:block h-1 w-24 sm:w-32 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full mb-6 sm:mb-8"></div>
-          {children || (
+          <div>
+            {children || (
             <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200">
               <p className="text-gray-600 text-lg">
                 Content for {title} section will be displayed here.
               </p>
             </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </DashboardLayout>

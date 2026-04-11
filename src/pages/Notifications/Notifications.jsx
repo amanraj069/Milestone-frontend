@@ -74,39 +74,39 @@ const Notifications = () => {
   return (
     <DashboardPage title="Notifications" headerAction={headerAction}>
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <i className="fas fa-bell text-blue-600 text-xl"></i>
+      <div className={`grid grid-cols-3 gap-3 sm:gap-6 mb-8 ${unreadCount > 0 ? 'mt-4 sm:mt-5' : 'mt-2 sm:mt-3'}`}>
+        <div className="bg-white rounded-xl shadow-md p-3 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-list text-yellow-600 text-sm sm:text-xl"></i>
             </div>
             <div>
-              <p className="text-gray-600 text-sm mb-1">Unread</p>
-              <p className="text-2xl font-semibold text-gray-900">{unreadCount}</p>
+              <p className="text-gray-600 text-[11px] sm:text-sm mb-0.5 sm:mb-1">Total</p>
+              <p className="text-xl sm:text-2xl font-semibold text-gray-900">{notifications.length}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
-              <i className="fas fa-list text-yellow-600 text-xl"></i>
+        <div className="bg-white rounded-xl shadow-md p-3 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-bell text-blue-600 text-sm sm:text-xl"></i>
             </div>
             <div>
-              <p className="text-gray-600 text-sm mb-1">Total</p>
-              <p className="text-2xl font-semibold text-gray-900">{notifications.length}</p>
+              <p className="text-gray-600 text-[11px] sm:text-sm mb-0.5 sm:mb-1">Unread</p>
+              <p className="text-xl sm:text-2xl font-semibold text-gray-900">{unreadCount}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
-              <i className="fas fa-check-circle text-green-600 text-xl"></i>
+        <div className="bg-white rounded-xl shadow-md p-3 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-check-circle text-green-600 text-sm sm:text-xl"></i>
             </div>
             <div>
-              <p className="text-gray-600 text-sm mb-1">Read</p>
-              <p className="text-2xl font-semibold text-gray-900">{notifications.length - unreadCount}</p>
+              <p className="text-gray-600 text-[11px] sm:text-sm mb-0.5 sm:mb-1">Read</p>
+              <p className="text-xl sm:text-2xl font-semibold text-gray-900">{notifications.length - unreadCount}</p>
             </div>
           </div>
         </div>

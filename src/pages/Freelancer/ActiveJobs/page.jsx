@@ -244,7 +244,7 @@ const FreelancerActiveJobs = () => {
 
   return (
     <DashboardPage title="My Jobs">
-      <p className="text-gray-500 -mt-4 mb-6">Track your job applications and active work</p>
+      <p className="text-gray-500 mt-0 sm:-mt-4 mb-6 text-sm sm:text-base">Track your job applications and active work</p>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-gray-200">

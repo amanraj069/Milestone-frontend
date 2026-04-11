@@ -99,18 +99,32 @@ const ModeratorProfile = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const headerAction = (
+  const editProfileButton = (
     <Link
-      to="/admin/profile/edit"
-      className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+      to="/moderator/profile/edit"
+      className="inline-flex items-center justify-center h-10 w-10 sm:h-auto sm:w-auto sm:px-5 sm:py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors gap-2 text-sm sm:text-base shrink-0"
+      aria-label="Edit profile"
     >
-      Edit Profile
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="w-4 h-4"
+      >
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+      </svg>
+      <span className="hidden sm:inline">Edit Profile</span>
     </Link>
   );
 
   if (loading) {
     return (
-      <DashboardPage title="Moderator Profile" headerAction={headerAction}>
+      <DashboardPage title="Moderator Profile">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mb-3"></div>
           <p className="text-gray-500">Loading profile...</p>
@@ -121,7 +135,7 @@ const ModeratorProfile = () => {
 
   if (!profileData) {
     return (
-      <DashboardPage title="Moderator Profile" headerAction={headerAction}>
+      <DashboardPage title="Moderator Profile">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-lg font-medium text-gray-700 mb-1">No profile data</p>
           <p className="text-gray-500">Unable to load profile information.</p>
@@ -150,9 +164,14 @@ const ModeratorProfile = () => {
   const successRateValue = Number(dashboardStats?.successRate);
 
   return (
-    <DashboardPage title="Moderator Profile" headerAction={headerAction}>
+    <DashboardPage title="Moderator Profile">
+      <div className="flex items-center justify-between gap-3 mb-6 mt-0 sm:-mt-2">
+        <p className="text-gray-600 text-sm sm:text-base pr-2">Manage your profile settings and moderation details</p>
+        {editProfileButton}
+      </div>
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -160,7 +179,7 @@ const ModeratorProfile = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Total Users</p>
-              <p className="text-2xl font-bold text-gray-800">{dashboardStats?.totalUsers ?? '--'}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{dashboardStats?.totalUsers ?? '--'}</p>
             </div>
           </div>
         </div>
@@ -172,7 +191,7 @@ const ModeratorProfile = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Active Jobs</p>
-              <p className="text-2xl font-bold text-gray-800">{dashboardStats?.activeJobs ?? '--'}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{dashboardStats?.activeJobs ?? '--'}</p>
             </div>
           </div>
         </div>
@@ -184,7 +203,7 @@ const ModeratorProfile = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Avg. Rating</p>
-              <p className="text-2xl font-bold text-gray-800">{Number.isFinite(avgRatingValue) ? avgRatingValue.toFixed(1) : '0.0'}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{Number.isFinite(avgRatingValue) ? avgRatingValue.toFixed(1) : '0.0'}</p>
             </div>
           </div>
         </div>
@@ -196,7 +215,7 @@ const ModeratorProfile = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Success Rate</p>
-              <p className="text-2xl font-bold text-gray-800">{Number.isFinite(successRateValue) ? `${Math.round(successRateValue)}%` : '0%'}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{Number.isFinite(successRateValue) ? `${Math.round(successRateValue)}%` : '0%'}</p>
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 .chat-main-container {
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -41,6 +42,20 @@
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.mobile-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
 }
 
 .chat-header-avatar img {
@@ -1671,8 +1686,8 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .chat-layout {
-    margin: 10px;
-    height: calc(100vh - 100px);
+    margin: 0;
+    height: 100%;
   }
 
   .conversations-sidebar {
@@ -1684,7 +1699,20 @@
   }
 
   .conversations-sidebar.mobile-hidden {
-    transform: translateX(-100%);
+    display: none;
+  }
+
+  .chat-area.mobile-hidden {
+    display: none;
+  }
+
+  .chat-header {
+    min-height: 72px;
+    padding: 14px 16px;
+  }
+
+  .messages-container {
+    padding: 12px;
   }
 
   .message-content {

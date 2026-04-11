@@ -239,7 +239,7 @@ const ModeratorBlogs = () => {
 
       <div className="space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mt-3 sm:mt-4">
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -247,7 +247,7 @@ const ModeratorBlogs = () => {
               </div>
               <div>
                 <p className="text-gray-600 text-sm mb-1">Total Blogs</p>
-                <p className="text-2xl font-bold text-gray-800">{totalBlogs}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{totalBlogs}</p>
               </div>
             </div>
           </div>
@@ -259,7 +259,7 @@ const ModeratorBlogs = () => {
               </div>
               <div>
                 <p className="text-gray-600 text-sm mb-1">Published</p>
-                <p className="text-2xl font-bold text-gray-800">{publishedBlogs}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{publishedBlogs}</p>
               </div>
             </div>
           </div>
@@ -271,7 +271,7 @@ const ModeratorBlogs = () => {
               </div>
               <div>
                 <p className="text-gray-600 text-sm mb-1">Featured</p>
-                <p className="text-2xl font-bold text-gray-800">{featuredBlogs}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{featuredBlogs}</p>
               </div>
             </div>
           </div>
