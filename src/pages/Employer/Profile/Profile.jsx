@@ -185,28 +185,44 @@ const EmployerProfile = () => {
   return (
     <DashboardPage title="Employer Profile">
       {/* Header with description and action button */}
-      <div className="flex justify-between items-center mb-6 -mt-4">
-        <p className="text-gray-600">Manage your company profile and information</p>
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between gap-3 mb-6 mt-0 sm:-mt-2">
+        <p className="text-gray-600 text-sm sm:text-base pr-2">Manage your company profile and information</p>
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
           {isUnapprovedEmployer && (
             <button
               onClick={() => navigate('/employer/company-details')}
-              className="relative px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2"
+              className="relative inline-flex items-center justify-center h-10 w-10 sm:h-auto sm:w-auto sm:px-5 sm:py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors gap-2 text-sm sm:text-base"
+              aria-label={hasCompanyDetails ? 'Edit company details' : 'Add company details'}
             >
               {!hasCompanyDetails && (
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-400 text-indigo-900 text-xs font-bold animate-pulse">
                   !
                 </span>
               )}
-              {hasCompanyDetails ? 'Edit company detail' : 'Add company details'}
+              <i className="fas fa-building sm:hidden"></i>
+              <span className="hidden sm:inline">{hasCompanyDetails ? 'Edit company detail' : 'Add company details'}</span>
             </button>
           )}
 
           <button 
             onClick={() => navigate('/employer/profile/edit')}
-            className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="inline-flex items-center justify-center h-10 w-10 sm:h-auto sm:w-auto sm:px-5 sm:py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors gap-2 text-sm sm:text-base"
+            aria-label="Edit profile"
           >
-            Edit Profile
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-4 h-4"
+            >
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+            </svg>
+            <span className="hidden sm:inline">Edit Profile</span>
           </button>
         </div>
       </div>
@@ -239,11 +255,11 @@ const EmployerProfile = () => {
         </div>
 
         {/* Profile Header Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-start gap-8">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-6 overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-5 sm:gap-8">
             {/* Profile Image */}
             <div className="flex-shrink-0">
-              <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-blue-500 bg-gray-900">
+              <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 border-blue-500 bg-gray-900">
                 <img 
                   src={profileData.picture} 
                   alt="Company Logo" 
@@ -256,15 +272,15 @@ const EmployerProfile = () => {
             </div>
 
             {/* Profile Info */}
-            <div className="flex-1">
-              <h2 className="text-3xl font-bold text-gray-900 mb-3">
+            <div className="flex-1 min-w-0 w-full">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3 text-center md:text-left break-words">
                 {profileData.name}
               </h2>
 
-              <div className="text-lg text-gray-600 mb-4">{employerData?.companyName}</div>
+              <div className="text-base sm:text-lg text-gray-600 mb-4 text-center md:text-left break-words">{employerData?.companyName}</div>
 
               <div className="space-y-3 mb-5">
-                <div className="flex items-center gap-3 text-gray-600">
+                <div className="flex items-start gap-3 text-gray-600">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="18"
@@ -279,10 +295,10 @@ const EmployerProfile = () => {
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                     <circle cx="12" cy="10" r="3"></circle>
                   </svg>
-                  <span>{profileData.location || 'Not specified'}</span>
+                  <span className="break-words">{profileData.location || 'Not specified'}</span>
                 </div>
 
-                <div className="flex items-center gap-3 text-gray-600">
+                <div className="flex items-start gap-3 text-gray-600">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="18"
@@ -297,10 +313,10 @@ const EmployerProfile = () => {
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                     <polyline points="22,6 12,13 2,6"></polyline>
                   </svg>
-                  <span>{profileData.email}</span>
+                  <span className="break-all">{profileData.email}</span>
                 </div>
 
-                <div className="flex items-center gap-3 text-gray-600">
+                <div className="flex items-start gap-3 text-gray-600">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="18"
@@ -314,11 +330,11 @@ const EmployerProfile = () => {
                   >
                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                   </svg>
-                  <span>{profileData.phone || 'Not specified'}</span>
+                  <span className="break-words">{profileData.phone || 'Not specified'}</span>
                 </div>
 
                 {employerData?.websiteLink && (
-                  <div className="flex items-center gap-3 text-gray-600">
+                  <div className="flex items-start gap-3 text-gray-600">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="18"
@@ -338,7 +354,7 @@ const EmployerProfile = () => {
                       href={employerData.websiteLink} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-blue-500 hover:text-blue-600"
+                      className="text-blue-500 hover:text-blue-600 break-all"
                     >
                       {employerData.websiteLink}
                     </a>
@@ -401,13 +417,13 @@ const EmployerProfile = () => {
               )} */}
 
               {/* Rating */}
-              <div className="flex items-center gap-2 text-amber-500 text-xl">
+              <div className="flex items-center justify-center md:justify-start gap-1.5 sm:gap-2 text-amber-500 text-lg sm:text-xl flex-wrap">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <span key={star}>
                     {star <= Math.floor(profileData.rating) ? '★' : star === Math.ceil(profileData.rating) && profileData.rating % 1 !== 0 ? '☆' : '☆'}
                   </span>
                 ))}
-                <span className="text-gray-700 font-semibold ml-2">{profileData.rating}/5</span>
+                <span className="text-gray-700 font-semibold ml-1 sm:ml-2">{profileData.rating}/5</span>
                 {/* <span className="text-gray-500 text-sm">(54 reviews)</span> */}
               </div>
             </div>
