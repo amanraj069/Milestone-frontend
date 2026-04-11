@@ -224,17 +224,17 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-dvh bg-gray-50 overflow-x-hidden">
       {/* Header */}
       <header className="bg-white/95 border-gray-200 backdrop-blur-md border-b fixed top-0 left-0 right-0 z-50">
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="flex items-center justify-between py-4">
-            <div className="text-4xl font-bold text-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between gap-3 py-3 sm:py-4">
+            <div className="text-2xl sm:text-4xl font-bold text-gray-900 shrink-0">
               <Link to="/" className="hover:text-navy-700 transition-colors">
                 Mile<span className="text-navy-700">stone</span>
               </Link>
             </div>
-            <div className="flex-1 max-w-md mx-8 relative" ref={searchRef}>
+            <div className="hidden md:block flex-1 max-w-md mx-8 relative" ref={searchRef}>
               <form className="relative" onSubmit={handleSearch}>
                 <input 
                   type="text" 
@@ -334,22 +334,29 @@ const Home = () => {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+              <Link
+                to="/jobs"
+                className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-full bg-navy-700 text-white no-underline"
+                aria-label="Search jobs"
+              >
+                <i className="fas fa-search"></i>
+              </Link>
               {user ? (
                 <Link 
                   to={getDashboardRoute()} 
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white rounded-lg font-medium no-underline transition-all hover:shadow-lg hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white rounded-lg font-medium no-underline transition-all hover:shadow-lg hover:-translate-y-0.5"
                 >
                   <i className="fas fa-tachometer-alt"></i>
-                  Dashboard
+                  <span className="hidden sm:inline">Dashboard</span>
                 </Link>
               ) : (
                 <Link 
                   to="/login" 
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white rounded-lg font-medium no-underline transition-all hover:shadow-lg hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white rounded-lg font-medium no-underline transition-all hover:shadow-lg hover:-translate-y-0.5"
                 >
                   <i className="fas fa-sign-in-alt"></i>
-                  Sign In
+                  <span className="hidden sm:inline">Sign In</span>
                 </Link>
               )}
             </div>
@@ -358,7 +365,7 @@ const Home = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 text-white pt-32 pb-24 px-4 sm:px-8 min-h-screen flex items-center overflow-hidden">
+      <section className="relative bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 text-white pt-24 sm:pt-32 pb-16 sm:pb-24 px-4 sm:px-8 min-h-dvh flex items-center overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-blue-500/20 to-transparent rounded-full blur-3xl"></div>
@@ -443,7 +450,7 @@ const Home = () => {
                 <img 
                   src="/assets/home/Freelancer-bro.svg" 
                   alt="Freelancer working" 
-                  className="relative w-full drop-shadow-2xl scale-110"
+                  className="relative w-full drop-shadow-2xl scale-100 sm:scale-110"
                 />
               </div>
             </div>
