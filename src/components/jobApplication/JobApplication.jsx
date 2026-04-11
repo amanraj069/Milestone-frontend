@@ -50,7 +50,7 @@ const JobApplication = () => {
       setError('');
 
       // Fetch freelancer profile
-      const profileResponse = await fetch('http://localhost:9000/api/freelancer/profile', {
+      const profileResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/profile`, {
         credentials: 'include',
       });
 
@@ -64,7 +64,7 @@ const JobApplication = () => {
       }
 
       // Fetch job details
-      const jobResponse = await fetch(`http://localhost:9000/api/jobs/api/${jobId}`);
+      const jobResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/jobs/api/${jobId}`);
       if (!jobResponse.ok) {
         throw new Error('Failed to fetch job details');
       }
@@ -99,7 +99,7 @@ const JobApplication = () => {
 
   const handleApplicationSubmit = async (appData) => {
     try {
-      const response = await fetch(`http://localhost:9000/api/freelancer/apply/${jobId}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/apply/${jobId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

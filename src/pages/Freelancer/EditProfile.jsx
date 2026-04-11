@@ -45,7 +45,7 @@ const EditProfile = () => {
     const fetchProfileData = async () => {
       try {
         // Fetch profile data from backend
-        const response = await fetch('http://localhost:9000/api/freelancer/profile', {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/profile`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -560,7 +560,7 @@ const EditProfile = () => {
       formDataImg.append('portfolioImage', file);
       
       try {
-        const response = await fetch('http://localhost:9000/api/freelancer/portfolio/image/upload', {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/portfolio/image/upload`, {
           method: 'POST',
           credentials: 'include',
           body: formDataImg
@@ -589,7 +589,7 @@ const EditProfile = () => {
     formDataResume.append('resume', resumeFile);
 
     try {
-      const resp = await fetch('http://localhost:9000/api/freelancer/resume/upload', {
+      const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/resume/upload`, {
         method: 'POST',
         credentials: 'include',
         body: formDataResume
@@ -627,7 +627,7 @@ const EditProfile = () => {
         const formDataImg = new FormData();
         formDataImg.append('profilePicture', profileImage);
 
-        const response = await fetch('http://localhost:9000/api/freelancer/profile/picture/upload', {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/profile/picture/upload`, {
           method: 'POST',
           credentials: 'include',
           body: formDataImg
@@ -699,7 +699,7 @@ const EditProfile = () => {
         portfolio: updatedPortfolio
       };
 
-      const response = await fetch('http://localhost:9000/api/freelancer/profile/update', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/profile/update`, {
         method: 'POST',
         credentials: 'include',
         headers: {

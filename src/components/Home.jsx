@@ -143,7 +143,7 @@ const Home = () => {
 
   const loadJobs = async () => {
     try {
-      const response = await fetch('http://localhost:9000/api/jobs/api', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/jobs/api`, {
         credentials: 'include',
       });
       const data = await response.json();

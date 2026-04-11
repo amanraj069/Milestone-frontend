@@ -11,7 +11,7 @@ const ApplicationDetailsStep = ({ jobData, applicationData, setApplicationData, 
     // Fetch last used cover message
     const fetchLastCoverMessage = async () => {
       try {
-        const response = await fetch('http://localhost:9000/api/freelancer/cover-message/last', {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/cover-message/last`, {
           credentials: 'include',
         });
         const result = await response.json();

@@ -29,7 +29,7 @@ const ModeratorEditProfile = () => {
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
-        const response = await fetch('http://localhost:9000/api/moderator/profile', {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/moderator/profile`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -174,7 +174,7 @@ const ModeratorEditProfile = () => {
         const formDataImg = new FormData();
         formDataImg.append('profilePicture', profileImage);
 
-        const response = await fetch('http://localhost:9000/api/moderator/profile/picture/upload', {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/moderator/profile/picture/upload`, {
           method: 'POST',
           credentials: 'include',
           body: formDataImg
@@ -203,7 +203,7 @@ const ModeratorEditProfile = () => {
         socialMedia: formData.socialMedia
       };
 
-      const response = await fetch('http://localhost:9000/api/moderator/profile/update', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/moderator/profile/update`, {
         method: 'POST',
         credentials: 'include',
         headers: {

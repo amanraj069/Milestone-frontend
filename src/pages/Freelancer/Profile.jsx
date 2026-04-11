@@ -20,7 +20,7 @@ const FreelancerProfile = () => {
       try {
         if (user) {
           // Fetch profile data from backend
-          const response = await fetch('http://localhost:9000/api/freelancer/profile', {
+          const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/profile`, {
             method: 'GET',
             credentials: 'include',
             headers: {

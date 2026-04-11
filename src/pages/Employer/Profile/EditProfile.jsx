@@ -32,7 +32,7 @@ const EditEmployerProfile = () => {
     const fetchProfileData = async () => {
       try {
         if (user) {
-          const response = await fetch('http://localhost:9000/api/employer/profile', {
+          const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/profile`, {
             method: 'GET',
             credentials: 'include',
             headers: {
@@ -209,7 +209,7 @@ const EditEmployerProfile = () => {
     formDataImg.append('picture', file);
 
     try {
-      const response = await fetch('http://localhost:9000/api/employer/upload-image', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/upload-image`, {
         method: 'POST',
         credentials: 'include',
         body: formDataImg,
@@ -240,7 +240,7 @@ const EditEmployerProfile = () => {
     setSaving(true);
 
     try {
-      const response = await fetch('http://localhost:9000/api/employer/profile', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/profile`, {
         method: 'PUT',
         credentials: 'include',
         headers: {

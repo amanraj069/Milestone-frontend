@@ -71,7 +71,7 @@ const PersonalInfoStep = ({ profileData, onUpdate, onNext }) => {
       const formData = new FormData();
       formData.append('resume', file);
 
-      const response = await fetch('http://localhost:9000/api/freelancer/resume/upload', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/resume/upload`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -247,7 +247,7 @@ const PersonalInfoStep = ({ profileData, onUpdate, onNext }) => {
                 type="button"
                 onClick={() => {
                   const resumeUrl = profileData.resume.startsWith('/uploads') 
-                    ? `http://localhost:9000${profileData.resume}` 
+                    ? `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}${profileData.resume}` 
                     : profileData.resume;
                   window.open(resumeUrl, '_blank');
                 }}

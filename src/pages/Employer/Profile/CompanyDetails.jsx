@@ -25,7 +25,7 @@ const EmployerCompanyDetails = () => {
   useEffect(() => {
     const fetchCompanyDetails = async () => {
       try {
-        const response = await fetch('http://localhost:9000/api/employer/company-details', {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/company-details`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -89,7 +89,7 @@ const EmployerCompanyDetails = () => {
 
     try {
       setUploadingLogo(true);
-      const response = await fetch('http://localhost:9000/api/employer/company-details/logo/upload', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/company-details/logo/upload`, {
         method: 'POST',
         credentials: 'include',
         body: uploadData,
@@ -127,7 +127,7 @@ const EmployerCompanyDetails = () => {
 
     try {
       setUploadingProof(true);
-      const response = await fetch('http://localhost:9000/api/employer/company-details/proof/upload', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/company-details/proof/upload`, {
         method: 'POST',
         credentials: 'include',
         body: uploadData,
@@ -156,7 +156,7 @@ const EmployerCompanyDetails = () => {
     setSaving(true);
 
     try {
-      const response = await fetch('http://localhost:9000/api/employer/company-details', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/company-details`, {
         method: 'PUT',
         credentials: 'include',
         headers: {

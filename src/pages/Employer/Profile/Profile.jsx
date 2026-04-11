@@ -18,7 +18,7 @@ const EmployerProfile = () => {
       try {
         if (user) {
           // Fetch profile data from backend
-          const response = await fetch('http://localhost:9000/api/employer/profile', {
+          const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/profile`, {
             method: 'GET',
             credentials: 'include',
             headers: {
@@ -111,7 +111,7 @@ const EmployerProfile = () => {
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        const response = await fetch('http://localhost:9000/api/employer/dashboard/stats', {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/dashboard/stats`, {
           method: 'GET',
           credentials: 'include',
           headers: {
