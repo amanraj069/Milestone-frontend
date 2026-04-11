@@ -210,6 +210,57 @@ const DashboardLayout = ({ children }) => {
     return user.role;
   };
 
+  const getMobileHeaderConfig = () => {
+    const path = location.pathname;
+
+    // Use back button on mobile for deep employer job listing flows.
+    if (path === '/employer/job-listings/new') {
+      return { title: 'Post New Job', backTo: '/employer/job-listings' };
+    }
+
+    if (path === '/employer/profile/edit') {
+      return { title: 'Edit Profile', backTo: '/employer/profile' };
+    }
+
+    if (/^\/employer\/job-listings\/edit\/.+/.test(path)) {
+      return { title: 'Edit Job Listing', backTo: '/employer/job-listings' };
+    }
+
+    const exactTitleMap = {
+      '/employer/profile': 'Employer Profile',
+      '/employer/job-listings': 'Job Listings',
+      '/employer/current-jobs': 'Current Jobs',
+      '/employer/applications': 'Applications',
+      '/employer/work-history': 'Work History',
+      '/employer/subscription': 'Subscription',
+      '/employer/transactions': 'Transactions',
+      '/employer/notifications': 'Notifications',
+      '/employer/chat': 'Chat',
+      '/freelancer/profile': 'Freelancer Profile',
+      '/freelancer/active-jobs': 'My Jobs',
+      '/freelancer/job-history': 'Job History',
+      '/freelancer/payments': 'Payments',
+      '/freelancer/subscription': 'Subscription',
+      '/freelancer/notifications': 'Notifications',
+      '/freelancer/chat': 'Chat',
+      '/admin/dashboard': 'Admin Dashboard',
+      '/moderator/job-listings': 'Job Listings',
+    };
+
+    if (exactTitleMap[path]) {
+      return { title: exactTitleMap[path], backTo: null };
+    }
+
+    const activeMenuItem = menuItems.find((item) => item.path === path);
+    if (activeMenuItem) {
+      return { title: activeMenuItem.name, backTo: null };
+    }
+
+    return { title: 'Dashboard', backTo: null };
+  };
+
+  const mobileHeader = getMobileHeaderConfig();
+
   return (
     <div className="flex min-h-dvh bg-gray-50 overflow-x-hidden">
       {/* Sidebar */}
@@ -350,12 +401,18 @@ const DashboardLayout = ({ children }) => {
           <button
             type="button"
             className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-600 text-white"
-            onClick={() => setIsSidebarOpen(true)}
-            aria-label="Open menu"
+            onClick={() => {
+              if (mobileHeader.backTo) {
+                navigate(mobileHeader.backTo);
+              } else {
+                setIsSidebarOpen(true);
+              }
+            }}
+            aria-label={mobileHeader.backTo ? 'Go back' : 'Open menu'}
           >
-            <i className="fas fa-bars"></i>
+            <i className={`fas ${mobileHeader.backTo ? 'fa-arrow-left' : 'fa-bars'}`}></i>
           </button>
-          <h2 className="text-3xl font-black text-gray-900 leading-none">Dashboard</h2>
+          <h2 className="text-2xl font-black text-gray-900 leading-none truncate max-w-[60vw] text-center">{mobileHeader.title}</h2>
           <div className="w-10 h-10" aria-hidden="true"></div>
         </div>
 
