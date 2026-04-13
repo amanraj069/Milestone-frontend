@@ -36,6 +36,11 @@ const ADMIN_PAYMENTS_QUERY = `
         endCursor
       }
       total
+      summary {
+        paidTotal
+        pendingTotal
+        inProgressTotal
+      }
     }
   }
 `;
@@ -44,6 +49,11 @@ const AdminPayments = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [payments, setPayments] = useState([]);
   const [totalPayments, setTotalPayments] = useState(0);
+  const [summaryTotals, setSummaryTotals] = useState({
+    paidTotal: 0,
+    pendingTotal: 0,
+    inProgressTotal: 0,
+  });
   const [serverPagination, setServerPagination] = useState(null);
   const [pageSize, setPageSize] = useState(() => {
     const urlLimit = Number(searchParams.get('limit') || '25');
@@ -88,6 +98,11 @@ const AdminPayments = () => {
 
       setPayments(edges.map((edge) => edge.node));
       setTotalPayments(connection?.total || 0);
+      setSummaryTotals({
+        paidTotal: connection?.summary?.paidTotal || 0,
+        pendingTotal: connection?.summary?.pendingTotal || 0,
+        inProgressTotal: connection?.summary?.inProgressTotal || 0,
+      });
       setServerPagination({
         hasNextPage: connection?.pageInfo?.hasNextPage || false,
         endCursor: connection?.pageInfo?.endCursor || null,
@@ -175,9 +190,14 @@ const AdminPayments = () => {
       return sortDir === 'desc' ? -cmp : cmp;
     });
 
-  const totalPaid = payments.filter(p => p.status === 'Paid').reduce((s, p) => s + p.amount, 0);
-  const totalPending = payments.filter(p => p.status === 'Pending').reduce((s, p) => s + p.amount, 0);
-  const totalInProgress = payments.filter(p => p.status === 'In Progress').reduce((s, p) => s + p.amount, 0);
+  const totalPaid = summaryTotals.paidTotal || 0;
+  const totalPending = summaryTotals.pendingTotal || 0;
+  const totalInProgress = summaryTotals.inProgressTotal || 0;
+
+  const filteredAmountTotal = filtered.reduce((s, p) => s + (p.amount || 0), 0);
+  const filteredPaidCount = filtered.filter((p) => p.status === 'Paid').length;
+  const filteredPendingCount = filtered.filter((p) => p.status === 'Pending').length;
+  const filteredInProgressCount = filtered.filter((p) => p.status === 'In Progress').length;
 
   if (loading) {
     return (
@@ -390,6 +410,33 @@ const AdminPayments = () => {
                 </tr>
               )}
             </tbody>
+            {filtered.length > 0 && (
+              <tfoot>
+                <tr className="bg-slate-50 border-t border-gray-200">
+                  {visible.has('job') && (
+                    <td className="px-4 py-3 text-xs font-bold text-gray-700">Total</td>
+                  )}
+                  {visible.has('milestone') && (
+                    <td className="px-4 py-3 text-xs text-gray-500">{filtered.length} rows shown</td>
+                  )}
+                  {visible.has('employer') && (
+                    <td className="px-4 py-3 text-xs text-gray-500">Paid: {filteredPaidCount}</td>
+                  )}
+                  {visible.has('freelancer') && (
+                    <td className="px-4 py-3 text-xs text-gray-500">Pending: {filteredPendingCount}</td>
+                  )}
+                  {visible.has('amount') && (
+                    <td className="px-4 py-3 text-sm font-bold text-gray-900">{formatCurrency(filteredAmountTotal)}</td>
+                  )}
+                  {visible.has('status') && (
+                    <td className="px-4 py-3 text-xs font-semibold text-gray-600">In Progress: {filteredInProgressCount}</td>
+                  )}
+                  {visible.has('date') && (
+                    <td className="px-4 py-3 text-xs text-gray-500 text-right">Page {currentPage}</td>
+                  )}
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500 mt-auto">
