@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import RatingAdjustmentModal from '../../components/RatingAdjustmentModal';
 import RatingHistoryModal from '../../components/RatingHistoryModal';
@@ -8,10 +9,31 @@ import { graphqlQuery } from '../../utils/graphqlClient';
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
-const ADMIN_USERS_QUERY = `
-  query AdminUsers {
-    adminUsers {
-      users { userId name email role subscription picture location rating createdAt roleId profilePath subscriptionDuration subscriptionExpiryDate }
+const ADMIN_USERS_PAGINATED_QUERY = `
+  query AdminUsersPaginated($first: Int!, $after: String) {
+    adminUsers(first: $first, after: $after) {
+      edges {
+        cursor
+        node {
+          userId
+          name
+          email
+          role
+          subscription
+          picture
+          location
+          rating
+          createdAt
+          roleId
+          profilePath
+          subscriptionDuration
+          subscriptionExpiryDate
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
       total
     }
   }
@@ -29,7 +51,18 @@ const COLUMNS = [
 ];
 
 const AdminUsers = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [serverPagination, setServerPagination] = useState(null);
+  const [pageSize, setPageSize] = useState(() => {
+    const urlLimit = Number(searchParams.get('limit') || '25');
+    if (!Number.isFinite(urlLimit) || urlLimit < 1) return 25;
+    return Math.min(100, urlLimit);
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [afterCursor, setAfterCursor] = useState(null);
+  const [cursorStack, setCursorStack] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date');
@@ -47,18 +80,74 @@ const AdminUsers = () => {
   const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    resetAndFetchUsers();
+  }, [pageSize]);
 
-  const fetchUsers = async () => {
+  useEffect(() => {
+    const urlLimit = Number(searchParams.get('limit') || '25');
+    if (Number.isFinite(urlLimit) && urlLimit > 0 && urlLimit !== pageSize) {
+      setPageSize(Math.min(100, urlLimit));
+    }
+  }, [searchParams]);
+
+  const fetchUsers = async ({ after = afterCursor } = {}) => {
+    setLoading(true);
     try {
-      const result = await graphqlQuery(ADMIN_USERS_QUERY);
-      if (result?.adminUsers?.users) setUsers(result.adminUsers.users);
+      const result = await graphqlQuery(ADMIN_USERS_PAGINATED_QUERY, {
+        first: pageSize,
+        after,
+      });
+
+      const connection = result?.adminUsers;
+      const edges = connection?.edges || [];
+
+      setUsers(edges.map((edge) => edge.node));
+      setTotalUsers(connection?.total || 0);
+      setServerPagination({
+        hasNextPage: connection?.pageInfo?.hasNextPage || false,
+        endCursor: connection?.pageInfo?.endCursor || null,
+      });
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetAndFetchUsers = async () => {
+    setCurrentPage(1);
+    setAfterCursor(null);
+    setCursorStack([]);
+    await fetchUsers({ after: null });
+  };
+
+  const handleNextPage = async () => {
+    if (!serverPagination?.hasNextPage || !serverPagination?.endCursor) return;
+    const nextAfter = serverPagination.endCursor;
+    setCursorStack((prev) => [...prev, afterCursor]);
+    setAfterCursor(nextAfter);
+    setCurrentPage((p) => p + 1);
+    await fetchUsers({ after: nextAfter });
+  };
+
+  const handlePrevPage = async () => {
+    if (currentPage <= 1) return;
+    const nextStack = [...cursorStack];
+    const prevAfter = nextStack.pop() ?? null;
+    setCursorStack(nextStack);
+    setAfterCursor(prevAfter);
+    setCurrentPage((p) => Math.max(1, p - 1));
+    await fetchUsers({ after: prevAfter });
+  };
+
+  const handlePageSizeChange = (nextSize) => {
+    const normalized = Math.min(100, Math.max(1, Number(nextSize) || 25));
+    setSearchParams((prev) => {
+      const updated = new URLSearchParams(prev);
+      updated.set('limit', String(normalized));
+      return updated;
+    });
+    setPageSize(normalized);
   };
 
   const handleDelete = async (userId) => {
@@ -68,7 +157,7 @@ const AdminUsers = () => {
         credentials: 'include',
       });
       if (res.ok) {
-        setUsers(users.filter(u => u.userId !== userId));
+        fetchUsers();
         setDeleteConfirm(null);
       } else {
         const data = await res.json();
@@ -170,7 +259,7 @@ const AdminUsers = () => {
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-500">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{totalUsers || users.length}</p>
               </div>
             </div>
             {Object.entries(roleCounts).map(([role, count]) => {
@@ -430,7 +519,39 @@ const AdminUsers = () => {
           </table>
         </div>
         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500 mt-auto">
-          Showing {filtered.length} of {users.length} users
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              Showing {filtered.length} users on page {currentPage} (total {totalUsers || users.length})
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">Rows:</label>
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(e.target.value)}
+                className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <button
+                onClick={handlePrevPage}
+                disabled={loading || currentPage <= 1}
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Previous
+              </button>
+              <button
+                onClick={handleNextPage}
+                disabled={loading || !serverPagination?.hasNextPage}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
