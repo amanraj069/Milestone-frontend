@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
@@ -24,16 +25,34 @@ const SORT_OPTIONS = [
 ];
 
 const ADMIN_PAYMENTS_QUERY = `
-  query AdminPayments {
-    adminPayments {
-      payments { jobId jobTitle milestoneId milestoneDescription amount status employerName companyName freelancerName date }
+  query AdminPayments($first: Int!, $after: String) {
+    adminPayments(first: $first, after: $after) {
+      edges {
+        cursor
+        node { jobId jobTitle milestoneId milestoneDescription amount status employerName companyName freelancerName date }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
       total
     }
   }
 `;
 
 const AdminPayments = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [payments, setPayments] = useState([]);
+  const [totalPayments, setTotalPayments] = useState(0);
+  const [serverPagination, setServerPagination] = useState(null);
+  const [pageSize, setPageSize] = useState(() => {
+    const urlLimit = Number(searchParams.get('limit') || '25');
+    if (!Number.isFinite(urlLimit) || urlLimit < 1) return 25;
+    return Math.min(100, urlLimit);
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [afterCursor, setAfterCursor] = useState(null);
+  const [cursorStack, setCursorStack] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortKey, setSortKey] = useState('date-desc');
@@ -47,18 +66,74 @@ const AdminPayments = () => {
   const [statusFilters,     setStatusFilters]     = useState([]);
 
   useEffect(() => {
-    const fetchPayments = async () => {
-      try {
-        const result = await graphqlQuery(ADMIN_PAYMENTS_QUERY);
-        if (result?.adminPayments?.payments) setPayments(result.adminPayments.payments);
-      } catch (error) {
-        console.error('Error fetching payments:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPayments();
-  }, []);
+    resetAndFetchPayments();
+  }, [pageSize]);
+
+  useEffect(() => {
+    const urlLimit = Number(searchParams.get('limit') || '25');
+    if (Number.isFinite(urlLimit) && urlLimit > 0 && urlLimit !== pageSize) {
+      setPageSize(Math.min(100, urlLimit));
+    }
+  }, [searchParams]);
+
+  const fetchPayments = async ({ after = afterCursor } = {}) => {
+    setLoading(true);
+    try {
+      const result = await graphqlQuery(ADMIN_PAYMENTS_QUERY, {
+        first: pageSize,
+        after,
+      });
+      const connection = result?.adminPayments;
+      const edges = connection?.edges || [];
+
+      setPayments(edges.map((edge) => edge.node));
+      setTotalPayments(connection?.total || 0);
+      setServerPagination({
+        hasNextPage: connection?.pageInfo?.hasNextPage || false,
+        endCursor: connection?.pageInfo?.endCursor || null,
+      });
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetAndFetchPayments = async () => {
+    setCurrentPage(1);
+    setAfterCursor(null);
+    setCursorStack([]);
+    await fetchPayments({ after: null });
+  };
+
+  const handleNextPage = async () => {
+    if (!serverPagination?.hasNextPage || !serverPagination?.endCursor) return;
+    const nextAfter = serverPagination.endCursor;
+    setCursorStack((prev) => [...prev, afterCursor]);
+    setAfterCursor(nextAfter);
+    setCurrentPage((p) => p + 1);
+    await fetchPayments({ after: nextAfter });
+  };
+
+  const handlePrevPage = async () => {
+    if (currentPage <= 1) return;
+    const nextStack = [...cursorStack];
+    const prevAfter = nextStack.pop() ?? null;
+    setCursorStack(nextStack);
+    setAfterCursor(prevAfter);
+    setCurrentPage((p) => Math.max(1, p - 1));
+    await fetchPayments({ after: prevAfter });
+  };
+
+  const handlePageSizeChange = (nextSize) => {
+    const normalized = Math.min(100, Math.max(1, Number(nextSize) || 25));
+    setSearchParams((prev) => {
+      const updated = new URLSearchParams(prev);
+      updated.set('limit', String(normalized));
+      return updated;
+    });
+    setPageSize(normalized);
+  };
 
   const formatCurrency = (val) => `₹${(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -120,7 +195,7 @@ const AdminPayments = () => {
       {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Total Transactions', value: payments.length,          iconBg: 'bg-blue-100',   iconColor: 'text-blue-600',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
+          { label: 'Total Transactions', value: totalPayments || payments.length, iconBg: 'bg-blue-100',   iconColor: 'text-blue-600',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
           { label: 'Paid',              value: formatCurrency(totalPaid), iconBg: 'bg-green-100',  iconColor: 'text-green-600',  icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /> },
           { label: 'Pending',           value: formatCurrency(totalPending), iconBg: 'bg-orange-100', iconColor: 'text-orange-600', icon: <><circle cx="12" cy="12" r="10" strokeWidth={2} /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2" /></> },
           { label: 'In Progress',       value: formatCurrency(totalInProgress), iconBg: 'bg-blue-100', iconColor: 'text-blue-500', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /> },
@@ -316,6 +391,41 @@ const AdminPayments = () => {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500 mt-auto">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              Showing {filtered.length} payments on page {currentPage} (total {totalPayments || payments.length})
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">Rows:</label>
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(e.target.value)}
+                className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <button
+                onClick={handlePrevPage}
+                disabled={loading || currentPage <= 1}
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Previous
+              </button>
+              <button
+                onClick={handleNextPage}
+                disabled={loading || !serverPagination?.hasNextPage}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </DashboardPage>

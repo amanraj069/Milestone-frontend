@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import { useChatContext } from '../../context/ChatContext';
 import SmartFilter from '../../components/SmartFilter';
@@ -39,10 +39,23 @@ const Avatar = ({ src, name }) => (
 // ── Main Component ────────────────────────────────────────────────────────────
 const AdminModerators = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { openChatWith } = useChatContext();
 
   // ── Moderators state ──
   const [moderators, setModerators]       = useState([]);
+  const [totalModerators, setTotalModerators] = useState(0);
+  const [serverPagination, setServerPagination] = useState(null);
+  const [pageSize, setPageSize] = useState(() => {
+    const urlLimit = Number(searchParams.get('limit') || '25');
+    if (!Number.isFinite(urlLimit) || urlLimit < 1) return 25;
+    return Math.min(100, urlLimit);
+  });
+  const [currentPage, setCurrentPage] = useState(() => {
+    const urlPage = Number(searchParams.get('page') || '1');
+    if (!Number.isFinite(urlPage) || urlPage < 1) return 1;
+    return urlPage;
+  });
   const [modLoading, setModLoading]       = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [modSearch, setModSearch]         = useState('');
@@ -51,20 +64,75 @@ const AdminModerators = () => {
   const { visible: modVisible, setVisible: setModVisible } = useSmartColumnToggle(MOD_COLUMNS, 'admin-moderators-columns');
 
   // ── Fetching ──────────────────────────────────────────────────────────────
-  useEffect(() => { fetchModerators(); }, []);
+  useEffect(() => {
+    fetchModerators(currentPage, pageSize);
+  }, [currentPage, pageSize]);
 
-  const fetchModerators = async () => {
+  useEffect(() => {
+    const urlLimit = Number(searchParams.get('limit') || '25');
+    const urlPage = Number(searchParams.get('page') || '1');
+
+    if (Number.isFinite(urlLimit) && urlLimit > 0 && urlLimit !== pageSize) {
+      setPageSize(Math.min(100, urlLimit));
+    }
+    if (Number.isFinite(urlPage) && urlPage > 0 && urlPage !== currentPage) {
+      setCurrentPage(urlPage);
+    }
+  }, [searchParams]);
+
+  const syncParams = (nextPage, nextLimit) => {
+    setSearchParams((prev) => {
+      const updated = new URLSearchParams(prev);
+      updated.set('page', String(nextPage));
+      updated.set('limit', String(nextLimit));
+      return updated;
+    });
+  };
+
+  const fetchModerators = async (page = currentPage, limit = pageSize) => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/moderators`, { credentials: 'include' });
-      if (res.ok) { const d = await res.json(); if (d.success) setModerators(d.moderators); }
+      setModLoading(true);
+      const res = await fetch(`${API_BASE}/api/admin/moderators?page=${page}&limit=${limit}`, { credentials: 'include' });
+      if (res.ok) {
+        const d = await res.json();
+        if (d.success) {
+          setModerators(d.moderators || []);
+          setTotalModerators(d.total || 0);
+          setServerPagination(d.pagination || null);
+        }
+      }
     } catch (e) { console.error(e); } finally { setModLoading(false); }
   };
 
   const handleDeleteModerator = async (moderatorId) => {
     try {
       const res = await fetch(`${API_BASE}/api/admin/moderators/${moderatorId}`, { method: 'DELETE', credentials: 'include' });
-      if (res.ok) { setModerators((prev) => prev.filter((m) => m.moderatorId !== moderatorId)); setDeleteConfirm(null); }
+      if (res.ok) {
+        await fetchModerators(currentPage, pageSize);
+        setDeleteConfirm(null);
+      }
     } catch (e) { console.error(e); }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage <= 1 || modLoading) return;
+    const nextPage = currentPage - 1;
+    syncParams(nextPage, pageSize);
+    setCurrentPage(nextPage);
+  };
+
+  const handleNextPage = () => {
+    if (modLoading || !serverPagination?.hasNextPage) return;
+    const nextPage = currentPage + 1;
+    syncParams(nextPage, pageSize);
+    setCurrentPage(nextPage);
+  };
+
+  const handlePageSizeChange = (nextSize) => {
+    const normalized = Math.min(100, Math.max(1, Number(nextSize) || 25));
+    syncParams(1, normalized);
+    setCurrentPage(1);
+    setPageSize(normalized);
   };
 
   // ── Sort + filter helper ──────────────────────────────────────────────────
@@ -123,7 +191,7 @@ const AdminModerators = () => {
       {/* ══════════════════ MODERATORS ══════════════════ */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {[
-              { label: 'Total Moderators',    value: moderators.length, iconBg: 'bg-blue-100',   iconColor: 'text-blue-600',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /> },
+              { label: 'Total Moderators',    value: totalModerators || moderators.length, iconBg: 'bg-blue-100',   iconColor: 'text-blue-600',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /> },
               { label: 'Complaints Resolved', value: totalResolved,     iconBg: 'bg-green-100',  iconColor: 'text-green-600',  icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /> },
               { label: 'Total Complaints',    value: totalComplaints,   iconBg: 'bg-orange-100', iconColor: 'text-orange-600', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /> },
               { label: 'Blogs Created',       value: blogsCreated,      iconBg: 'bg-purple-100', iconColor: 'text-purple-600', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /> },
@@ -204,7 +272,39 @@ const AdminModerators = () => {
                 </table>
               </div>
               <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500 mt-auto">
-                Showing {filteredMods.length} of {moderators.length} moderators
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    Showing {filteredMods.length} moderators on page {currentPage} (total {totalModerators || moderators.length})
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500">Rows:</label>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => handlePageSizeChange(e.target.value)}
+                      className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    <button
+                      onClick={handlePrevPage}
+                      disabled={modLoading || currentPage <= 1}
+                      className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={handleNextPage}
+                      disabled={modLoading || !serverPagination?.hasNextPage}
+                      className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}

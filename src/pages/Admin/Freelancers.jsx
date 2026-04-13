@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import { useChatContext } from '../../context/ChatContext';
 import SmartFilter from '../../components/SmartFilter';
@@ -7,9 +7,16 @@ import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartC
 import { graphqlQuery } from '../../utils/graphqlClient';
 
 const ADMIN_FREELANCERS_QUERY = `
-  query AdminFreelancers {
-    adminFreelancers {
-      freelancers { freelancerId userId name email phone picture location rating skills subscription isPremium subscriptionDuration subscriptionExpiryDate applicationsCount isCurrentlyWorking joinedDate }
+  query AdminFreelancers($first: Int!, $after: String) {
+    adminFreelancers(first: $first, after: $after) {
+      edges {
+        cursor
+        node { freelancerId userId name email phone picture location rating skills subscription isPremium subscriptionDuration subscriptionExpiryDate applicationsCount isCurrentlyWorking joinedDate }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
       total
     }
   }
@@ -45,9 +52,20 @@ const AVATAR_FALLBACK = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-333
 
 const AdminFreelancers = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { openChatWith } = useChatContext();
 
   const [freelancers, setFreelancers] = useState([]);
+  const [totalFreelancers, setTotalFreelancers] = useState(0);
+  const [serverPagination, setServerPagination] = useState(null);
+  const [pageSize, setPageSize] = useState(() => {
+    const urlLimit = Number(searchParams.get('limit') || '25');
+    if (!Number.isFinite(urlLimit) || urlLimit < 1) return 25;
+    return Math.min(100, urlLimit);
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [afterCursor, setAfterCursor] = useState(null);
+  const [cursorStack, setCursorStack] = useState([]);
   const [loading, setLoading]         = useState(true);
   const [search, setSearch]           = useState('');
   const [sort, setSort]               = useState('date_desc');
@@ -58,13 +76,75 @@ const AdminFreelancers = () => {
   const hasFilters = Object.values(filters).some((v) => v.length > 0);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const result = await graphqlQuery(ADMIN_FREELANCERS_QUERY);
-        if (result?.adminFreelancers?.freelancers) setFreelancers(result.adminFreelancers.freelancers);
-      } catch (e) { console.error(e); } finally { setLoading(false); }
-    })();
-  }, []);
+    resetAndFetchFreelancers();
+  }, [pageSize]);
+
+  useEffect(() => {
+    const urlLimit = Number(searchParams.get('limit') || '25');
+    if (Number.isFinite(urlLimit) && urlLimit > 0 && urlLimit !== pageSize) {
+      setPageSize(Math.min(100, urlLimit));
+    }
+  }, [searchParams]);
+
+  const fetchFreelancers = async ({ after = afterCursor } = {}) => {
+    setLoading(true);
+    try {
+      const result = await graphqlQuery(ADMIN_FREELANCERS_QUERY, {
+        first: pageSize,
+        after,
+      });
+
+      const connection = result?.adminFreelancers;
+      const edges = connection?.edges || [];
+
+      setFreelancers(edges.map((edge) => edge.node));
+      setTotalFreelancers(connection?.total || 0);
+      setServerPagination({
+        hasNextPage: connection?.pageInfo?.hasNextPage || false,
+        endCursor: connection?.pageInfo?.endCursor || null,
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetAndFetchFreelancers = async () => {
+    setCurrentPage(1);
+    setAfterCursor(null);
+    setCursorStack([]);
+    await fetchFreelancers({ after: null });
+  };
+
+  const handleNextPage = async () => {
+    if (!serverPagination?.hasNextPage || !serverPagination?.endCursor) return;
+    const nextAfter = serverPagination.endCursor;
+    setCursorStack((prev) => [...prev, afterCursor]);
+    setAfterCursor(nextAfter);
+    setCurrentPage((p) => p + 1);
+    await fetchFreelancers({ after: nextAfter });
+  };
+
+  const handlePrevPage = async () => {
+    if (currentPage <= 1) return;
+    const nextStack = [...cursorStack];
+    const prevAfter = nextStack.pop() ?? null;
+    setCursorStack(nextStack);
+    setAfterCursor(prevAfter);
+    setCurrentPage((p) => Math.max(1, p - 1));
+    await fetchFreelancers({ after: prevAfter });
+  };
+
+  const handlePageSizeChange = (nextSize) => {
+    const normalized = Math.min(100, Math.max(1, Number(nextSize) || 25));
+    setSearchParams((prev) => {
+      const updated = new URLSearchParams(prev);
+      updated.set('limit', String(normalized));
+      return updated;
+    });
+    setPageSize(normalized);
+  };
 
   const [sortField, sortDir] = sort.split('_');
   const term = search.toLowerCase();
@@ -109,7 +189,7 @@ const AdminFreelancers = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Total Freelancers', value: freelancers.length, iconBg: 'bg-blue-100',   iconColor: 'text-blue-600',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /> },
+          { label: 'Total Freelancers', value: totalFreelancers || freelancers.length, iconBg: 'bg-blue-100',   iconColor: 'text-blue-600',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /> },
           { label: 'Currently Working', value: working,            iconBg: 'bg-green-100',  iconColor: 'text-green-600',  icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /> },
           { label: 'Premium Members',   value: premium,            iconBg: 'bg-purple-100', iconColor: 'text-purple-600', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /> },
           { label: 'Showing',           value: filtered.length,    iconBg: 'bg-orange-100', iconColor: 'text-orange-600', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" /> },
@@ -261,7 +341,39 @@ const AdminFreelancers = () => {
           </table>
         </div>
         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500 mt-auto">
-          Showing {filtered.length} of {freelancers.length} freelancers
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              Showing {filtered.length} freelancers on page {currentPage} (total {totalFreelancers || freelancers.length})
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">Rows:</label>
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(e.target.value)}
+                className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <button
+                onClick={handlePrevPage}
+                disabled={loading || currentPage <= 1}
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Previous
+              </button>
+              <button
+                onClick={handleNextPage}
+                disabled={loading || !serverPagination?.hasNextPage}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </DashboardPage>
