@@ -36,12 +36,14 @@ const ModeratorComplaints = () => {
     complaints,
     total,
     pagination,
+    filterOptions,
     loading, 
     error 
   } = useSelector(state => state.complaints);
 
   const [pageSize, setPageSize] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
   // Column visibility
   const { visible, setVisible } = useSmartColumnToggle(COLUMNS, 'moderator-complaints-columns');
@@ -62,7 +64,7 @@ const ModeratorComplaints = () => {
   };
 
   const filterSignature = JSON.stringify({
-    searchTerm: reduxSearchTerm,
+    searchTerm: debouncedSearchTerm,
     sortBy,
     sortOrder,
     columnFilters,
@@ -70,24 +72,28 @@ const ModeratorComplaints = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      dispatch(
-        fetchComplaints({
-          page: currentPage,
-          limit: pageSize,
-          search: reduxSearchTerm,
-          sortBy,
-          sortOrder,
-          complainantTypeIn: columnFilters.complainantType,
-          againstIn: columnFilters.against,
-          jobIn: columnFilters.job,
-          statusIn: columnFilters.status,
-          priorityIn: columnFilters.priority,
-          typeIn: columnFilters.type,
-        }),
-      );
+      setDebouncedSearchTerm((reduxSearchTerm || '').trim());
     }, 250);
 
     return () => clearTimeout(timer);
+  }, [reduxSearchTerm]);
+
+  useEffect(() => {
+    dispatch(
+      fetchComplaints({
+        page: currentPage,
+        limit: pageSize,
+        search: debouncedSearchTerm,
+        sortBy,
+        sortOrder,
+        complainantTypeIn: columnFilters.complainantType,
+        againstIn: columnFilters.against,
+        jobIn: columnFilters.job,
+        statusIn: columnFilters.status,
+        priorityIn: columnFilters.priority,
+        typeIn: columnFilters.type,
+      }),
+    );
   }, [dispatch, currentPage, pageSize, filterSignature]);
 
   const handleViewComplaint = (complaintId) => {
@@ -277,6 +283,7 @@ const ModeratorComplaints = () => {
                           field="complainantType"
                           selectedValues={columnFilters.complainantType}
                           onFilterChange={setColFilter('complainantType')}
+                          options={filterOptions?.complainantTypes || []}
                         />
                       </div>
                     </th>
@@ -292,6 +299,7 @@ const ModeratorComplaints = () => {
                           selectedValues={columnFilters.against}
                           onFilterChange={setColFilter('against')}
                           valueExtractor={(c) => c.complainantType === 'Freelancer' ? c.employerName : c.freelancerName}
+                          options={filterOptions?.against || []}
                         />
                       </div>
                     </th>
@@ -306,6 +314,7 @@ const ModeratorComplaints = () => {
                           field="jobTitle"
                           selectedValues={columnFilters.job}
                           onFilterChange={setColFilter('job')}
+                          options={filterOptions?.jobs || []}
                         />
                       </div>
                     </th>
@@ -320,6 +329,7 @@ const ModeratorComplaints = () => {
                           field="complaintType"
                           selectedValues={columnFilters.type}
                           onFilterChange={setColFilter('type')}
+                          options={filterOptions?.types || []}
                         />
                       </div>
                     </th>
@@ -334,6 +344,7 @@ const ModeratorComplaints = () => {
                           field="priority"
                           selectedValues={columnFilters.priority}
                           onFilterChange={setColFilter('priority')}
+                          options={filterOptions?.priorities || []}
                         />
                       </div>
                     </th>
@@ -351,6 +362,7 @@ const ModeratorComplaints = () => {
                           field="status"
                           selectedValues={columnFilters.status}
                           onFilterChange={setColFilter('status')}
+                          options={filterOptions?.statuses || []}
                         />
                       </div>
                     </th>

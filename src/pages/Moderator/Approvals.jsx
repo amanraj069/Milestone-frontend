@@ -4,6 +4,55 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'
 import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
+import { graphqlQuery } from '../../utils/graphqlClient';
+
+const MODERATOR_APPROVALS_QUERY = `
+  query ModeratorApprovals(
+    $first: Int!
+    $after: String
+    $page: Int
+    $status: String
+    $search: String
+    $sortBy: String
+    $sortOrder: String
+    $nameIn: [String]
+    $emailIn: [String]
+    $companyIn: [String]
+    $locationIn: [String]
+    $statusIn: [String]
+  ) {
+    moderatorApprovals(
+      first: $first
+      after: $after
+      page: $page
+      status: $status
+      search: $search
+      sortBy: $sortBy
+      sortOrder: $sortOrder
+      nameIn: $nameIn
+      emailIn: $emailIn
+      companyIn: $companyIn
+      locationIn: $locationIn
+      statusIn: $statusIn
+    ) {
+      edges {
+        cursor
+        node {
+          userId name email phone picture location companyName approvalStatus isApproved isRejected registeredAt
+          companyDetails {
+            companyName companyPAN accountsPayableEmail officialBusinessEmail taxIdentificationNumber
+            billingAddress proofOfAddressUrl companyLogoUrl isSubmitted submittedAt
+          }
+        }
+      }
+      pageInfo { hasNextPage endCursor }
+      total
+    }
+    moderatorApprovalsMeta {
+      filterOptions { names emails companies locations statuses }
+    }
+  }
+`;
 
 // Modal animation styles
 const modalStyles = `
@@ -23,6 +72,7 @@ const modalStyles = `
 
 const ModeratorApprovals = () => {
   const [employers, setEmployers] = useState([]);
+  const [metaFilters, setMetaFilters] = useState({ names: [], emails: [], companies: [], locations: [], statuses: [] });
   const [totalEmployersCount, setTotalEmployersCount] = useState(0);
   const [serverPagination, setServerPagination] = useState(null);
   const [pageSize, setPageSize] = useState(25);
@@ -30,6 +80,7 @@ const ModeratorApprovals = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'approved'
   const [processing, setProcessing] = useState(null);
   
@@ -59,7 +110,7 @@ const ModeratorApprovals = () => {
   const isColumnVisible = (k) => visibleColumns.has(k);
 
   const filterSignature = JSON.stringify({
-    searchTerm,
+    debouncedSearchTerm,
     sortBy,
     nameFilters,
     emailFilters,
@@ -70,10 +121,14 @@ const ModeratorApprovals = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchEmployers(currentPage, pageSize);
+      setDebouncedSearchTerm(searchTerm.trim());
     }, 250);
 
     return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchEmployers(currentPage, pageSize);
   }, [statusFilter, currentPage, pageSize, filterSignature]);
 
   const fetchEmployers = async (page = currentPage, limit = pageSize) => {
@@ -87,33 +142,29 @@ const ModeratorApprovals = () => {
         'name-za': { sortBy: 'name', sortOrder: 'desc' },
       }[sortBy] || { sortBy: 'createdAt', sortOrder: 'desc' };
 
-      const response = await axios.get(
-        `${API_BASE_URL}/api/moderator/approvals/pending`,
-        { 
-          params: {
-            status: statusFilter === 'all' ? 'all' : statusFilter,
-            page,
-            limit,
-            search: searchTerm.trim() || undefined,
-            sortBy: sortConfig.sortBy,
-            sortOrder: sortConfig.sortOrder,
-            nameIn: nameFilters.length ? nameFilters : undefined,
-            emailIn: emailFilters.length ? emailFilters : undefined,
-            companyIn: companyFilters.length ? companyFilters : undefined,
-            locationIn: locationFilters.length ? locationFilters : undefined,
-            statusIn: statusFiltersColumn.length
-              ? statusFiltersColumn.map((entry) => String(entry).toLowerCase())
-              : undefined,
-          },
-          withCredentials: true 
-        }
-      );
+      const result = await graphqlQuery(MODERATOR_APPROVALS_QUERY, {
+        first: limit,
+        page,
+        search: debouncedSearchTerm || undefined,
+        status: statusFilter === 'all' ? 'all' : statusFilter,
+        sortBy: sortConfig.sortBy,
+        sortOrder: sortConfig.sortOrder,
+        nameIn: nameFilters.length ? nameFilters : null,
+        emailIn: emailFilters.length ? emailFilters : null,
+        companyIn: companyFilters.length ? companyFilters : null,
+        locationIn: locationFilters.length ? locationFilters : null,
+        statusIn: statusFiltersColumn.length
+          ? statusFiltersColumn.map((entry) => String(entry).toLowerCase())
+          : null,
+      });
 
-      if (response.data.success) {
-        setEmployers(response.data.pendingApprovals || []);
-        setTotalEmployersCount(response.data.count || 0);
-        setServerPagination(response.data.pagination || null);
-      }
+      const connection = result?.moderatorApprovals;
+      const edges = connection?.edges || [];
+
+      setEmployers(edges.map((edge) => edge.node));
+      setTotalEmployersCount(connection?.total || 0);
+      setServerPagination(connection?.pageInfo || null);
+      setMetaFilters(result?.moderatorApprovalsMeta?.filterOptions || { names: [], emails: [], companies: [], locations: [], statuses: [] });
     } catch (error) {
       console.error('Error fetching employers:', error);
       setError('Failed to load employers. Please try again.');
@@ -267,7 +318,10 @@ const ModeratorApprovals = () => {
               type="text"
               placeholder="Search employers..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setSearchTerm(e.target.value);
+              }}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -336,6 +390,7 @@ const ModeratorApprovals = () => {
                           field="name"
                           selectedValues={nameFilters}
                           onFilterChange={setNameFilters}
+                          options={metaFilters.names}
                         />
                       </div>
                     </th>
@@ -351,6 +406,7 @@ const ModeratorApprovals = () => {
                           field="companyName"
                           selectedValues={companyFilters}
                           onFilterChange={setCompanyFilters}
+                          options={metaFilters.companies}
                         />
                       </div>
                     </th>
@@ -366,6 +422,7 @@ const ModeratorApprovals = () => {
                           field="location"
                           selectedValues={locationFilters}
                           onFilterChange={setLocationFilters}
+                          options={metaFilters.locations}
                         />
                       </div>
                     </th>
@@ -385,6 +442,7 @@ const ModeratorApprovals = () => {
                           field="approvalStatus"
                           selectedValues={statusFiltersColumn}
                           onFilterChange={setStatusFiltersColumn}
+                          options={metaFilters.statuses}
                         />
                       </div>
                     </th>

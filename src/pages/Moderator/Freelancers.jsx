@@ -4,42 +4,73 @@ import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 import { useChatContext } from '../../context/ChatContext';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
-// Levenshtein distance algorithm for fuzzy search
-const levenshteinDistance = (str1, str2) => {
-  const len1 = str1.length;
-  const len2 = str2.length;
-  const matrix = [];
+const serializeQueryParams = (params) => {
+  const searchParams = new URLSearchParams();
 
-  if (len1 === 0) return len2;
-  if (len2 === 0) return len1;
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
 
-  for (let i = 0; i <= len2; i++) {
-    matrix[i] = [i];
-  }
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item !== undefined && item !== null && item !== '') {
+          searchParams.append(key, String(item));
+        }
+      });
+      return;
+    }
 
-  for (let j = 0; j <= len1; j++) {
-    matrix[0][j] = j;
-  }
+    searchParams.append(key, String(value));
+  });
 
-  for (let i = 1; i <= len2; i++) {
-    for (let j = 1; j <= len1; j++) {
-      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
-        );
+  return searchParams.toString();
+};
+
+const MODERATOR_FREELANCERS_QUERY = `
+  query ModeratorFreelancers(
+    $first: Int!
+    $after: String
+    $page: Int
+    $search: String
+    $sortBy: String
+    $nameIn: [String]
+    $emailIn: [String]
+    $phoneIn: [String]
+    $ratingIn: [String]
+    $subscribedIn: [String]
+    $durationIn: [String]
+  ) {
+    moderatorFreelancers(
+      first: $first
+      after: $after
+      page: $page
+      search: $search
+      sortBy: $sortBy
+      nameIn: $nameIn
+      emailIn: $emailIn
+      phoneIn: $phoneIn
+      ratingIn: $ratingIn
+      subscribedIn: $subscribedIn
+      durationIn: $durationIn
+    ) {
+      edges {
+        cursor
+        node {
+          freelancerId userId name email phone picture location rating skills portfolioCount joinedDate
+          subscription isPremium subscriptionDuration subscriptionExpiryDate applicationsCount isCurrentlyWorking
+        }
       }
+      pageInfo { hasNextPage endCursor }
+      total
+    }
+    moderatorFreelancersMeta {
+      filterOptions { names emails phones ratings subscribed durations }
     }
   }
-
-  return matrix[len2][len1];
-};
+`;
 
 // Modal animation styles
 const modalStyles = `
@@ -75,6 +106,7 @@ const modalStyles = `
 const ModeratorFreelancers = () => {
   const { openChatWith } = useChatContext();
   const [freelancers, setFreelancers] = useState([]);
+  const [metaFilters, setMetaFilters] = useState({ names: [], emails: [], phones: [], ratings: [], subscribed: [], durations: [] });
   const [totalFreelancersCount, setTotalFreelancersCount] = useState(0);
   const [serverPagination, setServerPagination] = useState(null);
   const [pageSize, setPageSize] = useState(25);
@@ -82,6 +114,7 @@ const ModeratorFreelancers = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [deleting, setDeleting] = useState(null);
 
   // Sort state (replaces multiple dropdown filters)
@@ -121,7 +154,7 @@ const ModeratorFreelancers = () => {
   const isColumnVisible = (columnKey) => visibleColumns.has(columnKey);
 
   const filterSignature = JSON.stringify({
-    searchTerm,
+    debouncedSearchTerm,
     sortBy,
     nameFilters,
     emailFilters,
@@ -133,40 +166,40 @@ const ModeratorFreelancers = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchFreelancers(currentPage, pageSize);
+      setDebouncedSearchTerm(searchTerm.trim());
     }, 250);
 
     return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchFreelancers(currentPage, pageSize);
   }, [currentPage, pageSize, filterSignature]);
 
   const fetchFreelancers = async (page = currentPage, limit = pageSize) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(
-        `${API_BASE_URL}/api/moderator/freelancers`,
-        {
-          withCredentials: true,
-          params: {
-            page,
-            limit,
-            search: searchTerm.trim() || undefined,
-            sortBy,
-            nameIn: nameFilters.length ? nameFilters : undefined,
-            emailIn: emailFilters.length ? emailFilters : undefined,
-            phoneIn: phoneFilters.length ? phoneFilters : undefined,
-            ratingIn: ratingFilters.length ? ratingFilters : undefined,
-            subscribedIn: subscribedFilters.length ? subscribedFilters : undefined,
-            durationIn: durationFilters.length ? durationFilters : undefined,
-          },
-        }
-      );
+      const result = await graphqlQuery(MODERATOR_FREELANCERS_QUERY, {
+        first: limit,
+        page,
+        search: debouncedSearchTerm || undefined,
+        sortBy,
+        nameIn: nameFilters.length ? nameFilters : null,
+        emailIn: emailFilters.length ? emailFilters : null,
+        phoneIn: phoneFilters.length ? phoneFilters : null,
+        ratingIn: ratingFilters.length ? ratingFilters.map((v) => String(v)) : null,
+        subscribedIn: subscribedFilters.length ? subscribedFilters : null,
+        durationIn: durationFilters.length ? durationFilters.map((v) => String(v)) : null,
+      });
 
-      if (response.data.success) {
-        setFreelancers(response.data.freelancers || []);
-        setTotalFreelancersCount(response.data.total || 0);
-        setServerPagination(response.data.pagination || null);
-      }
+      const connection = result?.moderatorFreelancers;
+      const edges = connection?.edges || [];
+
+      setFreelancers(edges.map((edge) => edge.node));
+      setTotalFreelancersCount(connection?.total || 0);
+      setServerPagination(connection?.pageInfo || null);
+      setMetaFilters(result?.moderatorFreelancersMeta?.filterOptions || { names: [], emails: [], phones: [], ratings: [], subscribed: [], durations: [] });
     } catch (error) {
       console.error('Error fetching freelancers:', error);
       setError('Failed to load freelancers. Please try again.');
@@ -337,7 +370,10 @@ const ModeratorFreelancers = () => {
               type="text"
               placeholder="Search freelancers..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setSearchTerm(e.target.value);
+              }}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -414,6 +450,7 @@ const ModeratorFreelancers = () => {
                           field="name"
                           selectedValues={nameFilters}
                           onFilterChange={setNameFilters}
+                          options={metaFilters.names}
                         />
                       </div>
                     </th>
@@ -428,6 +465,7 @@ const ModeratorFreelancers = () => {
                           field="email"
                           selectedValues={emailFilters}
                           onFilterChange={setEmailFilters}
+                          options={metaFilters.emails}
                         />
                       </div>
                     </th>
@@ -443,6 +481,7 @@ const ModeratorFreelancers = () => {
                           selectedValues={phoneFilters}
                           onFilterChange={setPhoneFilters}
                           valueExtractor={(f) => f.phone || 'N/A'}
+                          options={metaFilters.phones}
                         />
                       </div>
                     </th>
@@ -458,6 +497,7 @@ const ModeratorFreelancers = () => {
                           selectedValues={ratingFilters}
                           onFilterChange={setRatingFilters}
                           valueFormatter={(v) => `★ ${v.toFixed(1)}`}
+                          options={metaFilters.ratings}
                         />
                       </div>
                     </th>
@@ -473,6 +513,7 @@ const ModeratorFreelancers = () => {
                           selectedValues={subscribedFilters}
                           onFilterChange={setSubscribedFilters}
                           valueExtractor={(f) => f.isPremium ? 'Yes' : 'No'}
+                          options={metaFilters.subscribed}
                         />
                       </div>
                     </th>
@@ -489,6 +530,7 @@ const ModeratorFreelancers = () => {
                           onFilterChange={setDurationFilters}
                           valueExtractor={(f) => f.subscriptionDuration || 0}
                           valueFormatter={(v) => v === 0 ? 'None' : `${v} months`}
+                          options={metaFilters.durations}
                         />
                       </div>
                     </th>

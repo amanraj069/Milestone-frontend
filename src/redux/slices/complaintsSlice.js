@@ -1,7 +1,56 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+
+const MODERATOR_COMPLAINTS_QUERY = `
+  query ModeratorComplaints(
+    $first: Int!
+    $after: String
+    $page: Int
+    $search: String
+    $sortBy: String
+    $sortOrder: String
+    $complainantTypeIn: [String]
+    $againstIn: [String]
+    $jobIn: [String]
+    $statusIn: [String]
+    $priorityIn: [String]
+    $typeIn: [String]
+  ) {
+    moderatorComplaints(
+      first: $first
+      after: $after
+      page: $page
+      search: $search
+      sortBy: $sortBy
+      sortOrder: $sortOrder
+      complainantTypeIn: $complainantTypeIn
+      againstIn: $againstIn
+      jobIn: $jobIn
+      statusIn: $statusIn
+      priorityIn: $priorityIn
+      typeIn: $typeIn
+    ) {
+      edges {
+        cursor
+        node {
+          complaintId complainantType complainantId complainantName complainantUserId
+          freelancerId freelancerName freelancerUserId freelancerRating freelancerEmail
+          employerId employerName employerUserId employerRating employerEmail
+          jobId jobTitle complaintType priority subject status createdAt updatedAt resolvedAt
+        }
+      }
+      pageInfo { hasNextPage endCursor }
+      total
+    }
+    moderatorComplaintsMeta {
+      summary { total pending underReview resolved rejected }
+      filterOptions { complainantTypes against jobs statuses priorities types }
+    }
+  }
+`;
 
 // Async thunk to fetch complaints
 export const fetchComplaints = createAsyncThunk(
@@ -20,35 +69,30 @@ export const fetchComplaints = createAsyncThunk(
     typeIn = [],
   } = {}, { rejectWithValue }) => {
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/api/moderator/complaints`,
-        {
-          withCredentials: true,
-          params: {
-            page,
-            limit,
-            search: search || undefined,
-            sortBy,
-            sortOrder,
-            complainantTypeIn: complainantTypeIn.length ? complainantTypeIn : undefined,
-            againstIn: againstIn.length ? againstIn : undefined,
-            jobIn: jobIn.length ? jobIn : undefined,
-            statusIn: statusIn.length ? statusIn : undefined,
-            priorityIn: priorityIn.length ? priorityIn : undefined,
-            typeIn: typeIn.length ? typeIn : undefined,
-          },
-        }
-      );
-      
-      if (response.data.success) {
-        return {
-          complaints: response.data.complaints || [],
-          total: response.data.total || 0,
-          pagination: response.data.pagination || null,
-          stats: response.data.stats || null,
-        };
-      }
-      return rejectWithValue('Failed to fetch complaints');
+      const result = await graphqlQuery(MODERATOR_COMPLAINTS_QUERY, {
+        first: limit,
+        page,
+        search: search || undefined,
+        sortBy,
+        sortOrder,
+        complainantTypeIn: complainantTypeIn.length ? complainantTypeIn : null,
+        againstIn: againstIn.length ? againstIn : null,
+        jobIn: jobIn.length ? jobIn : null,
+        statusIn: statusIn.length ? statusIn : null,
+        priorityIn: priorityIn.length ? priorityIn : null,
+        typeIn: typeIn.length ? typeIn : null,
+      });
+
+      const connection = result?.moderatorComplaints;
+      const complaints = (connection?.edges || []).map((edge) => edge.node);
+
+      return {
+        complaints,
+        total: connection?.total || 0,
+        pagination: connection?.pageInfo || null,
+        stats: result?.moderatorComplaintsMeta?.summary || null,
+        filterOptions: result?.moderatorComplaintsMeta?.filterOptions || null,
+      };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch complaints');
     }
@@ -126,42 +170,6 @@ const calculateStats = (complaints) => {
   return stats;
 };
 
-// Sort complaints based on criteria
-const sortComplaints = (complaints, sortBy, sortOrder) => {
-  const sorted = [...complaints].sort((a, b) => {
-    let aValue, bValue;
-
-    switch (sortBy) {
-      case 'date':
-        aValue = new Date(a.createdAt).getTime();
-        bValue = new Date(b.createdAt).getTime();
-        break;
-      case 'priority':
-        const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
-        aValue = priorityOrder[a.priority] || 0;
-        bValue = priorityOrder[b.priority] || 0;
-        break;
-      case 'status':
-        const statusOrder = { 'Pending': 1, 'Under Review': 2, 'Resolved': 3, 'Rejected': 4 };
-        aValue = statusOrder[a.status] || 0;
-        bValue = statusOrder[b.status] || 0;
-        break;
-      case 'complainant':
-        aValue = a.complainantName?.toLowerCase() || '';
-        bValue = b.complainantName?.toLowerCase() || '';
-        break;
-      default:
-        aValue = new Date(a.createdAt).getTime();
-        bValue = new Date(b.createdAt).getTime();
-    }
-
-    if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  return sorted;
-};
 
 const complaintsSlice = createSlice({
   name: 'complaints',
@@ -186,6 +194,14 @@ const complaintsSlice = createSlice({
       byPriority: { low: 0, medium: 0, high: 0 },
       byComplainantType: { freelancer: 0, employer: 0 },
       byType: {}
+    },
+    filterOptions: {
+      complainantTypes: [],
+      against: [],
+      jobs: [],
+      statuses: [],
+      priorities: [],
+      types: [],
     },
     total: 0,
     pagination: null,
@@ -230,6 +246,7 @@ const complaintsSlice = createSlice({
         state.total = action.payload.total;
         state.pagination = action.payload.pagination;
         state.stats = action.payload.stats || calculateStats(action.payload.complaints);
+        state.filterOptions = action.payload.filterOptions || state.filterOptions;
         state.filteredComplaints = action.payload.complaints;
       })
       .addCase(fetchComplaints.rejected, (state, action) => {
@@ -272,28 +289,6 @@ const complaintsSlice = createSlice({
       });
   }
 });
-
-// Helper function to apply filters and search
-const applyFiltersAndSearch = (complaints, filters, searchTerm, sortBy, sortOrder) => {
-  let filtered = complaints.filter(complaint => {
-    const statusMatch = filters.status === 'All' || complaint.status === filters.status;
-    const priorityMatch = filters.priority === 'All' || complaint.priority === filters.priority;
-    const complainantMatch = filters.complainantType === 'All' || 
-                            complaint.complainantType === filters.complainantType;
-    const searchMatch = searchTerm === '' || 
-      complaint.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      complaint.complainantName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      complaint.complaintType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      complaint.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    return statusMatch && priorityMatch && complainantMatch && searchMatch;
-  });
-
-  // Apply sorting
-  filtered = sortComplaints(filtered, sortBy, sortOrder);
-
-  return filtered;
-};
 
 export const {
   setFilters,

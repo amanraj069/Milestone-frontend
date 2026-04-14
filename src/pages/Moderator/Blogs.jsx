@@ -1,7 +1,51 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import SmartSearchInput from '../../components/SmartSearchInput';
+import { graphqlQuery } from '../../utils/graphqlClient';
+
+const MODERATOR_BLOGS_QUERY = `
+  query ModeratorBlogs(
+    $first: Int!
+    $after: String
+    $page: Int
+    $search: String
+    $searchBy: String
+    $categoryIn: [String]
+    $featuredIn: [String]
+    $sortBy: String
+    $sortOrder: String
+  ) {
+    moderatorBlogs(
+      first: $first
+      after: $after
+      page: $page
+      search: $search
+      searchBy: $searchBy
+      categoryIn: $categoryIn
+      featuredIn: $featuredIn
+      sortBy: $sortBy
+      sortOrder: $sortOrder
+    ) {
+      edges { cursor node { blogId slug title tagline category imageUrl author readTime status featured createdAt formattedCreatedAt readTimeDisplay } }
+      pageInfo { hasNextPage endCursor }
+      total
+    }
+    moderatorBlogsMeta {
+      summary { totalBlogs publishedBlogs featuredBlogs }
+      filterOptions { categories featured }
+    }
+  }
+`;
+
+const MODERATOR_DELETE_BLOG_MUTATION = `
+  mutation ModeratorDeleteBlog($blogId: String!) {
+    moderatorDeleteBlog(blogId: $blogId) {
+      success
+      message
+    }
+  }
+`;
 
 // Delete Confirmation Modal Component
 const DeleteModal = ({ isOpen, onClose, onConfirm, blogTitle, isDeleting }) => {
@@ -82,10 +126,18 @@ const ModeratorBlogs = () => {
   const location = useLocation();
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [listLoaded, setListLoaded] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, blog: null });
   const [isDeleting, setIsDeleting] = useState(false);
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [pagination, setPagination] = useState(null);
+  const [metaFilters, setMetaFilters] = useState({ categories: [] });
+  const [summary, setSummary] = useState({ totalBlogs: 0, publishedBlogs: 0, featuredBlogs: 0 });
+  const [afterCursor, setAfterCursor] = useState(null);
+  const [cursorStack, setCursorStack] = useState([]);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -104,22 +156,51 @@ const ModeratorBlogs = () => {
       // Auto-hide after 3 seconds
       setTimeout(() => setSuccessMessage(''), 3000);
     }
-    fetchBlogs();
   }, [location.state]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchBlogs();
+  }, [debouncedSearchTerm, searchBy, categoryFilter, featuredFilter, sortBy, afterCursor, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setAfterCursor(null);
+    setCursorStack([]);
+  }, [debouncedSearchTerm, searchBy, categoryFilter, featuredFilter, sortBy, pageSize]);
 
   const fetchBlogs = async () => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/moderator/blogs`, {
-        credentials: 'include',
+      setLoading(true);
+      const [sortField, sortDirection] = String(sortBy || 'date-desc').split('-');
+      const result = await graphqlQuery(MODERATOR_BLOGS_QUERY, {
+        search: debouncedSearchTerm,
+        searchBy,
+        categoryIn: categoryFilter !== 'all' ? [categoryFilter] : null,
+        featuredIn: featuredFilter !== 'all' ? [featuredFilter] : null,
+        sortBy: sortField === 'title' ? 'title' : 'createdAt',
+        sortOrder: sortDirection === 'asc' ? 'asc' : 'desc',
+        first: pageSize,
+        after: afterCursor,
       });
-      const data = await response.json();
-      if (data.success) {
-        setBlogs(data.blogs);
-      }
+      const connection = result?.moderatorBlogs;
+      const edges = connection?.edges || [];
+      setBlogs(edges.map((edge) => edge.node));
+      setPagination(connection?.pageInfo || null);
+      setMetaFilters(result?.moderatorBlogsMeta?.filterOptions || { categories: [] });
+      setSummary(result?.moderatorBlogsMeta?.summary || { totalBlogs: 0, publishedBlogs: 0, featuredBlogs: 0 });
     } catch (error) {
       console.error('Error fetching blogs:', error);
     } finally {
       setLoading(false);
+      setListLoaded(true);
     }
   };
 
@@ -128,18 +209,15 @@ const ModeratorBlogs = () => {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/api/moderator/blogs/${deleteModal.blog.blogId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      const data = await response.json();
+      const result = await graphqlQuery(MODERATOR_DELETE_BLOG_MUTATION, { blogId: deleteModal.blog.blogId });
+      const data = result?.moderatorDeleteBlog;
 
-      if (data.success) {
+      if (data?.success) {
         setSuccessMessage('Blog deleted successfully!');
         setTimeout(() => setSuccessMessage(''), 3000);
         fetchBlogs();
       } else {
-        alert(data.message || 'Failed to delete blog');
+        alert(data?.message || 'Failed to delete blog');
       }
     } catch (error) {
       alert('An error occurred while deleting the blog');
@@ -148,68 +226,6 @@ const ModeratorBlogs = () => {
       setDeleteModal({ isOpen: false, blog: null });
     }
   };
-
-  // Get unique categories
-  const uniqueCategories = useMemo(() => {
-    const categories = [...new Set(blogs.map(b => b.category))];
-    return categories.sort();
-  }, [blogs]);
-
-  // Filter and sort blogs
-  const filteredBlogs = useMemo(() => {
-    let list = [...blogs];
-
-    // Search filter based on selected field
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      if (searchBy === 'title') {
-        list = list.filter(b => b.title?.toLowerCase().includes(term));
-      } else if (searchBy === 'category') {
-        list = list.filter(b => b.category?.toLowerCase().includes(term));
-      } else if (searchBy === 'content') {
-        list = list.filter(b => b.excerpt?.toLowerCase().includes(term));
-      }
-    }
-
-    // Category filter
-    if (categoryFilter !== 'all') {
-      list = list.filter(b => b.category === categoryFilter);
-    }
-
-    // Featured filter
-    if (featuredFilter !== 'all') {
-      if (featuredFilter === 'featured') {
-        list = list.filter(b => b.featured);
-      } else if (featuredFilter === 'non-featured') {
-        list = list.filter(b => !b.featured);
-      }
-    }
-
-    // Sort
-    switch (sortBy) {
-      case 'date-desc':
-        list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        break;
-      case 'date-asc':
-        list.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        break;
-      case 'title-asc':
-        list.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-        break;
-      case 'title-desc':
-        list.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
-        break;
-      default:
-        break;
-    }
-
-    return list;
-  }, [blogs, searchTerm, searchBy, categoryFilter, featuredFilter, sortBy]);
-
-  // Stats calculations
-  const totalBlogs = blogs.length;
-  const publishedBlogs = blogs.filter(b => b.status === 'published').length;
-  const featuredBlogs = blogs.filter(b => b.featured).length;
 
   // Active filters count
   const activeFilters = (categoryFilter !== 'all' ? 1 : 0) + 
@@ -247,7 +263,7 @@ const ModeratorBlogs = () => {
               </div>
               <div>
                 <p className="text-gray-600 text-sm mb-1">Total Blogs</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{totalBlogs}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{summary.totalBlogs}</p>
               </div>
             </div>
           </div>
@@ -259,7 +275,7 @@ const ModeratorBlogs = () => {
               </div>
               <div>
                 <p className="text-gray-600 text-sm mb-1">Published</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{publishedBlogs}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{summary.publishedBlogs}</p>
               </div>
             </div>
           </div>
@@ -271,7 +287,7 @@ const ModeratorBlogs = () => {
               </div>
               <div>
                 <p className="text-gray-600 text-sm mb-1">Featured</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{featuredBlogs}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{summary.featuredBlogs}</p>
               </div>
             </div>
           </div>
@@ -284,11 +300,14 @@ const ModeratorBlogs = () => {
             {/* Category Filter */}
             <select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setCategoryFilter(e.target.value);
+              }}
               className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[160px]"
             >
               <option value="all">All Categories</option>
-              {uniqueCategories.map(cat => (
+              {(metaFilters.categories || []).map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
@@ -296,7 +315,10 @@ const ModeratorBlogs = () => {
             {/* Featured Filter */}
             <select
               value={featuredFilter}
-              onChange={(e) => setFeaturedFilter(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setFeaturedFilter(e.target.value);
+              }}
               className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[160px]"
             >
               <option value="all">All</option>
@@ -307,7 +329,10 @@ const ModeratorBlogs = () => {
             {/* Sort By */}
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setSortBy(e.target.value);
+              }}
               className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[160px]"
             >
               <option value="date-desc">Newest First</option>
@@ -318,7 +343,7 @@ const ModeratorBlogs = () => {
 
             {/* Showing Count */}
             <div className="ml-auto text-sm text-gray-600 font-medium">
-              Showing: <span className="text-gray-900">{filteredBlogs.length}</span> of <span className="text-gray-900">{blogs.length}</span>
+              Showing: <span className="text-gray-900">{blogs.length}</span> of <span className="text-gray-900">{summary.totalBlogs || 0}</span>
             </div>
           </div>
 
@@ -334,7 +359,10 @@ const ModeratorBlogs = () => {
             {/* Custom Tab Buttons */}
             <div className="inline-flex p-1 rounded-lg border border-gray-200 bg-gray-50 h-9">
               <button
-                onClick={() => setSearchBy('title')}
+                onClick={() => {
+                  setCurrentPage(1);
+                  setSearchBy('title');
+                }}
                 className={`px-3 py-0 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
                   searchBy === 'title' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-blue-600'
                 }`}
@@ -342,7 +370,10 @@ const ModeratorBlogs = () => {
                 Title
               </button>
               <button
-                onClick={() => setSearchBy('category')}
+                onClick={() => {
+                  setCurrentPage(1);
+                  setSearchBy('category');
+                }}
                 className={`px-3 py-0 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
                   searchBy === 'category' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-blue-600'
                 }`}
@@ -350,7 +381,10 @@ const ModeratorBlogs = () => {
                 Category
               </button>
               <button
-                onClick={() => setSearchBy('content')}
+                onClick={() => {
+                  setCurrentPage(1);
+                  setSearchBy('content');
+                }}
                 className={`px-3 py-0 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
                   searchBy === 'content' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-blue-600'
                 }`}
@@ -363,8 +397,11 @@ const ModeratorBlogs = () => {
             <div className="flex-1">
               <SmartSearchInput
                 value={searchTerm}
-                onChange={setSearchTerm}
-                dataSource={blogs || []}
+                onChange={(value) => {
+                  setCurrentPage(1);
+                  setSearchTerm(value);
+                }}
+                dataSource={[]}
                 getSearchValue={(item) => {
                   if (searchBy === 'title') return item.title || '';
                   if (searchBy === 'category') return item.category || '';
@@ -379,6 +416,7 @@ const ModeratorBlogs = () => {
             {activeFilters > 0 && (
               <button
                 onClick={() => {
+                  setCurrentPage(1);
                   setSearchTerm('');
                   setSearchBy('title');
                   setCategoryFilter('all');
@@ -400,34 +438,30 @@ const ModeratorBlogs = () => {
           </div>
 
           <div className="p-6">
-            {loading ? (
+            {loading && !listLoaded ? (
               <div className="text-center py-12">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600"></div>
                 <p className="text-gray-500 mt-3">Loading blogs...</p>
               </div>
-            ) : filteredBlogs.length === 0 ? (
+            ) : blogs.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-lg font-medium text-gray-700">
-                  {blogs.length === 0 ? 'No blogs found' : 'No blogs match your filters'}
+                  No blogs found
                 </p>
                 <p className="text-gray-500 mt-1 mb-4">
-                  {blogs.length === 0 
-                    ? 'Create your first blog post to get started'
-                    : 'Try adjusting your search or filter criteria'
-                  }
+                  Try adjusting your search or filter criteria
                 </p>
-                {blogs.length === 0 && (
-                  <button
-                    onClick={() => navigate('/moderator/blogs/create')}
-                    className="inline-block px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                  >
-                    Create Your First Blog
-                  </button>
-                )}
+                <button
+                  onClick={() => navigate('/moderator/blogs/create')}
+                  className="inline-block px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Create Your First Blog
+                </button>
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredBlogs.map((blog) => (
+                {loading && <div className="text-xs text-gray-500 px-1">Updating results...</div>}
+                {blogs.map((blog) => (
                   <div key={blog.blogId} className="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
                     <div className="p-4 flex justify-between items-center">
                       <div className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/blogs/${blog.blogId}`)}>
@@ -484,6 +518,49 @@ const ModeratorBlogs = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+            {blogs.length > 0 && (
+              <div className="pt-4 mt-4 border-t border-gray-200 flex items-center justify-end gap-2">
+                <label className="text-xs text-gray-500">Rows:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                  }}
+                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <button
+                  onClick={() => {
+                    const nextStack = [...cursorStack];
+                    const prevAfter = nextStack.pop() ?? null;
+                    setCursorStack(nextStack);
+                    setAfterCursor(prevAfter);
+                    setCurrentPage((p) => Math.max(1, p - 1));
+                  }}
+                  disabled={loading || currentPage <= 1}
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => {
+                    if (!pagination?.hasNextPage || !pagination?.endCursor) return;
+                    setCursorStack((prev) => [...prev, afterCursor]);
+                    setAfterCursor(pagination.endCursor);
+                    setCurrentPage((p) => p + 1);
+                  }}
+                  disabled={loading || !pagination?.hasNextPage || !pagination?.endCursor}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                >
+                  Next
+                </button>
               </div>
             )}
           </div>

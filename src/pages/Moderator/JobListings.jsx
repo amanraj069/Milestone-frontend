@@ -4,8 +4,48 @@ import { Link, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+
+const MODERATOR_JOBS_QUERY = `
+  query ModeratorJobs(
+    $first: Int!
+    $after: String
+    $page: Int
+    $search: String
+    $sortBy: String
+    $titleIn: [String]
+    $companyIn: [String]
+    $typeIn: [String]
+    $statusIn: [String]
+  ) {
+    moderatorJobListings(
+      first: $first
+      after: $after
+      page: $page
+      search: $search
+      sortBy: $sortBy
+      titleIn: $titleIn
+      companyIn: $companyIn
+      typeIn: $typeIn
+      statusIn: $statusIn
+    ) {
+      edges {
+        cursor
+        node {
+          jobId title companyName budget location jobType experienceLevel status
+          applicationDeadline descriptionText skillsRequired applicantsCount createdAt
+        }
+      }
+      pageInfo { hasNextPage endCursor }
+      total
+    }
+    moderatorJobListingsMeta {
+      filterOptions { titles companies types statuses }
+    }
+  }
+`;
 
 // Add keyframe animations
 const modalStyles = `
@@ -38,43 +78,10 @@ const modalStyles = `
   }
 `;
 
-// Levenshtein distance algorithm for fuzzy search
-const levenshteinDistance = (str1, str2) => {
-  const len1 = str1.length;
-  const len2 = str2.length;
-  const matrix = [];
-
-  if (len1 === 0) return len2;
-  if (len2 === 0) return len1;
-
-  for (let i = 0; i <= len2; i++) {
-    matrix[i] = [i];
-  }
-
-  for (let j = 0; j <= len1; j++) {
-    matrix[0][j] = j;
-  }
-
-  for (let i = 1; i <= len2; i++) {
-    for (let j = 1; j <= len1; j++) {
-      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
-        );
-      }
-    }
-  }
-
-  return matrix[len2][len1];
-};
-
 const ModeratorJobListings = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
+  const [metaFilters, setMetaFilters] = useState({ titles: [], companies: [], types: [], statuses: [] });
   const [totalJobsCount, setTotalJobsCount] = useState(0);
   const [serverPagination, setServerPagination] = useState(null);
   const [pageSize, setPageSize] = useState(25);
@@ -82,6 +89,7 @@ const ModeratorJobListings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('recent'); // 'recent','oldest','budget-high-low','budget-low-high','applicants-high-low','applicants-low-high'
   const [deleting, setDeleting] = useState(null);
   
@@ -105,7 +113,7 @@ const ModeratorJobListings = () => {
 
   const { visible: visibleColumns, setVisible: setVisibleColumns } = useSmartColumnToggle(columnsDef, 'moderator_job_listings_columns');
   const filterSignature = JSON.stringify({
-    searchTerm,
+    debouncedSearchTerm,
     sortBy,
     titleFilters,
     companyFilters,
@@ -120,38 +128,38 @@ const ModeratorJobListings = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchJobs(currentPage, pageSize);
+      setDebouncedSearchTerm(searchTerm.trim());
     }, 250);
 
     return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchJobs(currentPage, pageSize);
   }, [currentPage, pageSize, filterSignature]);
 
   const fetchJobs = async (page = currentPage, limit = pageSize) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(
-        `${API_BASE_URL}/api/moderator/jobs`,
-        {
-          withCredentials: true,
-          params: {
-            page,
-            limit,
-            search: searchTerm.trim() || undefined,
-            sortBy,
-            titleIn: titleFilters.length ? titleFilters : undefined,
-            companyIn: companyFilters.length ? companyFilters : undefined,
-            typeIn: typeFiltersColumn.length ? typeFiltersColumn : undefined,
-            statusIn: statusFiltersColumn.length ? statusFiltersColumn : undefined,
-          },
-        }
-      );
+      const result = await graphqlQuery(MODERATOR_JOBS_QUERY, {
+        first: limit,
+        page,
+        search: debouncedSearchTerm || undefined,
+        sortBy,
+        titleIn: titleFilters.length ? titleFilters : null,
+        companyIn: companyFilters.length ? companyFilters : null,
+        typeIn: typeFiltersColumn.length ? typeFiltersColumn : null,
+        statusIn: statusFiltersColumn.length ? statusFiltersColumn : null,
+      });
 
-      if (response.data.success) {
-        setJobs(response.data.jobs || []);
-        setTotalJobsCount(response.data.total || 0);
-        setServerPagination(response.data.pagination || null);
-      }
+      const connection = result?.moderatorJobListings;
+      const edges = connection?.edges || [];
+
+      setJobs(edges.map((edge) => edge.node));
+      setTotalJobsCount(connection?.total || 0);
+      setServerPagination(connection?.pageInfo || null);
+      setMetaFilters(result?.moderatorJobListingsMeta?.filterOptions || { titles: [], companies: [], types: [], statuses: [] });
     } catch (error) {
       console.error('Error fetching jobs:', error);
       console.error('Error details:', error.response?.data);
@@ -318,7 +326,10 @@ const ModeratorJobListings = () => {
               type="text"
               placeholder="Search jobs..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setSearchTerm(e.target.value);
+              }}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -400,6 +411,7 @@ const ModeratorJobListings = () => {
                             field="title"
                             selectedValues={titleFilters}
                             onFilterChange={setTitleFilters}
+                            options={metaFilters.titles}
                           />
                         </div>
                       </th>
@@ -415,6 +427,7 @@ const ModeratorJobListings = () => {
                             field="companyName"
                             selectedValues={companyFilters}
                             onFilterChange={setCompanyFilters}
+                            options={metaFilters.companies}
                           />
                         </div>
                       </th>
@@ -434,6 +447,7 @@ const ModeratorJobListings = () => {
                             field="jobType"
                             selectedValues={typeFiltersColumn}
                             onFilterChange={setTypeFiltersColumn}
+                            options={metaFilters.types}
                           />
                         </div>
                       </th>
@@ -449,6 +463,7 @@ const ModeratorJobListings = () => {
                             field="status"
                             selectedValues={statusFiltersColumn}
                             onFilterChange={setStatusFiltersColumn}
+                            options={metaFilters.statuses}
                           />
                         </div>
                       </th>

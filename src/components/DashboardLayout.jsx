@@ -370,10 +370,10 @@ const DashboardLayout = ({ children }) => {
             })}
           </div>
 
-          <div className="mt-auto border-t border-blue-600/30">
+          <div className="mt-auto p-3">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-white/5 hover:bg-white/10 text-white font-semibold text-base transition-all"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white font-semibold text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition-all"
             >
               <i className="fas fa-sign-out-alt text-lg"></i>
               <span>Logout</span>
