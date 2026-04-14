@@ -6,15 +6,47 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'
 // Async thunk to fetch complaints
 export const fetchComplaints = createAsyncThunk(
   'complaints/fetchComplaints',
-  async (_, { rejectWithValue }) => {
+  async ({
+    page = 1,
+    limit = 25,
+    search = '',
+    sortBy = 'date',
+    sortOrder = 'desc',
+    complainantTypeIn = [],
+    againstIn = [],
+    jobIn = [],
+    statusIn = [],
+    priorityIn = [],
+    typeIn = [],
+  } = {}, { rejectWithValue }) => {
     try {
       const response = await axios.get(
         `${API_BASE_URL}/api/moderator/complaints`,
-        { withCredentials: true }
+        {
+          withCredentials: true,
+          params: {
+            page,
+            limit,
+            search: search || undefined,
+            sortBy,
+            sortOrder,
+            complainantTypeIn: complainantTypeIn.length ? complainantTypeIn : undefined,
+            againstIn: againstIn.length ? againstIn : undefined,
+            jobIn: jobIn.length ? jobIn : undefined,
+            statusIn: statusIn.length ? statusIn : undefined,
+            priorityIn: priorityIn.length ? priorityIn : undefined,
+            typeIn: typeIn.length ? typeIn : undefined,
+          },
+        }
       );
       
       if (response.data.success) {
-        return response.data.complaints || [];
+        return {
+          complaints: response.data.complaints || [],
+          total: response.data.total || 0,
+          pagination: response.data.pagination || null,
+          stats: response.data.stats || null,
+        };
       }
       return rejectWithValue('Failed to fetch complaints');
     } catch (error) {
@@ -155,54 +187,26 @@ const complaintsSlice = createSlice({
       byComplainantType: { freelancer: 0, employer: 0 },
       byType: {}
     },
+    total: 0,
+    pagination: null,
     loading: false,
     error: null
   },
   reducers: {
     setFilters: (state, action) => {
       state.filters = { ...state.filters, ...action.payload };
-      // Recalculate filtered complaints
-      state.filteredComplaints = applyFiltersAndSearch(
-        state.complaints,
-        state.filters,
-        state.searchTerm,
-        state.sortBy,
-        state.sortOrder
-      );
     },
     setSearchTerm: (state, action) => {
       state.searchTerm = action.payload;
-      state.filteredComplaints = applyFiltersAndSearch(
-        state.complaints,
-        state.filters,
-        state.searchTerm,
-        state.sortBy,
-        state.sortOrder
-      );
     },
     setSortBy: (state, action) => {
       state.sortBy = action.payload;
-      state.filteredComplaints = sortComplaints(
-        state.filteredComplaints,
-        state.sortBy,
-        state.sortOrder
-      );
     },
     toggleSortOrder: (state) => {
       state.sortOrder = state.sortOrder === 'asc' ? 'desc' : 'asc';
-      state.filteredComplaints = sortComplaints(
-        state.filteredComplaints,
-        state.sortBy,
-        state.sortOrder
-      );
     },
     setSortOrder: (state, action) => {
       state.sortOrder = action.payload;
-      state.filteredComplaints = sortComplaints(
-        state.filteredComplaints,
-        state.sortBy,
-        state.sortOrder
-      );
     },
     selectComplaint: (state, action) => {
       state.selectedComplaint = state.complaints.find(
@@ -222,15 +226,11 @@ const complaintsSlice = createSlice({
       })
       .addCase(fetchComplaints.fulfilled, (state, action) => {
         state.loading = false;
-        state.complaints = action.payload;
-        state.stats = calculateStats(action.payload);
-        state.filteredComplaints = applyFiltersAndSearch(
-          action.payload,
-          state.filters,
-          state.searchTerm,
-          state.sortBy,
-          state.sortOrder
-        );
+        state.complaints = action.payload.complaints;
+        state.total = action.payload.total;
+        state.pagination = action.payload.pagination;
+        state.stats = action.payload.stats || calculateStats(action.payload.complaints);
+        state.filteredComplaints = action.payload.complaints;
       })
       .addCase(fetchComplaints.rejected, (state, action) => {
         state.loading = false;
@@ -262,15 +262,9 @@ const complaintsSlice = createSlice({
           state.selectedComplaint.updatedAt = new Date().toISOString();
         }
 
-        // Recalculate stats and filtered complaints
+        // Recalculate stats and keep the current page rows in sync
         state.stats = calculateStats(state.complaints);
-        state.filteredComplaints = applyFiltersAndSearch(
-          state.complaints,
-          state.filters,
-          state.searchTerm,
-          state.sortBy,
-          state.sortOrder
-        );
+        state.filteredComplaints = state.complaints;
       })
       .addCase(updateComplaintStatus.rejected, (state, action) => {
         state.loading = false;

@@ -75,6 +75,10 @@ const levenshteinDistance = (str1, str2) => {
 const ModeratorJobListings = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
+  const [totalJobsCount, setTotalJobsCount] = useState(0);
+  const [serverPagination, setServerPagination] = useState(null);
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -100,6 +104,14 @@ const ModeratorJobListings = () => {
   ];
 
   const { visible: visibleColumns, setVisible: setVisibleColumns } = useSmartColumnToggle(columnsDef, 'moderator_job_listings_columns');
+  const filterSignature = JSON.stringify({
+    searchTerm,
+    sortBy,
+    titleFilters,
+    companyFilters,
+    typeFiltersColumn,
+    statusFiltersColumn,
+  });
   
   // Modal states
   const [applicantsModal, setApplicantsModal] = useState({ show: false, jobId: null, jobTitle: '', applicants: [] });
@@ -107,20 +119,38 @@ const ModeratorJobListings = () => {
   const [loadingApplicants, setLoadingApplicants] = useState(false);
 
   useEffect(() => {
-    fetchJobs();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchJobs(currentPage, pageSize);
+    }, 250);
 
-  const fetchJobs = async () => {
+    return () => clearTimeout(timer);
+  }, [currentPage, pageSize, filterSignature]);
+
+  const fetchJobs = async (page = currentPage, limit = pageSize) => {
     try {
       setLoading(true);
       setError(null);
       const response = await axios.get(
         `${API_BASE_URL}/api/moderator/jobs`,
-        { withCredentials: true }
+        {
+          withCredentials: true,
+          params: {
+            page,
+            limit,
+            search: searchTerm.trim() || undefined,
+            sortBy,
+            titleIn: titleFilters.length ? titleFilters : undefined,
+            companyIn: companyFilters.length ? companyFilters : undefined,
+            typeIn: typeFiltersColumn.length ? typeFiltersColumn : undefined,
+            statusIn: statusFiltersColumn.length ? statusFiltersColumn : undefined,
+          },
+        }
       );
 
       if (response.data.success) {
         setJobs(response.data.jobs || []);
+        setTotalJobsCount(response.data.total || 0);
+        setServerPagination(response.data.pagination || null);
       }
     } catch (error) {
       console.error('Error fetching jobs:', error);
@@ -189,71 +219,16 @@ const ModeratorJobListings = () => {
     setCompanyFilters([]);
     setTypeFiltersColumn([]);
     setStatusFiltersColumn([]);
+    setCurrentPage(1);
   };
 
   // Check if any filters are active
   const hasActiveFilters = searchTerm !== '' || sortBy !== 'recent' ||
     titleFilters.length > 0 || companyFilters.length > 0 || typeFiltersColumn.length > 0 || statusFiltersColumn.length > 0;
 
-  // Fuzzy search filter and sort
-  let filteredJobs = jobs.filter(job => {
-    // Column filters (SmartFilter)
-    if (titleFilters.length > 0 && !titleFilters.includes(job.title || '')) {
-      return false;
-    }
-    if (companyFilters.length > 0 && !companyFilters.includes(job.companyName || '')) {
-      return false;
-    }
-    if (typeFiltersColumn.length > 0 && !typeFiltersColumn.includes(job.jobType || '')) {
-      return false;
-    }
-    if (statusFiltersColumn.length > 0 && !statusFiltersColumn.includes(job.status || '')) {
-      return false;
-    }
-    
-    // (status/type filters removed — use column filters)
+  const displayedJobs = jobs;
 
-    // Regex search across all fields
-    if (searchTerm.trim() === '') {
-      return true;
-    }
-
-    try {
-      const regex = new RegExp(searchTerm, 'i');
-      return (
-        regex.test(job.title || '') ||
-        regex.test(job.companyName || '') ||
-        regex.test(job.location || '') ||
-        regex.test(job.jobType || '')
-      );
-    } catch (e) {
-      // Invalid regex, fall back to includes
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        (job.title || '').toLowerCase().includes(searchLower) ||
-        (job.companyName || '').toLowerCase().includes(searchLower) ||
-        (job.location || '').toLowerCase().includes(searchLower) ||
-        (job.jobType || '').toLowerCase().includes(searchLower)
-      );
-    }
-  });
-
-  // Apply sorting
-  if (sortBy === 'budget-low-high') {
-    filteredJobs = [...filteredJobs].sort((a, b) => (Number(a.budget) || 0) - (Number(b.budget) || 0));
-  } else if (sortBy === 'budget-high-low') {
-    filteredJobs = [...filteredJobs].sort((a, b) => (Number(b.budget) || 0) - (Number(a.budget) || 0));
-  } else if (sortBy === 'applicants-high-low') {
-    filteredJobs = [...filteredJobs].sort((a, b) => (Number(b.applicantsCount) || 0) - (Number(a.applicantsCount) || 0));
-  } else if (sortBy === 'applicants-low-high') {
-    filteredJobs = [...filteredJobs].sort((a, b) => (Number(a.applicantsCount) || 0) - (Number(b.applicantsCount) || 0));
-  } else if (sortBy === 'recent') {
-    filteredJobs = [...filteredJobs].sort((a, b) => new Date(b.postedDate) - new Date(a.postedDate));
-  } else if (sortBy === 'oldest') {
-    filteredJobs = [...filteredJobs].sort((a, b) => new Date(a.postedDate) - new Date(b.postedDate));
-  }
-
-  const totalJobs = jobs.length;
+  const totalJobs = totalJobsCount || jobs.length;
   const totalBudget = jobs.reduce((s, j) => s + (Number(j.budget) || 0), 0);
   const openJobs = jobs.filter(j => j.status === 'open' || j.status === 'active').length;
   
@@ -395,11 +370,11 @@ const ModeratorJobListings = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-lg font-medium text-red-600 mb-2">Error loading jobs</p>
           <p className="text-gray-500 mb-4">{error}</p>
-          <button onClick={fetchJobs} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
+          <button onClick={() => fetchJobs(currentPage, pageSize)} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
         </div>
       )}
 
-      {!loading && !error && filteredJobs.length === 0 && (
+      {!loading && !error && displayedJobs.length === 0 && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-lg font-medium text-gray-700 mb-1">No jobs found</p>
           <p className="text-gray-500">
@@ -409,7 +384,7 @@ const ModeratorJobListings = () => {
       )}
 
       {/* Jobs Table */}
-      {!loading && !error && filteredJobs.length > 0 && (
+      {!loading && !error && displayedJobs.length > 0 && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -493,7 +468,7 @@ const ModeratorJobListings = () => {
                   </tr>
                 </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredJobs.map((job) => (
+                {displayedJobs.map((job) => (
                   <tr key={job.jobId} className="hover:bg-gray-50">
                     {visibleColumns.has('title') && (
                       <td className="px-4 py-3 font-medium text-gray-900">{job.title}</td>
@@ -560,7 +535,44 @@ const ModeratorJobListings = () => {
             </table>
           </div>
           {/* Showing count moved to table footer */}
-          <div className="px-4 py-3 text-sm text-gray-600">Showing: {filteredJobs.length} of {totalJobs}</div>
+          <div className="px-4 py-3 text-sm text-gray-600 bg-gray-50 border-t border-gray-200">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                Showing {displayedJobs.length} jobs on page {currentPage} (total {totalJobs})
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Rows:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                  }}
+                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={loading || currentPage <= 1}
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  disabled={loading || !serverPagination?.hasNextPage}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

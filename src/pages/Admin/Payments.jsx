@@ -25,8 +25,30 @@ const SORT_OPTIONS = [
 ];
 
 const ADMIN_PAYMENTS_QUERY = `
-  query AdminPayments($first: Int!, $after: String) {
-    adminPayments(first: $first, after: $after) {
+  query AdminPayments(
+    $first: Int!
+    $after: String
+    $search: String
+    $jobTitleIn: [String!]
+    $milestoneIn: [String!]
+    $employerIn: [String!]
+    $freelancerIn: [String!]
+    $statusIn: [String!]
+    $sortBy: String
+    $sortOrder: String
+  ) {
+    adminPayments(
+      first: $first
+      after: $after
+      search: $search
+      jobTitleIn: $jobTitleIn
+      milestoneIn: $milestoneIn
+      employerIn: $employerIn
+      freelancerIn: $freelancerIn
+      statusIn: $statusIn
+      sortBy: $sortBy
+      sortOrder: $sortOrder
+    ) {
       edges {
         cursor
         node { jobId jobTitle milestoneId milestoneDescription amount status employerName companyName freelancerName date }
@@ -37,9 +59,31 @@ const ADMIN_PAYMENTS_QUERY = `
       }
       total
       summary {
+        totalTransactions
         paidTotal
         pendingTotal
         inProgressTotal
+        paidCount
+        pendingCount
+        inProgressCount
+      }
+    }
+    adminPaymentsMeta {
+      summary {
+        totalTransactions
+        paidTotal
+        pendingTotal
+        inProgressTotal
+        paidCount
+        pendingCount
+        inProgressCount
+      }
+      filterOptions {
+        jobs
+        milestones
+        employers
+        freelancers
+        statuses
       }
     }
   }
@@ -49,10 +93,16 @@ const AdminPayments = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [payments, setPayments] = useState([]);
   const [totalPayments, setTotalPayments] = useState(0);
+  const [metaSummary, setMetaSummary] = useState(null);
+  const [metaFilters, setMetaFilters] = useState({ jobs: [], milestones: [], employers: [], freelancers: [], statuses: [] });
   const [summaryTotals, setSummaryTotals] = useState({
+    totalTransactions: 0,
     paidTotal: 0,
     pendingTotal: 0,
     inProgressTotal: 0,
+    paidCount: 0,
+    pendingCount: 0,
+    inProgressCount: 0,
   });
   const [serverPagination, setServerPagination] = useState(null);
   const [pageSize, setPageSize] = useState(() => {
@@ -75,9 +125,32 @@ const AdminPayments = () => {
   const [freelancerFilters, setFreelancerFilters] = useState([]);
   const [statusFilters,     setStatusFilters]     = useState([]);
 
+  const [sortField, sortDir] = sortKey.split('-');
+  const mappedSortBy =
+    sortField === 'date'
+      ? 'date'
+      : sortField === 'amount'
+        ? 'amount'
+        : 'jobTitle';
+
+  const filterSignature = JSON.stringify({
+    searchTerm,
+    sortBy: mappedSortBy,
+    sortOrder: sortDir,
+    jobFilters,
+    milestoneFilters,
+    employerFilters,
+    freelancerFilters,
+    statusFilters,
+  });
+
   useEffect(() => {
-    resetAndFetchPayments();
-  }, [pageSize]);
+    const timer = setTimeout(() => {
+      resetAndFetchPayments();
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [pageSize, filterSignature]);
 
   useEffect(() => {
     const urlLimit = Number(searchParams.get('limit') || '25');
@@ -92,16 +165,30 @@ const AdminPayments = () => {
       const result = await graphqlQuery(ADMIN_PAYMENTS_QUERY, {
         first: pageSize,
         after,
+        search: searchTerm.trim() || null,
+        jobTitleIn: jobFilters.length ? jobFilters : null,
+        milestoneIn: milestoneFilters.length ? milestoneFilters : null,
+        employerIn: employerFilters.length ? employerFilters : null,
+        freelancerIn: freelancerFilters.length ? freelancerFilters : null,
+        statusIn: statusFilters.length ? statusFilters : null,
+        sortBy: mappedSortBy,
+        sortOrder: sortDir,
       });
       const connection = result?.adminPayments;
       const edges = connection?.edges || [];
 
       setPayments(edges.map((edge) => edge.node));
       setTotalPayments(connection?.total || 0);
+      setMetaSummary(result?.adminPaymentsMeta?.summary || null);
+      setMetaFilters(result?.adminPaymentsMeta?.filterOptions || { jobs: [], milestones: [], employers: [], freelancers: [], statuses: [] });
       setSummaryTotals({
+        totalTransactions: connection?.summary?.totalTransactions || 0,
         paidTotal: connection?.summary?.paidTotal || 0,
         pendingTotal: connection?.summary?.pendingTotal || 0,
         inProgressTotal: connection?.summary?.inProgressTotal || 0,
+        paidCount: connection?.summary?.paidCount || 0,
+        pendingCount: connection?.summary?.pendingCount || 0,
+        inProgressCount: connection?.summary?.inProgressCount || 0,
       });
       setServerPagination({
         hasNextPage: connection?.pageInfo?.hasNextPage || false,
@@ -164,58 +251,23 @@ const AdminPayments = () => {
     setStatusFilters([]);
   };
 
-  const [sortField, sortDir] = sortKey.split('-');
+  const displayedPayments = payments;
 
-  const filtered = payments
-    .filter((p) => {
-      if (!searchTerm) return true;
-      const term = searchTerm.toLowerCase();
-      return (
-        p.jobTitle?.toLowerCase().includes(term) ||
-        p.employerName?.toLowerCase().includes(term) ||
-        p.freelancerName?.toLowerCase().includes(term) ||
-        p.companyName?.toLowerCase().includes(term)
-      );
-    })
-    .filter((p) => !jobFilters.length        || jobFilters.includes(p.jobTitle))
-    .filter((p) => !milestoneFilters.length  || milestoneFilters.includes(p.milestoneDescription))
-    .filter((p) => !employerFilters.length   || employerFilters.includes(p.employerName))
-    .filter((p) => !freelancerFilters.length || freelancerFilters.includes(p.freelancerName))
-    .filter((p) => !statusFilters.length     || statusFilters.includes(p.status))
-    .sort((a, b) => {
-      let cmp = 0;
-      if (sortField === 'date')   cmp = new Date(a.date) - new Date(b.date);
-      if (sortField === 'amount') cmp = (a.amount || 0) - (b.amount || 0);
-      if (sortField === 'job')    cmp = (a.jobTitle || '').localeCompare(b.jobTitle || '');
-      return sortDir === 'desc' ? -cmp : cmp;
-    });
+  const totalPaid = metaSummary?.paidTotal ?? summaryTotals.paidTotal ?? 0;
+  const totalPending = metaSummary?.pendingTotal ?? summaryTotals.pendingTotal ?? 0;
+  const totalInProgress = metaSummary?.inProgressTotal ?? summaryTotals.inProgressTotal ?? 0;
 
-  const totalPaid = summaryTotals.paidTotal || 0;
-  const totalPending = summaryTotals.pendingTotal || 0;
-  const totalInProgress = summaryTotals.inProgressTotal || 0;
-
-  const filteredAmountTotal = filtered.reduce((s, p) => s + (p.amount || 0), 0);
-  const filteredPaidCount = filtered.filter((p) => p.status === 'Paid').length;
-  const filteredPendingCount = filtered.filter((p) => p.status === 'Pending').length;
-  const filteredInProgressCount = filtered.filter((p) => p.status === 'In Progress').length;
-
-  if (loading) {
-    return (
-      <DashboardPage title="All Payments">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mb-3"></div>
-          <p className="text-gray-500">Loading payments...</p>
-        </div>
-      </DashboardPage>
-    );
-  }
+  const pageAmountTotal = displayedPayments.reduce((s, p) => s + (p.amount || 0), 0);
+  const pagePaidCount = displayedPayments.filter((p) => p.status === 'Paid').length;
+  const pagePendingCount = displayedPayments.filter((p) => p.status === 'Pending').length;
+  const pageInProgressCount = displayedPayments.filter((p) => p.status === 'In Progress').length;
 
   return (
     <DashboardPage title="All Payments">
       {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Total Transactions', value: totalPayments || payments.length, iconBg: 'bg-blue-100',   iconColor: 'text-blue-600',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
+          { label: 'Total Transactions', value: metaSummary?.totalTransactions ?? totalPayments ?? payments.length, iconBg: 'bg-blue-100',   iconColor: 'text-blue-600',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
           { label: 'Paid',              value: formatCurrency(totalPaid), iconBg: 'bg-green-100',  iconColor: 'text-green-600',  icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /> },
           { label: 'Pending',           value: formatCurrency(totalPending), iconBg: 'bg-orange-100', iconColor: 'text-orange-600', icon: <><circle cx="12" cy="12" r="10" strokeWidth={2} /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2" /></> },
           { label: 'In Progress',       value: formatCurrency(totalInProgress), iconBg: 'bg-blue-100', iconColor: 'text-blue-500', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /> },
@@ -290,6 +342,7 @@ const AdminPayments = () => {
                         field="jobTitle"
                         selectedValues={jobFilters}
                         onFilterChange={setJobFilters}
+                        options={metaFilters?.jobs || []}
                       />
                     </div>
                   </th>
@@ -304,6 +357,7 @@ const AdminPayments = () => {
                         field="milestoneDescription"
                         selectedValues={milestoneFilters}
                         onFilterChange={setMilestoneFilters}
+                        options={metaFilters?.milestones || []}
                       />
                     </div>
                   </th>
@@ -318,6 +372,7 @@ const AdminPayments = () => {
                         field="employerName"
                         selectedValues={employerFilters}
                         onFilterChange={setEmployerFilters}
+                        options={metaFilters?.employers || []}
                       />
                     </div>
                   </th>
@@ -332,6 +387,7 @@ const AdminPayments = () => {
                         field="freelancerName"
                         selectedValues={freelancerFilters}
                         onFilterChange={setFreelancerFilters}
+                        options={metaFilters?.freelancers || []}
                       />
                     </div>
                   </th>
@@ -349,6 +405,7 @@ const AdminPayments = () => {
                         field="status"
                         selectedValues={statusFilters}
                         onFilterChange={setStatusFilters}
+                        options={metaFilters?.statuses || []}
                       />
                     </div>
                   </th>
@@ -359,8 +416,17 @@ const AdminPayments = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.length > 0 ? (
-                filtered.map((payment, i) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={visible.size} className="px-4 py-12 text-center text-gray-500">
+                    <div className="inline-flex items-center gap-2">
+                      <span className="inline-block animate-spin rounded-full h-5 w-5 border-2 border-gray-300 border-t-blue-600"></span>
+                      <span>Loading payments...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : displayedPayments.length > 0 ? (
+                displayedPayments.map((payment, i) => (
                   <tr key={i} className="hover:bg-gray-50 transition-colors">
                     {visible.has('job') && (
                       <td className="px-4 py-3">
@@ -410,26 +476,26 @@ const AdminPayments = () => {
                 </tr>
               )}
             </tbody>
-            {filtered.length > 0 && (
+            {displayedPayments.length > 0 && (
               <tfoot>
                 <tr className="bg-slate-50 border-t border-gray-200">
                   {visible.has('job') && (
                     <td className="px-4 py-3 text-xs font-bold text-gray-700">Total</td>
                   )}
                   {visible.has('milestone') && (
-                    <td className="px-4 py-3 text-xs text-gray-500">{filtered.length} rows shown</td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{displayedPayments.length} rows shown</td>
                   )}
                   {visible.has('employer') && (
-                    <td className="px-4 py-3 text-xs text-gray-500">Paid: {filteredPaidCount}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500">Paid: {pagePaidCount}</td>
                   )}
                   {visible.has('freelancer') && (
-                    <td className="px-4 py-3 text-xs text-gray-500">Pending: {filteredPendingCount}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500">Pending: {pagePendingCount}</td>
                   )}
                   {visible.has('amount') && (
-                    <td className="px-4 py-3 text-sm font-bold text-gray-900">{formatCurrency(filteredAmountTotal)}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-gray-900">{formatCurrency(pageAmountTotal)}</td>
                   )}
                   {visible.has('status') && (
-                    <td className="px-4 py-3 text-xs font-semibold text-gray-600">In Progress: {filteredInProgressCount}</td>
+                    <td className="px-4 py-3 text-xs font-semibold text-gray-600">In Progress: {pageInProgressCount}</td>
                   )}
                   {visible.has('date') && (
                     <td className="px-4 py-3 text-xs text-gray-500 text-right">Page {currentPage}</td>
@@ -442,7 +508,7 @@ const AdminPayments = () => {
         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500 mt-auto">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              Showing {filtered.length} payments on page {currentPage} (total {totalPayments || payments.length})
+              Showing {displayedPayments.length} payments on page {currentPage} (total {metaSummary?.totalTransactions ?? totalPayments ?? payments.length})
             </div>
             <div className="flex items-center gap-2">
               <label className="text-xs text-gray-500">Rows:</label>

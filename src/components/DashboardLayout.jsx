@@ -270,10 +270,10 @@ const DashboardLayout = ({ children }) => {
   const mobileHeader = getMobileHeaderConfig();
 
   return (
-    <div className="flex min-h-dvh bg-gray-50 overflow-x-hidden">
+    <div className="flex h-dvh bg-gray-50">
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-blue-900 via-blue-800 to-blue-700 text-white flex flex-col shadow-2xl transform transition-transform duration-300 ease-out ${
+        className={`fixed lg:static inset-y-0 left-0 z-50 h-dvh w-72 bg-gradient-to-b from-blue-900 via-blue-800 to-blue-700 text-white flex flex-col overflow-hidden shadow-2xl transform transition-transform duration-300 ease-out ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -314,59 +314,71 @@ const DashboardLayout = ({ children }) => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 py-4">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            const showChatBadge = item.name === 'Chat' && totalUnreadCount > 0;
-            const showNotificationBadge = item.showBadge && unreadCount > 0;
-            const showPendingApplicationsBadge = item.name === 'Applications' && pendingApplicationsCount > 0;
-            const isLocked = isUnapprovedEmployer && !isPathAllowedForUnapproved(item.path);
-            
-            // For locked items, render a div instead of Link
-            if (isLocked) {
+        <nav className="flex-1 flex flex-col py-4 overflow-y-auto overflow-x-hidden">
+          <div className="flex-1">
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              const showChatBadge = item.name === 'Chat' && totalUnreadCount > 0;
+              const showNotificationBadge = item.showBadge && unreadCount > 0;
+              const showPendingApplicationsBadge = item.name === 'Applications' && pendingApplicationsCount > 0;
+              const isLocked = isUnapprovedEmployer && !isPathAllowedForUnapproved(item.path);
+              
+              // For locked items, render a div instead of Link
+              if (isLocked) {
+                return (
+                  <div
+                    key={item.path}
+                    className="flex items-center gap-3 px-6 py-3 text-base font-medium transition-all relative text-white/40 cursor-not-allowed blur-[1px]"
+                    title="Your account is pending approval"
+                  >
+                    <i className={`${item.icon} text-lg w-5`}></i>
+                    <span>{item.name}</span>
+                    <i className="fas fa-lock absolute right-4 text-yellow-400/70 text-sm"></i>
+                  </div>
+                );
+              }
+              
               return (
-                <div
+                <Link
                   key={item.path}
-                  className="flex items-center gap-3 px-6 py-3 text-base font-medium transition-all relative text-white/40 cursor-not-allowed blur-[1px]"
-                  title="Your account is pending approval"
+                  to={item.path}
+                  className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all relative ${
+                    isActive
+                      ? 'bg-white/20 border-l-4 border-white text-white'
+                      : 'text-white/90 hover:bg-white/10 border-l-4 border-transparent hover:border-white/50'
+                  }`}
                 >
                   <i className={`${item.icon} text-lg w-5`}></i>
                   <span>{item.name}</span>
-                  <i className="fas fa-lock absolute right-4 text-yellow-400/70 text-sm"></i>
-                </div>
+                  {showNotificationBadge && (
+                    <span className="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                  {showChatBadge && (
+                    <span className="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                      {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                    </span>
+                  )}
+                  {showPendingApplicationsBadge && (
+                    <span className="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                      {pendingApplicationsCount > 99 ? '99+' : pendingApplicationsCount}
+                    </span>
+                  )}
+                </Link>
               );
-            }
-            
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all relative ${
-                  isActive
-                    ? 'bg-white/20 border-l-4 border-white text-white'
-                    : 'text-white/90 hover:bg-white/10 border-l-4 border-transparent hover:border-white/50'
-                }`}
-              >
-                <i className={`${item.icon} text-lg w-5`}></i>
-                <span>{item.name}</span>
-                {showNotificationBadge && (
-                  <span className="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-                {showChatBadge && (
-                  <span className="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
-                    {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
-                  </span>
-                )}
-                {showPendingApplicationsBadge && (
-                  <span className="absolute right-4 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
-                    {pendingApplicationsCount > 99 ? '99+' : pendingApplicationsCount}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+            })}
+          </div>
+
+          <div className="mt-auto border-t border-blue-600/30">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-white/5 hover:bg-white/10 text-white font-semibold text-base transition-all"
+            >
+              <i className="fas fa-sign-out-alt text-lg"></i>
+              <span>Logout</span>
+            </button>
+          </div>
           
           {/* Pending Approval Notice for unapproved employers */}
           {/* {isUnapprovedEmployer && (
@@ -381,17 +393,6 @@ const DashboardLayout = ({ children }) => {
             </div>
           )} */}
         </nav>
-
-        {/* Logout Button */}
-        <div className="p-2 border-t border-blue-600/30">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-base transition-all border border-white/20 hover:border-white/40"
-          >
-            <i className="fas fa-sign-out-alt text-lg"></i>
-            <span>Logout</span>
-          </button>
-        </div>
       </aside>
 
       {isSidebarOpen && (

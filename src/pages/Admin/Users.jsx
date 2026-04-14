@@ -10,8 +10,28 @@ import { graphqlQuery } from '../../utils/graphqlClient';
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const ADMIN_USERS_PAGINATED_QUERY = `
-  query AdminUsersPaginated($first: Int!, $after: String) {
-    adminUsers(first: $first, after: $after) {
+  query AdminUsersPaginated(
+    $first: Int!
+    $after: String
+    $search: String
+    $roleIn: [String!]
+    $subscriptionIn: [String!]
+    $locationIn: [String!]
+    $ratingIn: [Float!]
+    $sortBy: String
+    $sortOrder: String
+  ) {
+    adminUsers(
+      first: $first
+      after: $after
+      search: $search
+      roleIn: $roleIn
+      subscriptionIn: $subscriptionIn
+      locationIn: $locationIn
+      ratingIn: $ratingIn
+      sortBy: $sortBy
+      sortOrder: $sortOrder
+    ) {
       edges {
         cursor
         node {
@@ -36,6 +56,21 @@ const ADMIN_USERS_PAGINATED_QUERY = `
       }
       total
     }
+    adminUsersMeta {
+      summary {
+        total
+        freelancers
+        employers
+        moderators
+        admins
+      }
+      filterOptions {
+        roles
+        subscriptions
+        locations
+        ratings
+      }
+    }
   }
 `;
 
@@ -55,6 +90,8 @@ const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [serverPagination, setServerPagination] = useState(null);
+  const [metaSummary, setMetaSummary] = useState(null);
+  const [metaFilters, setMetaFilters] = useState({ roles: [], subscriptions: [], locations: [], ratings: [] });
   const [pageSize, setPageSize] = useState(() => {
     const urlLimit = Number(searchParams.get('limit') || '25');
     if (!Number.isFinite(urlLimit) || urlLimit < 1) return 25;
@@ -79,9 +116,23 @@ const AdminUsers = () => {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
+  const mappedSortBy =
+    sortBy === 'date' ? 'createdAt' : sortBy === 'name' ? 'name' : 'rating';
+
+  const filterSignature = JSON.stringify({
+    searchTerm,
+    sortBy: mappedSortBy,
+    sortOrder,
+    columnFilters,
+  });
+
   useEffect(() => {
-    resetAndFetchUsers();
-  }, [pageSize]);
+    const timer = setTimeout(() => {
+      resetAndFetchUsers();
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [pageSize, filterSignature]);
 
   useEffect(() => {
     const urlLimit = Number(searchParams.get('limit') || '25');
@@ -96,6 +147,19 @@ const AdminUsers = () => {
       const result = await graphqlQuery(ADMIN_USERS_PAGINATED_QUERY, {
         first: pageSize,
         after,
+        search: searchTerm.trim() || null,
+        roleIn: columnFilters.role.length ? columnFilters.role : null,
+        subscriptionIn: columnFilters.subscription.length
+          ? columnFilters.subscription
+          : null,
+        locationIn: columnFilters.location.length ? columnFilters.location : null,
+        ratingIn: columnFilters.rating.length
+          ? columnFilters.rating
+              .map((value) => Number(value))
+              .filter((value) => Number.isFinite(value))
+          : null,
+        sortBy: mappedSortBy,
+        sortOrder,
       });
 
       const connection = result?.adminUsers;
@@ -103,6 +167,8 @@ const AdminUsers = () => {
 
       setUsers(edges.map((edge) => edge.node));
       setTotalUsers(connection?.total || 0);
+      setMetaSummary(result?.adminUsersMeta?.summary || null);
+      setMetaFilters(result?.adminUsersMeta?.filterOptions || { roles: [], subscriptions: [], locations: [], ratings: [] });
       setServerPagination({
         hasNextPage: connection?.pageInfo?.hasNextPage || false,
         endCursor: connection?.pageInfo?.endCursor || null,
@@ -194,26 +260,6 @@ const AdminUsers = () => {
     setShowRatingModal(false);
   };
 
-  const filtered = users
-    .filter((u) => {
-      if (columnFilters.role.length > 0 && !columnFilters.role.includes(u.role)) return false;
-      if (columnFilters.subscription.length > 0 && !columnFilters.subscription.includes(u.subscription)) return false;
-      if (columnFilters.rating.length > 0 && !columnFilters.rating.includes(u.rating)) return false;
-      if (columnFilters.location.length > 0 && !columnFilters.location.includes(u.location)) return false;
-      if (searchTerm) {
-        const term = searchTerm.toLowerCase();
-        return u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term) || u.location?.toLowerCase().includes(term);
-      }
-      return true;
-    })
-    .sort((a, b) => {
-      let cmp = 0;
-      if (sortBy === 'date') cmp = new Date(a.createdAt) - new Date(b.createdAt);
-      else if (sortBy === 'name') cmp = (a.name || '').localeCompare(b.name || '');
-      else if (sortBy === 'rating') cmp = (a.rating || 0) - (b.rating || 0);
-      return sortOrder === 'desc' ? -cmp : cmp;
-    });
-
   const roleColors = {
     Freelancer: 'bg-blue-100 text-blue-700',
     Employer: 'bg-green-100 text-green-700',
@@ -222,22 +268,11 @@ const AdminUsers = () => {
   };
 
   const roleCounts = {
-    Freelancer: users.filter(u => u.role === 'Freelancer').length,
-    Employer: users.filter(u => u.role === 'Employer').length,
-    Moderator: users.filter(u => u.role === 'Moderator').length,
-    Admin: users.filter(u => u.role === 'Admin').length,
+    Freelancer: metaSummary?.freelancers ?? users.filter(u => u.role === 'Freelancer').length,
+    Employer: metaSummary?.employers ?? users.filter(u => u.role === 'Employer').length,
+    Moderator: metaSummary?.moderators ?? users.filter(u => u.role === 'Moderator').length,
+    Admin: metaSummary?.admins ?? users.filter(u => u.role === 'Admin').length,
   };
-
-  if (loading) {
-    return (
-      <DashboardPage title="User Management">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mb-3"></div>
-          <p className="text-gray-500">Loading users...</p>
-        </div>
-      </DashboardPage>
-    );
-  }
 
   return (
     <DashboardPage title="User Management">
@@ -259,7 +294,7 @@ const AdminUsers = () => {
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-500">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{totalUsers || users.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{metaSummary?.total ?? totalUsers ?? users.length}</p>
               </div>
             </div>
             {Object.entries(roleCounts).map(([role, count]) => {
@@ -342,6 +377,7 @@ const AdminUsers = () => {
                         field="role"
                         selectedValues={columnFilters.role}
                         onFilterChange={setColFilter('role')}
+                        options={metaFilters?.roles || []}
                       />
                     </div>
                   </th>
@@ -356,6 +392,7 @@ const AdminUsers = () => {
                         field="subscription"
                         selectedValues={columnFilters.subscription}
                         onFilterChange={setColFilter('subscription')}
+                        options={metaFilters?.subscriptions || []}
                       />
                     </div>
                   </th>
@@ -371,6 +408,7 @@ const AdminUsers = () => {
                         selectedValues={columnFilters.rating}
                         onFilterChange={setColFilter('rating')}
                         valueFormatter={(v) => `★ ${Number(v).toFixed(1)}`}
+                        options={metaFilters?.ratings || []}
                       />
                     </div>
                   </th>
@@ -385,6 +423,7 @@ const AdminUsers = () => {
                         field="location"
                         selectedValues={columnFilters.location}
                         onFilterChange={setColFilter('location')}
+                        options={metaFilters?.locations || []}
                       />
                     </div>
                   </th>
@@ -398,8 +437,17 @@ const AdminUsers = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.length > 0 ? (
-                filtered.map((u) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={visible.size} className="px-4 py-12 text-center text-gray-500">
+                    <div className="inline-flex items-center gap-2">
+                      <span className="inline-block animate-spin rounded-full h-5 w-5 border-2 border-gray-300 border-t-blue-600"></span>
+                      <span>Loading users...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : users.length > 0 ? (
+                users.map((u) => (
                   <tr key={u.userId} className="hover:bg-gray-50 transition-colors">
                     {visible.has('user') && (
                       <td className="px-4 py-3">
@@ -521,7 +569,7 @@ const AdminUsers = () => {
         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500 mt-auto">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              Showing {filtered.length} users on page {currentPage} (total {totalUsers || users.length})
+              Showing {users.length} users on page {currentPage} (total {totalUsers || users.length})
             </div>
             <div className="flex items-center gap-2">
               <label className="text-xs text-gray-500">Rows:</label>
