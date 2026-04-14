@@ -327,8 +327,8 @@ const AdminPayments = () => {
       </div>
 
       {/* Payments Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-[calc(90vh-20rem)] flex flex-col">
+        <div className="overflow-auto flex-1">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -476,9 +476,9 @@ const AdminPayments = () => {
                 </tr>
               )}
             </tbody>
-            {displayedPayments.length > 0 && (
-              <tfoot>
-                <tr className="bg-slate-50 border-t border-gray-200">
+            {!loading && displayedPayments.length > 0 && (
+              <tfoot className="sticky bottom-0 z-10">
+                <tr className="bg-slate-50 border-t border-gray-200 shadow-[0_-1px_0_0_rgba(229,231,235,1)]">
                   {visible.has('job') && (
                     <td className="px-4 py-3 text-xs font-bold text-gray-700">Total</td>
                   )}

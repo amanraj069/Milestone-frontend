@@ -289,114 +289,116 @@ const AdminModerators = () => {
         </div>
       </div>
 
-      {modLoading ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mb-3"></div>
-          <p className="text-gray-500 text-sm">Loading...</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden min-h-[calc(90vh-20rem)] flex flex-col">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  {modVisible.has('photo') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Photo</th>}
-                  {modVisible.has('name') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Name</th>}
-                  {modVisible.has('email') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>}
-                  {modVisible.has('location') && (
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                      <div className="flex items-center gap-1.5">Location
-                        <SmartFilter
-                          label="Location"
-                          data={moderators}
-                          field="location"
-                          selectedValues={modFilters.location}
-                          onFilterChange={(values) => setModFilters((prev) => ({ ...prev, location: values }))}
-                          options={metaFilters?.locations || []}
-                        />
-                      </div>
-                    </th>
-                  )}
-                  {modVisible.has('joined') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Joined</th>}
-                  {modVisible.has('actions') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {displayedModerators.length > 0 ? displayedModerators.map((moderator) => (
-                  <tr
-                    key={moderator.moderatorId}
-                    className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/admin/moderators/${moderator.moderatorId}`)}
-                  >
-                    {modVisible.has('photo') && <td className="px-4 py-3"><Avatar src={moderator.picture} name={moderator.name} /></td>}
-                    {modVisible.has('name') && <td className="px-4 py-3 font-medium text-gray-900 text-sm">{moderator.name}</td>}
-                    {modVisible.has('email') && <td className="px-4 py-3 text-sm text-gray-600">{moderator.email}</td>}
-                    {modVisible.has('location') && <td className="px-4 py-3 text-sm text-gray-600">{moderator.location && moderator.location !== 'N/A' ? moderator.location : '-'}</td>}
-                    {modVisible.has('joined') && <td className="px-4 py-3 text-sm text-gray-500">{moderator.joinedDate ? new Date(moderator.joinedDate).toLocaleDateString() : 'N/A'}</td>}
-                    {modVisible.has('actions') && (
-                      <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => openChatWith(moderator.userId)}
-                            className="px-3 py-1.5 bg-emerald-600 text-white rounded-md text-xs font-medium hover:bg-emerald-700 transition-colors"
-                          >
-                            Chat
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(moderator.moderatorId)}
-                            className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={modVisible.size} className="px-4 py-12 text-center text-gray-400">No moderators found</td>
-                  </tr>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden min-h-[calc(90vh-20rem)] flex flex-col">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                {modVisible.has('photo') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Photo</th>}
+                {modVisible.has('name') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Name</th>}
+                {modVisible.has('email') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>}
+                {modVisible.has('location') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <div className="flex items-center gap-1.5">Location
+                      <SmartFilter
+                        label="Location"
+                        data={moderators}
+                        field="location"
+                        selectedValues={modFilters.location}
+                        onFilterChange={(values) => setModFilters((prev) => ({ ...prev, location: values }))}
+                        options={metaFilters?.locations || []}
+                      />
+                    </div>
+                  </th>
                 )}
-              </tbody>
-            </table>
-          </div>
-          <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500 mt-auto">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                Showing {displayedModerators.length} moderators on page {currentPage} (total {metaSummary?.total ?? totalModerators ?? moderators.length})
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-500">Rows:</label>
-                <select
-                  value={pageSize}
-                  onChange={(e) => handlePageSizeChange(e.target.value)}
-                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                {modVisible.has('joined') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Joined</th>}
+                {modVisible.has('actions') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {modLoading ? (
+                <tr>
+                  <td colSpan={modVisible.size} className="px-4 py-12 text-center text-gray-500">
+                    <div className="inline-flex items-center gap-2">
+                      <span className="inline-block animate-spin rounded-full h-5 w-5 border-2 border-gray-300 border-t-blue-600"></span>
+                      <span>Loading moderators...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : displayedModerators.length > 0 ? displayedModerators.map((moderator) => (
+                <tr
+                  key={moderator.moderatorId}
+                  className="hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/admin/moderators/${moderator.moderatorId}`)}
                 >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-                <button
-                  onClick={handlePrevPage}
-                  disabled={modLoading || currentPage <= 1}
-                  className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={handleNextPage}
-                  disabled={modLoading || !serverPagination?.hasNextPage}
-                  className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
-                >
-                  Next
-                </button>
-              </div>
+                  {modVisible.has('photo') && <td className="px-4 py-3"><Avatar src={moderator.picture} name={moderator.name} /></td>}
+                  {modVisible.has('name') && <td className="px-4 py-3 font-medium text-gray-900 text-sm">{moderator.name}</td>}
+                  {modVisible.has('email') && <td className="px-4 py-3 text-sm text-gray-600">{moderator.email}</td>}
+                  {modVisible.has('location') && <td className="px-4 py-3 text-sm text-gray-600">{moderator.location && moderator.location !== 'N/A' ? moderator.location : '-'}</td>}
+                  {modVisible.has('joined') && <td className="px-4 py-3 text-sm text-gray-500">{moderator.joinedDate ? new Date(moderator.joinedDate).toLocaleDateString() : 'N/A'}</td>}
+                  {modVisible.has('actions') && (
+                    <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openChatWith(moderator.userId)}
+                          className="px-3 py-1.5 bg-emerald-600 text-white rounded-md text-xs font-medium hover:bg-emerald-700 transition-colors"
+                        >
+                          Chat
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(moderator.moderatorId)}
+                          className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={modVisible.size} className="px-4 py-12 text-center text-gray-400">No moderators found</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500 mt-auto">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              Showing {displayedModerators.length} moderators on page {currentPage} (total {metaSummary?.total ?? totalModerators ?? moderators.length})
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">Rows:</label>
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(e.target.value)}
+                className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <button
+                onClick={handlePrevPage}
+                disabled={modLoading || currentPage <= 1}
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Previous
+              </button>
+              <button
+                onClick={handleNextPage}
+                disabled={modLoading || !serverPagination?.hasNextPage}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
