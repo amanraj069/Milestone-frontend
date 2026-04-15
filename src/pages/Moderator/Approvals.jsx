@@ -4,6 +4,55 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'
 import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
+import { graphqlQuery } from '../../utils/graphqlClient';
+
+const MODERATOR_APPROVALS_QUERY = `
+  query ModeratorApprovals(
+    $first: Int!
+    $after: String
+    $page: Int
+    $status: String
+    $search: String
+    $sortBy: String
+    $sortOrder: String
+    $nameIn: [String]
+    $emailIn: [String]
+    $companyIn: [String]
+    $locationIn: [String]
+    $statusIn: [String]
+  ) {
+    moderatorApprovals(
+      first: $first
+      after: $after
+      page: $page
+      status: $status
+      search: $search
+      sortBy: $sortBy
+      sortOrder: $sortOrder
+      nameIn: $nameIn
+      emailIn: $emailIn
+      companyIn: $companyIn
+      locationIn: $locationIn
+      statusIn: $statusIn
+    ) {
+      edges {
+        cursor
+        node {
+          userId name email phone picture location companyName approvalStatus isApproved isRejected registeredAt
+          companyDetails {
+            companyName companyPAN accountsPayableEmail officialBusinessEmail taxIdentificationNumber
+            billingAddress proofOfAddressUrl companyLogoUrl isSubmitted submittedAt
+          }
+        }
+      }
+      pageInfo { hasNextPage endCursor }
+      total
+    }
+    moderatorApprovalsMeta {
+      filterOptions { names emails companies locations statuses }
+    }
+  }
+`;
 
 // Modal animation styles
 const modalStyles = `
@@ -23,9 +72,15 @@ const modalStyles = `
 
 const ModeratorApprovals = () => {
   const [employers, setEmployers] = useState([]);
+  const [metaFilters, setMetaFilters] = useState({ names: [], emails: [], companies: [], locations: [], statuses: [] });
+  const [totalEmployersCount, setTotalEmployersCount] = useState(0);
+  const [serverPagination, setServerPagination] = useState(null);
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'approved'
   const [processing, setProcessing] = useState(null);
   
@@ -54,25 +109,62 @@ const ModeratorApprovals = () => {
   const { visible: visibleColumns, setVisible: setVisibleColumns } = useSmartColumnToggle(allColumns, 'moderator-approvals-visible-columns');
   const isColumnVisible = (k) => visibleColumns.has(k);
 
-  useEffect(() => {
-    fetchEmployers();
-  }, [statusFilter]);
+  const filterSignature = JSON.stringify({
+    debouncedSearchTerm,
+    sortBy,
+    nameFilters,
+    emailFilters,
+    companyFilters,
+    locationFilters,
+    statusFiltersColumn,
+  });
 
-  const fetchEmployers = async () => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchEmployers(currentPage, pageSize);
+  }, [statusFilter, currentPage, pageSize, filterSignature]);
+
+  const fetchEmployers = async (page = currentPage, limit = pageSize) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(
-        `${API_BASE_URL}/api/moderator/approvals/pending`,
-        { 
-          params: { status: statusFilter === 'all' ? 'all' : statusFilter },
-          withCredentials: true 
-        }
-      );
+      const sortConfig = {
+        recent: { sortBy: 'createdAt', sortOrder: 'desc' },
+        oldest: { sortBy: 'createdAt', sortOrder: 'asc' },
+        'name-az': { sortBy: 'name', sortOrder: 'asc' },
+        'name-za': { sortBy: 'name', sortOrder: 'desc' },
+      }[sortBy] || { sortBy: 'createdAt', sortOrder: 'desc' };
 
-      if (response.data.success) {
-        setEmployers(response.data.pendingApprovals || []);
-      }
+      const result = await graphqlQuery(MODERATOR_APPROVALS_QUERY, {
+        first: limit,
+        page,
+        search: debouncedSearchTerm || undefined,
+        status: statusFilter === 'all' ? 'all' : statusFilter,
+        sortBy: sortConfig.sortBy,
+        sortOrder: sortConfig.sortOrder,
+        nameIn: nameFilters.length ? nameFilters : null,
+        emailIn: emailFilters.length ? emailFilters : null,
+        companyIn: companyFilters.length ? companyFilters : null,
+        locationIn: locationFilters.length ? locationFilters : null,
+        statusIn: statusFiltersColumn.length
+          ? statusFiltersColumn.map((entry) => String(entry).toLowerCase())
+          : null,
+      });
+
+      const connection = result?.moderatorApprovals;
+      const edges = connection?.edges || [];
+
+      setEmployers(edges.map((edge) => edge.node));
+      setTotalEmployersCount(connection?.total || 0);
+      setServerPagination(connection?.pageInfo || null);
+      setMetaFilters(result?.moderatorApprovalsMeta?.filterOptions || { names: [], emails: [], companies: [], locations: [], statuses: [] });
     } catch (error) {
       console.error('Error fetching employers:', error);
       setError('Failed to load employers. Please try again.');
@@ -92,7 +184,7 @@ const ModeratorApprovals = () => {
 
       if (response.data.success) {
         // Refresh the list
-        fetchEmployers();
+        fetchEmployers(currentPage, pageSize);
         setConfirmModal({ show: false, userId: null, name: '', action: '' });
       }
     } catch (error) {
@@ -114,7 +206,7 @@ const ModeratorApprovals = () => {
 
       if (response.data.success) {
         // Refresh the list
-        fetchEmployers();
+        fetchEmployers(currentPage, pageSize);
         setConfirmModal({ show: false, userId: null, name: '', action: '' });
       }
     } catch (error) {
@@ -129,72 +221,22 @@ const ModeratorApprovals = () => {
   const clearAllFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
+    setSortBy('recent');
     setNameFilters([]);
     setEmailFilters([]);
     setCompanyFilters([]);
     setLocationFilters([]);
     setStatusFiltersColumn([]);
+    setCurrentPage(1);
   };
 
   // Check if any filters are active
-  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'all' ||
+  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'all' || sortBy !== 'recent' ||
     nameFilters.length > 0 || emailFilters.length > 0 || companyFilters.length > 0 ||
     locationFilters.length > 0 || statusFiltersColumn.length > 0;
+  const displayedEmployers = employers;
 
-  // Filter employers
-  let filteredEmployers = employers.filter(employer => {
-    // Top Status Filter (all, pending, approved, rejected)
-    if (statusFilter === 'pending') {
-      if (employer.approvalStatus !== 'Pending') return false;
-    } else if (statusFilter === 'approved') {
-      if (employer.approvalStatus !== 'Approved') return false;
-    } else if (statusFilter === 'rejected') {
-      if (employer.approvalStatus !== 'Rejected') return false;
-    }
-
-    // Column filters (SmartFilter)
-    if (nameFilters.length > 0 && !nameFilters.includes(employer.name || '')) {
-      return false;
-    }
-    if (emailFilters.length > 0 && !emailFilters.includes(employer.email || '')) {
-      return false;
-    }
-    if (companyFilters.length > 0 && !companyFilters.includes(employer.companyName || '')) {
-      return false;
-    }
-    if (locationFilters.length > 0 && !locationFilters.includes(employer.location || '')) {
-      return false;
-    }
-    if (statusFiltersColumn.length > 0 && !statusFiltersColumn.includes(employer.approvalStatus || '')) {
-      return false;
-    }
-    
-    // Search filter (regex)
-    if (searchTerm.trim() === '') {
-      return true;
-    }
-
-    try {
-      const regex = new RegExp(searchTerm, 'i');
-      return (
-        regex.test(employer.name || '') ||
-        regex.test(employer.email || '') ||
-        regex.test(employer.companyName || '') ||
-        regex.test(employer.location || '')
-      );
-    } catch (e) {
-      // Invalid regex, fall back to includes
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        (employer.name || '').toLowerCase().includes(searchLower) ||
-        (employer.email || '').toLowerCase().includes(searchLower) ||
-        (employer.companyName || '').toLowerCase().includes(searchLower) ||
-        (employer.location || '').toLowerCase().includes(searchLower)
-      );
-    }
-  });
-
-  const totalEmployers = employers.length;
+  const totalEmployers = totalEmployersCount || employers.length;
   const pendingCount = employers.filter(e => !e.isApproved && !e.isRejected).length;
   const approvedCount = employers.filter(e => e.isApproved).length;
   const rejectedCount = employers.filter(e => e.isRejected).length;
@@ -276,7 +318,10 @@ const ModeratorApprovals = () => {
               type="text"
               placeholder="Search employers..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setSearchTerm(e.target.value);
+              }}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -324,7 +369,7 @@ const ModeratorApprovals = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-lg font-medium text-red-600 mb-2">Error loading employers</p>
           <p className="text-gray-500 mb-4">{error}</p>
-          <button onClick={fetchEmployers} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
+          <button onClick={() => fetchEmployers(currentPage, pageSize)} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
         </div>
       )}
 
@@ -345,6 +390,7 @@ const ModeratorApprovals = () => {
                           field="name"
                           selectedValues={nameFilters}
                           onFilterChange={setNameFilters}
+                          options={metaFilters.names}
                         />
                       </div>
                     </th>
@@ -360,6 +406,7 @@ const ModeratorApprovals = () => {
                           field="companyName"
                           selectedValues={companyFilters}
                           onFilterChange={setCompanyFilters}
+                          options={metaFilters.companies}
                         />
                       </div>
                     </th>
@@ -375,6 +422,7 @@ const ModeratorApprovals = () => {
                           field="location"
                           selectedValues={locationFilters}
                           onFilterChange={setLocationFilters}
+                          options={metaFilters.locations}
                         />
                       </div>
                     </th>
@@ -394,6 +442,7 @@ const ModeratorApprovals = () => {
                           field="approvalStatus"
                           selectedValues={statusFiltersColumn}
                           onFilterChange={setStatusFiltersColumn}
+                          options={metaFilters.statuses}
                         />
                       </div>
                     </th>
@@ -409,8 +458,8 @@ const ModeratorApprovals = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredEmployers.length > 0 ? (
-                  filteredEmployers.map((employer) => (
+                {displayedEmployers.length > 0 ? (
+                  displayedEmployers.map((employer) => (
                     <tr key={employer.userId} className="hover:bg-gray-50">
                       {isColumnVisible('name') && (
                         <td className="px-4 py-3 align-top">
@@ -523,7 +572,44 @@ const ModeratorApprovals = () => {
             </table>
           </div>
           {/* Showing count moved to table footer */}
-          <div className="px-4 py-3 text-sm text-gray-600">Showing: {filteredEmployers.length} of {totalEmployers}</div>
+          <div className="px-4 py-3 text-sm text-gray-600 bg-gray-50 border-t border-gray-200">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                Showing {displayedEmployers.length} approvals on page {currentPage} (total {totalEmployers})
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Rows:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                  }}
+                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={loading || currentPage <= 1}
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  disabled={loading || !serverPagination?.hasNextPage}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

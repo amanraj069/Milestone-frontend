@@ -34,9 +34,16 @@ const ModeratorComplaints = () => {
     sortOrder, 
     stats, 
     complaints,
+    total,
+    pagination,
+    filterOptions,
     loading, 
     error 
   } = useSelector(state => state.complaints);
+
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
   // Column visibility
   const { visible, setVisible } = useSmartColumnToggle(COLUMNS, 'moderator-complaints-columns');
@@ -51,23 +58,56 @@ const ModeratorComplaints = () => {
     priority: [],
     type: [],
   });
-  const setColFilter = (field) => (values) =>
+  const setColFilter = (field) => (values) => {
+    setCurrentPage(1);
     setColumnFilters((prev) => ({ ...prev, [field]: values }));
+  };
+
+  const filterSignature = JSON.stringify({
+    searchTerm: debouncedSearchTerm,
+    sortBy,
+    sortOrder,
+    columnFilters,
+  });
 
   useEffect(() => {
-    dispatch(fetchComplaints());
-  }, [dispatch]);
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm((reduxSearchTerm || '').trim());
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [reduxSearchTerm]);
+
+  useEffect(() => {
+    dispatch(
+      fetchComplaints({
+        page: currentPage,
+        limit: pageSize,
+        search: debouncedSearchTerm,
+        sortBy,
+        sortOrder,
+        complainantTypeIn: columnFilters.complainantType,
+        againstIn: columnFilters.against,
+        jobIn: columnFilters.job,
+        statusIn: columnFilters.status,
+        priorityIn: columnFilters.priority,
+        typeIn: columnFilters.type,
+      }),
+    );
+  }, [dispatch, currentPage, pageSize, filterSignature]);
 
   const handleViewComplaint = (complaintId) => {
     navigate(`/moderator/complaints/${complaintId}`);
   };
 
   const handleSearchChange = (value) => {
+    setCurrentPage(1);
     dispatch(setSearchTerm(value));
   };
 
   const handleSortDropdownChange = (value) => {
     const [field, order] = value.split('_');
+    setCurrentPage(1);
     dispatch(setSortBy(field));
     dispatch(setSortOrder(order));
   };
@@ -92,17 +132,7 @@ const ModeratorComplaints = () => {
     }
   };
 
-  // Apply SmartFilter column filters on top of redux-filtered complaints
-  const displayedComplaints = filteredComplaints.filter((c) => {
-    if (columnFilters.complainantType.length > 0 && !columnFilters.complainantType.includes(c.complainantType)) return false;
-    const againstName = c.complainantType === 'Freelancer' ? c.employerName : c.freelancerName;
-    if (columnFilters.against.length > 0 && !columnFilters.against.includes(againstName)) return false;
-    if (columnFilters.job.length > 0 && !columnFilters.job.includes(c.jobTitle)) return false;
-    if (columnFilters.status.length > 0 && !columnFilters.status.includes(c.status)) return false;
-    if (columnFilters.priority.length > 0 && !columnFilters.priority.includes(c.priority)) return false;
-    if (columnFilters.type.length > 0 && !columnFilters.type.includes(c.complaintType)) return false;
-    return true;
-  });
+  const displayedComplaints = filteredComplaints;
 
   return (
     <DashboardPage title="Complaints">
@@ -212,7 +242,23 @@ const ModeratorComplaints = () => {
           <p className="text-lg font-medium text-red-600 mb-2">Error loading complaints</p>
           <p className="text-gray-500 mb-4">{error}</p>
           <button 
-            onClick={() => dispatch(fetchComplaints())} 
+            onClick={() =>
+              dispatch(
+                fetchComplaints({
+                  page: currentPage,
+                  limit: pageSize,
+                  search: reduxSearchTerm,
+                  sortBy,
+                  sortOrder,
+                  complainantTypeIn: columnFilters.complainantType,
+                  againstIn: columnFilters.against,
+                  jobIn: columnFilters.job,
+                  statusIn: columnFilters.status,
+                  priorityIn: columnFilters.priority,
+                  typeIn: columnFilters.type,
+                }),
+              )
+            } 
             className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
           >
             Retry
@@ -237,6 +283,7 @@ const ModeratorComplaints = () => {
                           field="complainantType"
                           selectedValues={columnFilters.complainantType}
                           onFilterChange={setColFilter('complainantType')}
+                          options={filterOptions?.complainantTypes || []}
                         />
                       </div>
                     </th>
@@ -252,6 +299,7 @@ const ModeratorComplaints = () => {
                           selectedValues={columnFilters.against}
                           onFilterChange={setColFilter('against')}
                           valueExtractor={(c) => c.complainantType === 'Freelancer' ? c.employerName : c.freelancerName}
+                          options={filterOptions?.against || []}
                         />
                       </div>
                     </th>
@@ -266,6 +314,7 @@ const ModeratorComplaints = () => {
                           field="jobTitle"
                           selectedValues={columnFilters.job}
                           onFilterChange={setColFilter('job')}
+                          options={filterOptions?.jobs || []}
                         />
                       </div>
                     </th>
@@ -280,6 +329,7 @@ const ModeratorComplaints = () => {
                           field="complaintType"
                           selectedValues={columnFilters.type}
                           onFilterChange={setColFilter('type')}
+                          options={filterOptions?.types || []}
                         />
                       </div>
                     </th>
@@ -294,6 +344,7 @@ const ModeratorComplaints = () => {
                           field="priority"
                           selectedValues={columnFilters.priority}
                           onFilterChange={setColFilter('priority')}
+                          options={filterOptions?.priorities || []}
                         />
                       </div>
                     </th>
@@ -311,6 +362,7 @@ const ModeratorComplaints = () => {
                           field="status"
                           selectedValues={columnFilters.status}
                           onFilterChange={setColFilter('status')}
+                          options={filterOptions?.statuses || []}
                         />
                       </div>
                     </th>
@@ -398,7 +450,42 @@ const ModeratorComplaints = () => {
           </div>
           {/* Showing x of x — under the table */}
           <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500">
-            Showing {displayedComplaints.length} of {stats.total} complaints
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                Showing {displayedComplaints.length} complaints on page {currentPage} (total {total || stats.total || 0})
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Rows:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                  }}
+                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={loading || currentPage <= 1}
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  disabled={loading || !pagination?.hasNextPage}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

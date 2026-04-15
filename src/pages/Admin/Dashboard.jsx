@@ -65,8 +65,23 @@ const ADMIN_DASHBOARD_REVENUE_QUERY = `
       monthlyRevenue { label year month subscriptionRevenue platformFeeRevenue totalRevenue jobsPosted }
       totals { totalRevenue subscriptionRevenue platformFees thisMonthRevenue revenueGrowth }
       engagement { jobCompletionRate hireRate activeUsers totalUsers premiumUsers conversionRate recentJobs recentApplications avgJobsPerMonth }
-      recentPlatformFees { jobId title budget durationDays applicantCount feeRate feeAmount postedDate status employerName companyName }
       feeStructure { baseRate description range tiers { platform { range modifier label } applicationCap { range modifier label } } }
+    }
+  }
+`;
+
+const ADMIN_PLATFORM_FEES_QUERY = `
+  query AdminPlatformFeeCollections($first: Int!, $after: String) {
+    adminPlatformFeeCollections(first: $first, after: $after) {
+      edges {
+        cursor
+        node { jobId title budget durationDays applicantCount feeRate feeAmount postedDate status employerName companyName }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      total
     }
   }
 `;
@@ -74,6 +89,13 @@ const ADMIN_DASHBOARD_REVENUE_QUERY = `
 const AdminDashboard = () => {
   const { user } = useAuth();
   const [data, setData] = useState(null);
+  const [recentFees, setRecentFees] = useState([]);
+  const [totalFeeCollections, setTotalFeeCollections] = useState(0);
+  const [feePagination, setFeePagination] = useState(null);
+  const [feePageSize, setFeePageSize] = useState(10);
+  const [feePage, setFeePage] = useState(1);
+  const [feeAfterCursor, setFeeAfterCursor] = useState(null);
+  const [feeCursorStack, setFeeCursorStack] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
 
@@ -90,6 +112,65 @@ const AdminDashboard = () => {
     };
     fetchRevenue();
   }, []);
+
+  useEffect(() => {
+    resetAndFetchPlatformFees();
+  }, [feePageSize]);
+
+  const fetchPlatformFees = async ({ after = feeAfterCursor } = {}) => {
+    try {
+      const result = await graphqlQuery(ADMIN_PLATFORM_FEES_QUERY, {
+        first: feePageSize,
+        after,
+      });
+
+      const connection = result?.adminPlatformFeeCollections;
+      const edges = connection?.edges || [];
+
+      setRecentFees(edges.map((edge) => edge.node));
+      setTotalFeeCollections(connection?.total || 0);
+      setFeePagination({
+        hasNextPage: connection?.pageInfo?.hasNextPage || false,
+        endCursor: connection?.pageInfo?.endCursor || null,
+      });
+    } catch (error) {
+      console.error('Error fetching platform fee collections:', error);
+      setRecentFees([]);
+      setTotalFeeCollections(0);
+      setFeePagination({ hasNextPage: false, endCursor: null });
+    }
+  };
+
+  const resetAndFetchPlatformFees = async () => {
+    setFeePage(1);
+    setFeeAfterCursor(null);
+    setFeeCursorStack([]);
+    await fetchPlatformFees({ after: null });
+  };
+
+  const handleFeeNextPage = async () => {
+    if (!feePagination?.hasNextPage || !feePagination?.endCursor) return;
+    const nextAfter = feePagination.endCursor;
+    setFeeCursorStack((prev) => [...prev, feeAfterCursor]);
+    setFeeAfterCursor(nextAfter);
+    setFeePage((p) => p + 1);
+    await fetchPlatformFees({ after: nextAfter });
+  };
+
+  const handleFeePrevPage = async () => {
+    if (feePage <= 1) return;
+    const nextStack = [...feeCursorStack];
+    const prevAfter = nextStack.pop() ?? null;
+    setFeeCursorStack(nextStack);
+    setFeeAfterCursor(prevAfter);
+    setFeePage((p) => Math.max(1, p - 1));
+    await fetchPlatformFees({ after: prevAfter });
+  };
+
+  const handleFeePageSizeChange = (nextSize) => {
+    const normalized = Math.min(100, Math.max(1, Number(nextSize) || 10));
+    setFeePageSize(normalized);
+  };
 
   const formatCurrency = (val) => {
     if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)}Cr`;
@@ -152,7 +233,6 @@ const AdminDashboard = () => {
 
   const totals = data?.totals || {};
   const engagement = data?.engagement || {};
-  const recentFees = data?.recentPlatformFees || [];
   const feeTiers = data?.feeStructure || {};
 
   // Derived metrics (using normalized data to ensure 12-month consistency)
@@ -1044,10 +1124,10 @@ const AdminDashboard = () => {
         <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-gray-900">Recent Platform Fee Collections</h3>
-            <p className="text-[11px] text-gray-400">{recentFees.length} transactions · Total: {formatFull(recentFees.reduce((s, f) => s + f.feeAmount, 0))}</p>
+            <p className="text-[11px] text-gray-400">{recentFees.length} shown · total {totalFeeCollections} · Page {feePage}</p>
           </div>
           <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[11px] font-bold rounded-full">
-            <i className="fas fa-check-circle mr-1 text-[9px]"></i>{recentFees.length} Collected
+            <i className="fas fa-check-circle mr-1 text-[9px]"></i>{totalFeeCollections} Collected
           </span>
         </div>
         <div className="overflow-x-auto">
@@ -1067,7 +1147,7 @@ const AdminDashboard = () => {
             <tbody className="divide-y divide-gray-50">
               {recentFees.length > 0 ? recentFees.map((job, i) => (
                 <tr key={i} className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'} hover:bg-blue-50/40 transition-colors`}>
-                  <td className="px-4 py-2.5 text-[11px] text-gray-400 font-medium">{i + 1}</td>
+                  <td className="px-4 py-2.5 text-[11px] text-gray-400 font-medium">{(feePage - 1) * feePageSize + i + 1}</td>
                   <td className="px-4 py-2.5">
                     <p className="text-xs font-semibold text-gray-900 truncate max-w-[180px]">{job.title}</p>
                   </td>
@@ -1111,6 +1191,38 @@ const AdminDashboard = () => {
               </tfoot>
             )}
           </table>
+        </div>
+        <div className="px-4 py-2.5 border-t border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-xs text-gray-500">
+            Showing {recentFees.length} on this page (total {totalFeeCollections})
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500">Rows:</label>
+            <select
+              value={feePageSize}
+              onChange={(e) => handleFeePageSizeChange(e.target.value)}
+              className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+            <button
+              onClick={handleFeePrevPage}
+              disabled={loading || feePage <= 1}
+              className="px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+            >
+              Previous
+            </button>
+            <button
+              onClick={handleFeeNextPage}
+              disabled={loading || !feePagination?.hasNextPage}
+              className="px-3 py-1 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </DashboardPage>

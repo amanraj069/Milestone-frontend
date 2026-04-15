@@ -4,42 +4,75 @@ import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 import { useChatContext } from '../../context/ChatContext';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
-// Levenshtein distance algorithm for fuzzy search
-const levenshteinDistance = (str1, str2) => {
-  const len1 = str1.length;
-  const len2 = str2.length;
-  const matrix = [];
+const serializeQueryParams = (params) => {
+  const searchParams = new URLSearchParams();
 
-  if (len1 === 0) return len2;
-  if (len2 === 0) return len1;
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
 
-  for (let i = 0; i <= len2; i++) {
-    matrix[i] = [i];
-  }
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item !== undefined && item !== null && item !== '') {
+          searchParams.append(key, String(item));
+        }
+      });
+      return;
+    }
 
-  for (let j = 0; j <= len1; j++) {
-    matrix[0][j] = j;
-  }
+    searchParams.append(key, String(value));
+  });
 
-  for (let i = 1; i <= len2; i++) {
-    for (let j = 1; j <= len1; j++) {
-      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
-        );
+  return searchParams.toString();
+};
+
+const MODERATOR_EMPLOYERS_QUERY = `
+  query ModeratorEmployers(
+    $first: Int!
+    $after: String
+    $page: Int
+    $search: String
+    $sortBy: String
+    $nameIn: [String]
+    $companyIn: [String]
+    $emailIn: [String]
+    $phoneIn: [String]
+    $ratingIn: [String]
+    $subscribedIn: [String]
+    $durationIn: [String]
+  ) {
+    moderatorEmployers(
+      first: $first
+      after: $after
+      page: $page
+      search: $search
+      sortBy: $sortBy
+      nameIn: $nameIn
+      companyIn: $companyIn
+      emailIn: $emailIn
+      phoneIn: $phoneIn
+      ratingIn: $ratingIn
+      subscribedIn: $subscribedIn
+      durationIn: $durationIn
+    ) {
+      edges {
+        cursor
+        node {
+          employerId userId name email phone picture location companyName rating subscription isPremium
+          subscriptionDuration subscriptionExpiryDate jobListingsCount hiredCount currentHires pastHires joinedDate
+        }
       }
+      pageInfo { hasNextPage endCursor }
+      total
+    }
+    moderatorEmployersMeta {
+      filterOptions { names companies emails phones ratings subscribed durations }
     }
   }
-
-  return matrix[len2][len1];
-};
+`;
 
 // Modal animation styles
 const modalStyles = `
@@ -60,15 +93,18 @@ const modalStyles = `
 const ModeratorEmployers = () => {
   const { openChatWith } = useChatContext();
   const [employers, setEmployers] = useState([]);
+  const [metaFilters, setMetaFilters] = useState({ names: [], companies: [], emails: [], phones: [], ratings: [], subscribed: [], durations: [] });
+  const [totalEmployersCount, setTotalEmployersCount] = useState(0);
+  const [serverPagination, setServerPagination] = useState(null);
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [deleting, setDeleting] = useState(null);
 
-  // Filter states
-  const [ratingSort, setRatingSort] = useState('none');
-  const [subscriptionFilter, setSubscriptionFilter] = useState('all');
-  const [hiresSort, setHiresSort] = useState('none');
+  // Sort/filter state
   const [sortBy, setSortBy] = useState('recent'); // unified sort state (replaces top dropdowns in UI)
 
   // Column-level SmartFilter states
@@ -106,22 +142,55 @@ const ModeratorEmployers = () => {
   );
   const isColumnVisible = (columnKey) => visibleColumns.has(columnKey);
 
-  useEffect(() => {
-    fetchEmployers();
-  }, []);
+  const filterSignature = JSON.stringify({
+    debouncedSearchTerm,
+    sortBy,
+    nameFilters,
+    companyFilters,
+    emailFilters,
+    phoneFilters,
+    ratingFilters,
+    subscribedFilters,
+    durationFilters,
+  });
 
-  const fetchEmployers = async () => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchEmployers(currentPage, pageSize);
+  }, [currentPage, pageSize, filterSignature]);
+
+  const fetchEmployers = async (page = currentPage, limit = pageSize) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(
-        `${API_BASE_URL}/api/moderator/employers`,
-        { withCredentials: true }
-      );
+      const result = await graphqlQuery(MODERATOR_EMPLOYERS_QUERY, {
+        first: limit,
+        page,
+        search: debouncedSearchTerm || undefined,
+        sortBy,
+        nameIn: nameFilters.length ? nameFilters : null,
+        companyIn: companyFilters.length ? companyFilters : null,
+        emailIn: emailFilters.length ? emailFilters : null,
+        phoneIn: phoneFilters.length ? phoneFilters : null,
+        ratingIn: ratingFilters.length ? ratingFilters.map((v) => String(v)) : null,
+        subscribedIn: subscribedFilters.length ? subscribedFilters : null,
+        durationIn: durationFilters.length ? durationFilters.map((v) => String(v)) : null,
+      });
 
-      if (response.data.success) {
-        setEmployers(response.data.employers || []);
-      }
+      const connection = result?.moderatorEmployers;
+      const edges = connection?.edges || [];
+
+      setEmployers(edges.map((edge) => edge.node));
+      setTotalEmployersCount(connection?.total || 0);
+      setServerPagination(connection?.pageInfo || null);
+      setMetaFilters(result?.moderatorEmployersMeta?.filterOptions || { names: [], companies: [], emails: [], phones: [], ratings: [], subscribed: [], durations: [] });
     } catch (error) {
       console.error('Error fetching employers:', error);
       setError('Failed to load employers. Please try again.');
@@ -187,9 +256,6 @@ const ModeratorEmployers = () => {
   // Clear all filters
   const clearAllFilters = () => {
     setSearchTerm('');
-    setRatingSort('none');
-    setSubscriptionFilter('all');
-    setHiresSort('none');
     setNameFilters([]);
     setCompanyFilters([]);
     setEmailFilters([]);
@@ -197,85 +263,17 @@ const ModeratorEmployers = () => {
     setRatingFilters([]);
     setSubscribedFilters([]);
     setDurationFilters([]);
+    setCurrentPage(1);
   };
 
-  const hasActiveFilters = searchTerm !== '' || ratingSort !== 'none' || subscriptionFilter !== 'all' || hiresSort !== 'none' ||
+  const hasActiveFilters = searchTerm !== '' ||
     nameFilters.length > 0 || companyFilters.length > 0 || emailFilters.length > 0 || phoneFilters.length > 0 ||
     ratingFilters.length > 0 || subscribedFilters.length > 0 || durationFilters.length > 0;
 
-  // Filter and sort employers
-  let filteredEmployers = employers.filter(employer => {
-    // Subscription filter
-    if (subscriptionFilter === 'premium' && !employer.isPremium) return false;
-    if (subscriptionFilter === 'basic' && employer.isPremium) return false;
-
-    // Column SmartFilter filters
-    if (nameFilters.length > 0 && !nameFilters.includes(employer.name)) return false;
-    if (companyFilters.length > 0 && !companyFilters.includes(employer.companyName || 'N/A')) return false;
-    if (emailFilters.length > 0 && !emailFilters.includes(employer.email)) return false;
-    if (phoneFilters.length > 0 && !phoneFilters.includes(employer.phone || 'N/A')) return false;
-    if (ratingFilters.length > 0 && !ratingFilters.includes(employer.rating)) return false;
-    if (subscribedFilters.length > 0 && !subscribedFilters.includes(employer.isPremium ? 'Yes' : 'No')) return false;
-    if (durationFilters.length > 0 && !durationFilters.includes(employer.subscriptionDuration || 0)) return false;
-
-    // Search filter - regex based across all fields
-    if (searchTerm.trim() === '') return true;
-
-    try {
-      const regex = new RegExp(searchTerm, 'i');
-      return (
-        regex.test(employer.name || '') ||
-        regex.test(employer.email || '') ||
-        regex.test(employer.companyName || '') ||
-        regex.test(employer.phone || '')
-      );
-    } catch (e) {
-      // Invalid regex, fall back to includes
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        (employer.name || '').toLowerCase().includes(searchLower) ||
-        (employer.email || '').toLowerCase().includes(searchLower) ||
-        (employer.companyName || '').toLowerCase().includes(searchLower) ||
-        (employer.phone || '').toLowerCase().includes(searchLower)
-      );
-    }
-  });
-
-  // Apply rating sorting
-  if (ratingSort === 'high-to-low') {
-    filteredEmployers = [...filteredEmployers].sort((a, b) => b.rating - a.rating);
-  } else if (ratingSort === 'low-to-high') {
-    filteredEmployers = [...filteredEmployers].sort((a, b) => a.rating - b.rating);
-  }
-
-  // Apply hires sorting
-  if (hiresSort === 'high-to-low') {
-    filteredEmployers = [...filteredEmployers].sort((a, b) => b.hiredCount - a.hiredCount);
-  } else if (hiresSort === 'low-to-high') {
-    filteredEmployers = [...filteredEmployers].sort((a, b) => a.hiredCount - b.hiredCount);
-  }
-
-  // Apply unified sortBy (if used)
-  if (sortBy === 'name-az') {
-    filteredEmployers = [...filteredEmployers].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  } else if (sortBy === 'name-za') {
-    filteredEmployers = [...filteredEmployers].sort((a, b) => (b.name || '').localeCompare(a.name || ''));
-  } else if (sortBy === 'rating-high-low') {
-    filteredEmployers = [...filteredEmployers].sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
-  } else if (sortBy === 'rating-low-high') {
-    filteredEmployers = [...filteredEmployers].sort((a, b) => (Number(a.rating) || 0) - (Number(b.rating) || 0));
-  } else if (sortBy === 'jobListings-high-low') {
-    filteredEmployers = [...filteredEmployers].sort((a, b) => (Number(b.jobListingsCount) || 0) - (Number(a.jobListingsCount) || 0));
-  } else if (sortBy === 'jobListings-low-high') {
-    filteredEmployers = [...filteredEmployers].sort((a, b) => (Number(a.jobListingsCount) || 0) - (Number(b.jobListingsCount) || 0));
-  } else if (sortBy === 'recent') {
-    filteredEmployers = [...filteredEmployers].sort((a, b) => new Date(b.joinedDate || 0) - new Date(a.joinedDate || 0));
-  } else if (sortBy === 'oldest') {
-    filteredEmployers = [...filteredEmployers].sort((a, b) => new Date(a.joinedDate || 0) - new Date(b.joinedDate || 0));
-  }
+  const displayedEmployers = employers;
 
   // Calculate statistics
-  const totalEmployers = employers.length;
+  const totalEmployers = totalEmployersCount || employers.length;
   const premiumEmployers = employers.filter(e => e.isPremium).length;
   const totalJobListings = employers.reduce((sum, e) => sum + (e.jobListingsCount || 0), 0);
   const avgRating = totalEmployers > 0 ? (employers.reduce((s, e) => s + (e.rating || 0), 0) / totalEmployers).toFixed(1) : '0.0';
@@ -361,7 +359,10 @@ const ModeratorEmployers = () => {
               type="text"
               placeholder="Search employers..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setSearchTerm(e.target.value);
+              }}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -415,18 +416,18 @@ const ModeratorEmployers = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-lg font-medium text-red-600 mb-2">Error loading employers</p>
           <p className="text-gray-500 mb-4">{error}</p>
-          <button onClick={fetchEmployers} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
+          <button onClick={() => fetchEmployers(currentPage, pageSize)} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
         </div>
       )}
 
-      {!loading && !error && filteredEmployers.length === 0 && (
+      {!loading && !error && displayedEmployers.length === 0 && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-lg font-medium text-gray-700 mb-1">No employers found</p>
           <p className="text-gray-500">{searchTerm || hasActiveFilters ? 'No employers match your filters.' : 'There are no registered employers.'}</p>
         </div>
       )}
 
-      {!loading && !error && filteredEmployers.length > 0 && (
+      {!loading && !error && displayedEmployers.length > 0 && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -443,6 +444,7 @@ const ModeratorEmployers = () => {
                           field="name"
                           selectedValues={nameFilters}
                           onFilterChange={setNameFilters}
+                          options={metaFilters.names}
                         />
                       </div>
                     </th>
@@ -458,6 +460,7 @@ const ModeratorEmployers = () => {
                           selectedValues={companyFilters}
                           onFilterChange={setCompanyFilters}
                           valueExtractor={(e) => e.companyName || 'N/A'}
+                          options={metaFilters.companies}
                         />
                       </div>
                     </th>
@@ -472,6 +475,7 @@ const ModeratorEmployers = () => {
                           field="email"
                           selectedValues={emailFilters}
                           onFilterChange={setEmailFilters}
+                          options={metaFilters.emails}
                         />
                       </div>
                     </th>
@@ -487,6 +491,7 @@ const ModeratorEmployers = () => {
                           selectedValues={phoneFilters}
                           onFilterChange={setPhoneFilters}
                           valueExtractor={(e) => e.phone || 'N/A'}
+                          options={metaFilters.phones}
                         />
                       </div>
                     </th>
@@ -502,6 +507,7 @@ const ModeratorEmployers = () => {
                           selectedValues={ratingFilters}
                           onFilterChange={setRatingFilters}
                           valueFormatter={(v) => `★ ${v.toFixed(1)}`}
+                          options={metaFilters.ratings}
                         />
                       </div>
                     </th>
@@ -517,6 +523,7 @@ const ModeratorEmployers = () => {
                           selectedValues={subscribedFilters}
                           onFilterChange={setSubscribedFilters}
                           valueExtractor={(e) => e.isPremium ? 'Yes' : 'No'}
+                          options={metaFilters.subscribed}
                         />
                       </div>
                     </th>
@@ -533,6 +540,7 @@ const ModeratorEmployers = () => {
                           onFilterChange={setDurationFilters}
                           valueExtractor={(e) => e.subscriptionDuration || 0}
                           valueFormatter={(v) => v === 0 ? 'None' : `${v} months`}
+                          options={metaFilters.durations}
                         />
                       </div>
                     </th>
@@ -544,7 +552,7 @@ const ModeratorEmployers = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredEmployers.map((employer) => (
+                {displayedEmployers.map((employer) => (
                   <tr key={employer.employerId} className="hover:bg-gray-50">
                     {isColumnVisible('photo') && (
                       <td className="px-4 py-3">
@@ -645,8 +653,43 @@ const ModeratorEmployers = () => {
               </tbody>
             </table>
           </div>
-          <div className="px-4 py-3 text-sm text-gray-600">
-            Showing: {filteredEmployers.length} of {totalEmployers}
+          <div className="px-4 py-3 text-sm text-gray-600 bg-gray-50 border-t border-gray-200">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                Showing {displayedEmployers.length} employers on page {currentPage} (total {totalEmployers})
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Rows:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                  }}
+                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={loading || currentPage <= 1}
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  disabled={loading || !serverPagination?.hasNextPage}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

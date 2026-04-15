@@ -1,88 +1,129 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import SmartSearchInput from '../../components/SmartSearchInput';
-import SmartFilter from '../../components/SmartFilter';
+import { graphqlQuery } from '../../utils/graphqlClient';
+
+const MODERATOR_QUIZZES_QUERY = `
+  query ModeratorQuizzes($first: Int!, $after: String, $page: Int, $search: String, $sortBy: String) {
+    moderatorQuizzes(first: $first, after: $after, page: $page, search: $search, sortBy: $sortBy) {
+      edges { cursor node { _id title skillName passingScore createdAt questionCount questions { _id } } }
+      pageInfo { hasNextPage endCursor }
+      total
+    }
+    moderatorQuizzesMeta {
+      summary { totalQuizzes totalQuestions avgPassingScore }
+      filterOptions { skills }
+    }
+  }
+`;
+
+const MODERATOR_QUIZ_ATTEMPTS_QUERY = `
+  query ModeratorQuizAttempts($quizId: String!, $first: Int!, $after: String, $page: Int) {
+    moderatorQuizAttempts(quizId: $quizId, first: $first, after: $after, page: $page) {
+      edges { cursor node { attemptId freelancerName email marksObtained totalMarks percentage passed badgeAwarded attemptedAt } }
+      pageInfo { hasNextPage endCursor }
+      total
+      quizTitle
+      skillName
+      passingScore
+      passedAttempts
+    }
+  }
+`;
 
 const ModeratorQuizzes = () => {
   const navigate = useNavigate();
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [listLoaded, setListLoaded] = useState(false);
   const [expandedQuiz, setExpandedQuiz] = useState(null);
   const [attemptDetails, setAttemptDetails] = useState(null);
   const [loadingAttempts, setLoadingAttempts] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
-  const [attemptFilters, setAttemptFilters] = useState({ freelancer: [], email: [], status: [], badge: [] });
-  const [dateFilter, setDateFilter] = useState('');
-  const setAttemptFilter = (field) => (values) => setAttemptFilters(prev => ({ ...prev, [field]: values }));
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [pagination, setPagination] = useState(null);
+  const [summary, setSummary] = useState({ totalQuizzes: 0, totalQuestions: 0, avgPassingScore: 0 });
+  const [attemptPage, setAttemptPage] = useState(1);
+  const [attemptPageSize, setAttemptPageSize] = useState(10);
 
-  // Reset attempt filters when expanding a different quiz
-  const handleToggleInfo = async (quizId) => {
-    setAttemptFilters({ freelancer: [], email: [], status: [], badge: [] });
-    setDateFilter('');
-    await toggleInfo(quizId);
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
 
-  const filteredAttempts = useMemo(() => {
-    if (!attemptDetails?.attempts) return [];
-    return attemptDetails.attempts.filter(a => {
-      if (attemptFilters.freelancer.length > 0 && !attemptFilters.freelancer.includes(a.freelancerName)) return false;
-      if (attemptFilters.email.length > 0 && !attemptFilters.email.includes(a.email)) return false;
-      if (attemptFilters.status.length > 0) {
-        const statusLabel = a.passed ? 'Passed' : 'Failed';
-        if (!attemptFilters.status.includes(statusLabel)) return false;
-      }
-      if (attemptFilters.badge.length > 0) {
-        const badgeLabel = a.badgeAwarded ? 'Yes' : 'No';
-        if (!attemptFilters.badge.includes(badgeLabel)) return false;
-      }
-      if (dateFilter) {
-        const d = new Date(a.attemptedAt);
-        const attemptDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        if (attemptDate !== dateFilter) return false;
-      }
-      return true;
-    });
-  }, [attemptDetails, attemptFilters, dateFilter]);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-  useEffect(() => { 
-    fetchList(); 
-  }, []);
+  useEffect(() => {
+    fetchList();
+  }, [debouncedSearchTerm, sortBy, currentPage, pageSize]);
+
+  useEffect(() => {
+    if (expandedQuiz) {
+      fetchQuizAttempts(expandedQuiz, attemptPage, attemptPageSize);
+    }
+  }, [expandedQuiz, attemptPage, attemptPageSize]);
 
   async function fetchList() {
     try {
-      const res = await fetch('/api/moderator/quizzes', { credentials: 'include' });
-      const j = await res.json();
-      if (j.success) {
-        setQuizzes(j.data.quizzes || []);
-      }
+      setLoading(true);
+      const result = await graphqlQuery(MODERATOR_QUIZZES_QUERY, {
+        search: debouncedSearchTerm,
+        sortBy,
+        first: pageSize,
+        page: currentPage,
+      });
+      const connection = result?.moderatorQuizzes;
+      const edges = connection?.edges || [];
+      setQuizzes(edges.map((edge) => edge.node));
+      setPagination(connection?.pageInfo || null);
+      setSummary(result?.moderatorQuizzesMeta?.summary || { totalQuizzes: 0, totalQuestions: 0, avgPassingScore: 0 });
     } catch (error) {
       console.error('Error fetching quizzes:', error);
     } finally {
       setLoading(false);
+      setListLoaded(true);
     }
   }
 
-  const toggleInfo = async (quizId) => {
+  const fetchQuizAttempts = async (quizId, page = attemptPage, limit = attemptPageSize) => {
+    setLoadingAttempts(true);
+    try {
+      const result = await graphqlQuery(MODERATOR_QUIZ_ATTEMPTS_QUERY, {
+        quizId,
+        first: limit,
+        page,
+      });
+      const connection = result?.moderatorQuizAttempts;
+      const edges = connection?.edges || [];
+      setAttemptDetails({
+        quizTitle: connection?.quizTitle,
+        skillName: connection?.skillName,
+        passingScore: connection?.passingScore,
+        totalAttempts: connection?.total || 0,
+        passedAttempts: connection?.passedAttempts || 0,
+        attempts: edges.map((edge) => edge.node),
+        pagination: connection?.pageInfo || null,
+      });
+    } catch (err) {
+      console.error(err);
+      alert('Failed to load attempt details');
+    } finally {
+      setLoadingAttempts(false);
+    }
+  };
+
+  const toggleInfo = (quizId) => {
     if (expandedQuiz === quizId) {
       setExpandedQuiz(null);
       setAttemptDetails(null);
     } else {
+      setAttemptPage(1);
       setExpandedQuiz(quizId);
-      setLoadingAttempts(true);
-      try {
-        const res = await fetch(`/api/moderator/quizzes/${quizId}/attempts`, { credentials: 'include' });
-        const data = await res.json();
-        if (data.success) {
-          setAttemptDetails(data.data);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Failed to load attempt details');
-      } finally {
-        setLoadingAttempts(false);
-      }
     }
   };
 
@@ -174,29 +215,6 @@ const ModeratorQuizzes = () => {
     }, 250);
   };
 
-  // Stats calculations
-  const totalQuizzes = quizzes.length;
-  const totalQuestions = quizzes.reduce((sum, q) => sum + (q.questions?.length || 0), 0);
-  const avgPassingScore = quizzes.length > 0 
-    ? Math.round(quizzes.reduce((sum, q) => sum + (q.passingScore || 0), 0) / quizzes.length) 
-    : 0;
-
-  const filteredQuizzes = useMemo(() => {
-    const q = quizzes.filter(item => {
-      const s = searchTerm.trim().toLowerCase();
-      if (!s) return true;
-      return (item.title || '').toLowerCase().includes(s) || (item.skillName || '').toLowerCase().includes(s);
-    });
-
-    switch (sortBy) {
-      case 'questions-desc': return [...q].sort((a,b) => (b.questions?.length||0) - (a.questions?.length||0));
-      case 'questions-asc': return [...q].sort((a,b) => (a.questions?.length||0) - (b.questions?.length||0));
-      case 'oldest': return [...q].sort((a,b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
-      case 'newest':
-      default: return [...q].sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-    }
-  }, [quizzes, searchTerm, sortBy]);
-
   const headerAction = (
     <Link 
       to="/moderator/quizzes/new" 
@@ -217,7 +235,7 @@ const ModeratorQuizzes = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Total Quizzes</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{totalQuizzes}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{summary.totalQuizzes}</p>
             </div>
           </div>
         </div>
@@ -229,7 +247,7 @@ const ModeratorQuizzes = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Total Questions</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{totalQuestions}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{summary.totalQuestions}</p>
             </div>
           </div>
         </div>
@@ -241,7 +259,7 @@ const ModeratorQuizzes = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm mb-1">Avg. Passing Score</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{avgPassingScore}%</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight break-words">{summary.avgPassingScore}%</p>
             </div>
           </div>
         </div>
@@ -261,16 +279,20 @@ const ModeratorQuizzes = () => {
               <div className="flex-1 min-w-[200px]">
                 <SmartSearchInput
                   value={searchTerm}
-                  onChange={setSearchTerm}
-                  dataSource={quizzes}
-                  getSearchValue={(item) => item.title || item.skillName || ''}
+                  onChange={(value) => {
+                    setCurrentPage(1);
+                    setSearchTerm(value);
+                  }}
                   placeholder="Search by quiz title or skill..."
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => {
+                  setCurrentPage(1);
+                  setSortBy(e.target.value);
+                }}
                 className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               >
                 <option value="newest">Newest First</option>
@@ -281,7 +303,7 @@ const ModeratorQuizzes = () => {
             </div>
           </div>
 
-          {loading ? (
+          {loading && !listLoaded ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600"></div>
               <p className="text-gray-500 mt-3">Loading quizzes...</p>
@@ -299,7 +321,10 @@ const ModeratorQuizzes = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredQuizzes.map(q => (
+              {loading && (
+                <div className="text-xs text-gray-500 px-1">Updating results...</div>
+              )}
+              {quizzes.map(q => (
                 <div key={q._id} className="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
                   <div className="p-4 flex justify-between items-center">
                     <div className="flex-1">
@@ -384,107 +409,19 @@ const ModeratorQuizzes = () => {
                                   <thead>
                                     <tr className="bg-gray-50 border-b border-gray-200">
                                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                        <div className="flex items-center gap-1.5">
-                                          Freelancer
-                                          <SmartFilter
-                                            label="Freelancer"
-                                            data={attemptDetails?.attempts || []}
-                                            field="freelancerName"
-                                            selectedValues={attemptFilters.freelancer}
-                                            onFilterChange={setAttemptFilter('freelancer')}
-                                          />
-                                        </div>
-                                      </th>
-                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                        <div className="flex items-center gap-1.5">
-                                          Email
-                                          <SmartFilter
-                                            label="Email"
-                                            data={attemptDetails?.attempts || []}
-                                            field="email"
-                                            selectedValues={attemptFilters.email}
-                                            onFilterChange={setAttemptFilter('email')}
-                                          />
-                                        </div>
-                                      </th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Freelancer</th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
                                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">%</th>
-                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                        <div className="flex items-center gap-1.5">
-                                          Status
-                                          <SmartFilter
-                                            label="Status"
-                                            data={attemptDetails?.attempts || []}
-                                            field="passed"
-                                            selectedValues={attemptFilters.status}
-                                            onFilterChange={setAttemptFilter('status')}
-                                            valueExtractor={(item) => item.passed ? 'Passed' : 'Failed'}
-                                          />
-                                        </div>
-                                      </th>
-                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                        <div className="flex items-center gap-1.5">
-                                          Badge
-                                          <SmartFilter
-                                            label="Badge"
-                                            data={attemptDetails?.attempts || []}
-                                            field="badgeAwarded"
-                                            selectedValues={attemptFilters.badge}
-                                            onFilterChange={setAttemptFilter('badge')}
-                                            valueExtractor={(item) => item.badgeAwarded ? 'Yes' : 'No'}
-                                          />
-                                        </div>
-                                      </th>
-                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                        <div className="flex items-center gap-1.5">
-                                          Date
-                                          <div className="relative">
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                const input = e.currentTarget.nextElementSibling;
-                                                if (input?.showPicker) input.showPicker();
-                                                else input?.click();
-                                              }}
-                                              className={`p-0.5 rounded transition-colors ${
-                                                dateFilter ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
-                                              }`}
-                                              title={dateFilter ? `Filtered: ${dateFilter}` : 'Filter by date'}
-                                            >
-                                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <rect x="3" y="4" width="18" height="18" rx="2" />
-                                                <line x1="16" y1="2" x2="16" y2="6" />
-                                                <line x1="8" y1="2" x2="8" y2="6" />
-                                                <line x1="3" y1="10" x2="21" y2="10" />
-                                              </svg>
-                                            </button>
-                                            <input
-                                              type="date"
-                                              value={dateFilter}
-                                              max={new Date().toISOString().slice(0, 10)}
-                                              onChange={(e) => setDateFilter(e.target.value)}
-                                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                            />
-                                            {dateFilter && (
-                                              <button
-                                                type="button"
-                                                onClick={() => setDateFilter('')}
-                                                className="ml-1 text-blue-600 hover:text-blue-800 text-[10px] font-medium"
-                                                title="Clear date filter"
-                                              >
-                                                ✕
-                                              </button>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Badge</th>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-gray-200">
-                                    {filteredAttempts.map((attempt, idx) => (
+                                    {attemptDetails.attempts.map((attempt, idx) => (
                                       <tr key={attempt.attemptId} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3 text-gray-600">{idx + 1}</td>
+                                        <td className="px-4 py-3 text-gray-600">{((attemptPage - 1) * attemptPageSize) + idx + 1}</td>
                                         <td className="px-4 py-3 font-medium text-gray-900">{attempt.freelancerName}</td>
                                         <td className="px-4 py-3 text-gray-600">{attempt.email}</td>
                                         <td className="px-4 py-3">
@@ -522,6 +459,46 @@ const ModeratorQuizzes = () => {
                                   </tbody>
                                 </table>
                               </div>
+                              <div className="mt-3 flex items-center justify-end gap-2">
+                                <label className="text-xs text-gray-500">Rows:</label>
+                                <select
+                                  value={attemptPageSize}
+                                  onChange={(e) => {
+                                    const nextSize = Math.min(100, Math.max(1, Number(e.target.value) || 10));
+                                    setAttemptPage(1);
+                                    setAttemptPageSize(nextSize);
+                                    fetchQuizAttempts(q._id, 1, nextSize);
+                                  }}
+                                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                                >
+                                  <option value={5}>5</option>
+                                  <option value={10}>10</option>
+                                  <option value={25}>25</option>
+                                  <option value={50}>50</option>
+                                </select>
+                                <button
+                                  onClick={() => {
+                                    const nextPage = Math.max(1, attemptPage - 1);
+                                    setAttemptPage(nextPage);
+                                    fetchQuizAttempts(q._id, nextPage, attemptPageSize);
+                                  }}
+                                  disabled={loadingAttempts || attemptPage <= 1}
+                                  className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                                >
+                                  Previous
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const nextPage = attemptPage + 1;
+                                    setAttemptPage(nextPage);
+                                    fetchQuizAttempts(q._id, nextPage, attemptPageSize);
+                                  }}
+                                  disabled={loadingAttempts || !attemptDetails?.pagination?.hasNextPage}
+                                  className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                                >
+                                  Next
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <div className="text-center py-8 bg-white rounded-md border border-gray-200">
@@ -539,6 +516,38 @@ const ModeratorQuizzes = () => {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+          {quizzes.length > 0 && (
+            <div className="pt-4 mt-4 border-t border-gray-200 flex items-center justify-end gap-2">
+              <label className="text-xs text-gray-500">Rows:</label>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setCurrentPage(1);
+                  setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                }}
+                className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={loading || currentPage <= 1}
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => p + 1)}
+                disabled={loading || !pagination?.hasNextPage}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+              >
+                Next
+              </button>
             </div>
           )}
         </div>

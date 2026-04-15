@@ -4,42 +4,73 @@ import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 import { useChatContext } from '../../context/ChatContext';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
-// Levenshtein distance algorithm for fuzzy search
-const levenshteinDistance = (str1, str2) => {
-  const len1 = str1.length;
-  const len2 = str2.length;
-  const matrix = [];
+const serializeQueryParams = (params) => {
+  const searchParams = new URLSearchParams();
 
-  if (len1 === 0) return len2;
-  if (len2 === 0) return len1;
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
 
-  for (let i = 0; i <= len2; i++) {
-    matrix[i] = [i];
-  }
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item !== undefined && item !== null && item !== '') {
+          searchParams.append(key, String(item));
+        }
+      });
+      return;
+    }
 
-  for (let j = 0; j <= len1; j++) {
-    matrix[0][j] = j;
-  }
+    searchParams.append(key, String(value));
+  });
 
-  for (let i = 1; i <= len2; i++) {
-    for (let j = 1; j <= len1; j++) {
-      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
-        );
+  return searchParams.toString();
+};
+
+const MODERATOR_FREELANCERS_QUERY = `
+  query ModeratorFreelancers(
+    $first: Int!
+    $after: String
+    $page: Int
+    $search: String
+    $sortBy: String
+    $nameIn: [String]
+    $emailIn: [String]
+    $phoneIn: [String]
+    $ratingIn: [String]
+    $subscribedIn: [String]
+    $durationIn: [String]
+  ) {
+    moderatorFreelancers(
+      first: $first
+      after: $after
+      page: $page
+      search: $search
+      sortBy: $sortBy
+      nameIn: $nameIn
+      emailIn: $emailIn
+      phoneIn: $phoneIn
+      ratingIn: $ratingIn
+      subscribedIn: $subscribedIn
+      durationIn: $durationIn
+    ) {
+      edges {
+        cursor
+        node {
+          freelancerId userId name email phone picture location rating skills portfolioCount joinedDate
+          subscription isPremium subscriptionDuration subscriptionExpiryDate applicationsCount isCurrentlyWorking
+        }
       }
+      pageInfo { hasNextPage endCursor }
+      total
+    }
+    moderatorFreelancersMeta {
+      filterOptions { names emails phones ratings subscribed durations }
     }
   }
-
-  return matrix[len2][len1];
-};
+`;
 
 // Modal animation styles
 const modalStyles = `
@@ -75,9 +106,15 @@ const modalStyles = `
 const ModeratorFreelancers = () => {
   const { openChatWith } = useChatContext();
   const [freelancers, setFreelancers] = useState([]);
+  const [metaFilters, setMetaFilters] = useState({ names: [], emails: [], phones: [], ratings: [], subscribed: [], durations: [] });
+  const [totalFreelancersCount, setTotalFreelancersCount] = useState(0);
+  const [serverPagination, setServerPagination] = useState(null);
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [deleting, setDeleting] = useState(null);
 
   // Sort state (replaces multiple dropdown filters)
@@ -116,22 +153,53 @@ const ModeratorFreelancers = () => {
 
   const isColumnVisible = (columnKey) => visibleColumns.has(columnKey);
 
-  useEffect(() => {
-    fetchFreelancers();
-  }, []);
+  const filterSignature = JSON.stringify({
+    debouncedSearchTerm,
+    sortBy,
+    nameFilters,
+    emailFilters,
+    phoneFilters,
+    ratingFilters,
+    subscribedFilters,
+    durationFilters,
+  });
 
-  const fetchFreelancers = async () => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchFreelancers(currentPage, pageSize);
+  }, [currentPage, pageSize, filterSignature]);
+
+  const fetchFreelancers = async (page = currentPage, limit = pageSize) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(
-        `${API_BASE_URL}/api/moderator/freelancers`,
-        { withCredentials: true }
-      );
+      const result = await graphqlQuery(MODERATOR_FREELANCERS_QUERY, {
+        first: limit,
+        page,
+        search: debouncedSearchTerm || undefined,
+        sortBy,
+        nameIn: nameFilters.length ? nameFilters : null,
+        emailIn: emailFilters.length ? emailFilters : null,
+        phoneIn: phoneFilters.length ? phoneFilters : null,
+        ratingIn: ratingFilters.length ? ratingFilters.map((v) => String(v)) : null,
+        subscribedIn: subscribedFilters.length ? subscribedFilters : null,
+        durationIn: durationFilters.length ? durationFilters.map((v) => String(v)) : null,
+      });
 
-      if (response.data.success) {
-        setFreelancers(response.data.freelancers || []);
-      }
+      const connection = result?.moderatorFreelancers;
+      const edges = connection?.edges || [];
+
+      setFreelancers(edges.map((edge) => edge.node));
+      setTotalFreelancersCount(connection?.total || 0);
+      setServerPagination(connection?.pageInfo || null);
+      setMetaFilters(result?.moderatorFreelancersMeta?.filterOptions || { names: [], emails: [], phones: [], ratings: [], subscribed: [], durations: [] });
     } catch (error) {
       console.error('Error fetching freelancers:', error);
       setError('Failed to load freelancers. Please try again.');
@@ -204,65 +272,17 @@ const ModeratorFreelancers = () => {
     setRatingFilters([]);
     setSubscribedFilters([]);
     setDurationFilters([]);
+    setCurrentPage(1);
   };
 
   const hasActiveFilters = searchTerm !== '' ||
     nameFilters.length > 0 || emailFilters.length > 0 || phoneFilters.length > 0 || 
     ratingFilters.length > 0 || subscribedFilters.length > 0 || durationFilters.length > 0;
 
-  // Filter and sort freelancers
-  let filteredFreelancers = freelancers.filter(freelancer => {
-    // Subscription filter
-    // (top-level subscription/working filters removed — use column filters)
-
-    // Column SmartFilter filters
-    if (nameFilters.length > 0 && !nameFilters.includes(freelancer.name)) return false;
-    if (emailFilters.length > 0 && !emailFilters.includes(freelancer.email)) return false;
-    if (phoneFilters.length > 0 && !phoneFilters.includes(freelancer.phone || 'N/A')) return false;
-    if (ratingFilters.length > 0 && !ratingFilters.includes(freelancer.rating)) return false;
-    if (subscribedFilters.length > 0 && !subscribedFilters.includes(freelancer.isPremium ? 'Yes' : 'No')) return false;
-    if (durationFilters.length > 0 && !durationFilters.includes(freelancer.subscriptionDuration || 0)) return false;
-
-    // Search filter - regex based across all fields
-    if (searchTerm.trim() === '') return true;
-
-    try {
-      const regex = new RegExp(searchTerm, 'i');
-      return (
-        regex.test(freelancer.name || '') ||
-        regex.test(freelancer.email || '') ||
-        regex.test(freelancer.location || '') ||
-        regex.test(freelancer.phone || '')
-      );
-    } catch (e) {
-      // Invalid regex, fall back to includes
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        (freelancer.name || '').toLowerCase().includes(searchLower) ||
-        (freelancer.email || '').toLowerCase().includes(searchLower) ||
-        (freelancer.location || '').toLowerCase().includes(searchLower) ||
-        (freelancer.phone || '').toLowerCase().includes(searchLower)
-      );
-    }
-  });
-
-  // Apply sorting
-  if (sortBy === 'rating-high-low') {
-    filteredFreelancers = [...filteredFreelancers].sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
-  } else if (sortBy === 'rating-low-high') {
-    filteredFreelancers = [...filteredFreelancers].sort((a, b) => (Number(a.rating) || 0) - (Number(b.rating) || 0));
-  } else if (sortBy === 'name-az') {
-    filteredFreelancers = [...filteredFreelancers].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  } else if (sortBy === 'name-za') {
-    filteredFreelancers = [...filteredFreelancers].sort((a, b) => (b.name || '').localeCompare(a.name || ''));
-  } else if (sortBy === 'recent') {
-    filteredFreelancers = [...filteredFreelancers].sort((a, b) => new Date(b.joinedDate || 0) - new Date(a.joinedDate || 0));
-  } else if (sortBy === 'oldest') {
-    filteredFreelancers = [...filteredFreelancers].sort((a, b) => new Date(a.joinedDate || 0) - new Date(b.joinedDate || 0));
-  }
+  const displayedFreelancers = freelancers;
 
   // Calculate statistics
-  const totalFreelancers = freelancers.length;
+  const totalFreelancers = totalFreelancersCount || freelancers.length;
   const currentlyWorking = freelancers.filter(f => f.isCurrentlyWorking).length;
   const premiumUsers = freelancers.filter(f => f.isPremium).length;
   const avgRating = totalFreelancers > 0 ? (freelancers.reduce((s, f) => s + (f.rating || 0), 0) / totalFreelancers).toFixed(1) : '0.0';
@@ -350,7 +370,10 @@ const ModeratorFreelancers = () => {
               type="text"
               placeholder="Search freelancers..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setSearchTerm(e.target.value);
+              }}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -399,18 +422,18 @@ const ModeratorFreelancers = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-lg font-medium text-red-600 mb-2">Error loading freelancers</p>
           <p className="text-gray-500 mb-4">{error}</p>
-          <button onClick={fetchFreelancers} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
+          <button onClick={() => fetchFreelancers(currentPage, pageSize)} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
         </div>
       )}
 
-      {!loading && !error && filteredFreelancers.length === 0 && (
+      {!loading && !error && displayedFreelancers.length === 0 && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-lg font-medium text-gray-700 mb-1">No freelancers found</p>
           <p className="text-gray-500">{searchTerm || hasActiveFilters ? 'No freelancers match your filters.' : 'There are no registered freelancers.'}</p>
         </div>
       )}
 
-      {!loading && !error && filteredFreelancers.length > 0 && (
+      {!loading && !error && displayedFreelancers.length > 0 && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -427,6 +450,7 @@ const ModeratorFreelancers = () => {
                           field="name"
                           selectedValues={nameFilters}
                           onFilterChange={setNameFilters}
+                          options={metaFilters.names}
                         />
                       </div>
                     </th>
@@ -441,6 +465,7 @@ const ModeratorFreelancers = () => {
                           field="email"
                           selectedValues={emailFilters}
                           onFilterChange={setEmailFilters}
+                          options={metaFilters.emails}
                         />
                       </div>
                     </th>
@@ -456,6 +481,7 @@ const ModeratorFreelancers = () => {
                           selectedValues={phoneFilters}
                           onFilterChange={setPhoneFilters}
                           valueExtractor={(f) => f.phone || 'N/A'}
+                          options={metaFilters.phones}
                         />
                       </div>
                     </th>
@@ -471,6 +497,7 @@ const ModeratorFreelancers = () => {
                           selectedValues={ratingFilters}
                           onFilterChange={setRatingFilters}
                           valueFormatter={(v) => `★ ${v.toFixed(1)}`}
+                          options={metaFilters.ratings}
                         />
                       </div>
                     </th>
@@ -486,6 +513,7 @@ const ModeratorFreelancers = () => {
                           selectedValues={subscribedFilters}
                           onFilterChange={setSubscribedFilters}
                           valueExtractor={(f) => f.isPremium ? 'Yes' : 'No'}
+                          options={metaFilters.subscribed}
                         />
                       </div>
                     </th>
@@ -502,6 +530,7 @@ const ModeratorFreelancers = () => {
                           onFilterChange={setDurationFilters}
                           valueExtractor={(f) => f.subscriptionDuration || 0}
                           valueFormatter={(v) => v === 0 ? 'None' : `${v} months`}
+                          options={metaFilters.durations}
                         />
                       </div>
                     </th>
@@ -512,7 +541,7 @@ const ModeratorFreelancers = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredFreelancers.map((freelancer) => (
+                {displayedFreelancers.map((freelancer) => (
                   <tr
                     key={freelancer.freelancerId}
                     className={`${freelancer.isCurrentlyWorking ? 'bg-green-400/20 hover:bg-green-400/20' : 'hover:bg-gray-50'}`}
@@ -598,7 +627,44 @@ const ModeratorFreelancers = () => {
             </table>
           </div>
           {/* Showing count moved to table footer */}
-          <div className="px-4 py-3 text-sm text-gray-600">Showing: {filteredFreelancers.length} of {totalFreelancers}</div>
+          <div className="px-4 py-3 text-sm text-gray-600 bg-gray-50 border-t border-gray-200">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                Showing {displayedFreelancers.length} freelancers on page {currentPage} (total {totalFreelancers})
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Rows:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                  }}
+                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={loading || currentPage <= 1}
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  disabled={loading || !serverPagination?.hasNextPage}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

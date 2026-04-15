@@ -14,6 +14,7 @@ const SmartFilter = ({
   onFilterChange,
   valueFormatter,
   valueExtractor,
+  options = null,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -58,6 +59,10 @@ const SmartFilter = ({
 
   // get distinct values
   const getDistinctValues = () => {
+    if (Array.isArray(options) && options.length) {
+      return [...options];
+    }
+
     const values = new Set();
     data.forEach((item) => {
       let value;

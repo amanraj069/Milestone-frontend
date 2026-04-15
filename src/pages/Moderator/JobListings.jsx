@@ -4,8 +4,48 @@ import { Link, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
+import { graphqlQuery } from '../../utils/graphqlClient';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+
+const MODERATOR_JOBS_QUERY = `
+  query ModeratorJobs(
+    $first: Int!
+    $after: String
+    $page: Int
+    $search: String
+    $sortBy: String
+    $titleIn: [String]
+    $companyIn: [String]
+    $typeIn: [String]
+    $statusIn: [String]
+  ) {
+    moderatorJobListings(
+      first: $first
+      after: $after
+      page: $page
+      search: $search
+      sortBy: $sortBy
+      titleIn: $titleIn
+      companyIn: $companyIn
+      typeIn: $typeIn
+      statusIn: $statusIn
+    ) {
+      edges {
+        cursor
+        node {
+          jobId title companyName budget location jobType experienceLevel status
+          applicationDeadline descriptionText skillsRequired applicantsCount createdAt
+        }
+      }
+      pageInfo { hasNextPage endCursor }
+      total
+    }
+    moderatorJobListingsMeta {
+      filterOptions { titles companies types statuses }
+    }
+  }
+`;
 
 // Add keyframe animations
 const modalStyles = `
@@ -38,46 +78,18 @@ const modalStyles = `
   }
 `;
 
-// Levenshtein distance algorithm for fuzzy search
-const levenshteinDistance = (str1, str2) => {
-  const len1 = str1.length;
-  const len2 = str2.length;
-  const matrix = [];
-
-  if (len1 === 0) return len2;
-  if (len2 === 0) return len1;
-
-  for (let i = 0; i <= len2; i++) {
-    matrix[i] = [i];
-  }
-
-  for (let j = 0; j <= len1; j++) {
-    matrix[0][j] = j;
-  }
-
-  for (let i = 1; i <= len2; i++) {
-    for (let j = 1; j <= len1; j++) {
-      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
-        );
-      }
-    }
-  }
-
-  return matrix[len2][len1];
-};
-
 const ModeratorJobListings = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
+  const [metaFilters, setMetaFilters] = useState({ titles: [], companies: [], types: [], statuses: [] });
+  const [totalJobsCount, setTotalJobsCount] = useState(0);
+  const [serverPagination, setServerPagination] = useState(null);
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('recent'); // 'recent','oldest','budget-high-low','budget-low-high','applicants-high-low','applicants-low-high'
   const [deleting, setDeleting] = useState(null);
   
@@ -100,6 +112,14 @@ const ModeratorJobListings = () => {
   ];
 
   const { visible: visibleColumns, setVisible: setVisibleColumns } = useSmartColumnToggle(columnsDef, 'moderator_job_listings_columns');
+  const filterSignature = JSON.stringify({
+    debouncedSearchTerm,
+    sortBy,
+    titleFilters,
+    companyFilters,
+    typeFiltersColumn,
+    statusFiltersColumn,
+  });
   
   // Modal states
   const [applicantsModal, setApplicantsModal] = useState({ show: false, jobId: null, jobTitle: '', applicants: [] });
@@ -107,21 +127,39 @@ const ModeratorJobListings = () => {
   const [loadingApplicants, setLoadingApplicants] = useState(false);
 
   useEffect(() => {
-    fetchJobs();
-  }, []);
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
 
-  const fetchJobs = async () => {
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    fetchJobs(currentPage, pageSize);
+  }, [currentPage, pageSize, filterSignature]);
+
+  const fetchJobs = async (page = currentPage, limit = pageSize) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(
-        `${API_BASE_URL}/api/moderator/jobs`,
-        { withCredentials: true }
-      );
+      const result = await graphqlQuery(MODERATOR_JOBS_QUERY, {
+        first: limit,
+        page,
+        search: debouncedSearchTerm || undefined,
+        sortBy,
+        titleIn: titleFilters.length ? titleFilters : null,
+        companyIn: companyFilters.length ? companyFilters : null,
+        typeIn: typeFiltersColumn.length ? typeFiltersColumn : null,
+        statusIn: statusFiltersColumn.length ? statusFiltersColumn : null,
+      });
 
-      if (response.data.success) {
-        setJobs(response.data.jobs || []);
-      }
+      const connection = result?.moderatorJobListings;
+      const edges = connection?.edges || [];
+
+      setJobs(edges.map((edge) => edge.node));
+      setTotalJobsCount(connection?.total || 0);
+      setServerPagination(connection?.pageInfo || null);
+      setMetaFilters(result?.moderatorJobListingsMeta?.filterOptions || { titles: [], companies: [], types: [], statuses: [] });
     } catch (error) {
       console.error('Error fetching jobs:', error);
       console.error('Error details:', error.response?.data);
@@ -189,71 +227,16 @@ const ModeratorJobListings = () => {
     setCompanyFilters([]);
     setTypeFiltersColumn([]);
     setStatusFiltersColumn([]);
+    setCurrentPage(1);
   };
 
   // Check if any filters are active
   const hasActiveFilters = searchTerm !== '' || sortBy !== 'recent' ||
     titleFilters.length > 0 || companyFilters.length > 0 || typeFiltersColumn.length > 0 || statusFiltersColumn.length > 0;
 
-  // Fuzzy search filter and sort
-  let filteredJobs = jobs.filter(job => {
-    // Column filters (SmartFilter)
-    if (titleFilters.length > 0 && !titleFilters.includes(job.title || '')) {
-      return false;
-    }
-    if (companyFilters.length > 0 && !companyFilters.includes(job.companyName || '')) {
-      return false;
-    }
-    if (typeFiltersColumn.length > 0 && !typeFiltersColumn.includes(job.jobType || '')) {
-      return false;
-    }
-    if (statusFiltersColumn.length > 0 && !statusFiltersColumn.includes(job.status || '')) {
-      return false;
-    }
-    
-    // (status/type filters removed — use column filters)
+  const displayedJobs = jobs;
 
-    // Regex search across all fields
-    if (searchTerm.trim() === '') {
-      return true;
-    }
-
-    try {
-      const regex = new RegExp(searchTerm, 'i');
-      return (
-        regex.test(job.title || '') ||
-        regex.test(job.companyName || '') ||
-        regex.test(job.location || '') ||
-        regex.test(job.jobType || '')
-      );
-    } catch (e) {
-      // Invalid regex, fall back to includes
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        (job.title || '').toLowerCase().includes(searchLower) ||
-        (job.companyName || '').toLowerCase().includes(searchLower) ||
-        (job.location || '').toLowerCase().includes(searchLower) ||
-        (job.jobType || '').toLowerCase().includes(searchLower)
-      );
-    }
-  });
-
-  // Apply sorting
-  if (sortBy === 'budget-low-high') {
-    filteredJobs = [...filteredJobs].sort((a, b) => (Number(a.budget) || 0) - (Number(b.budget) || 0));
-  } else if (sortBy === 'budget-high-low') {
-    filteredJobs = [...filteredJobs].sort((a, b) => (Number(b.budget) || 0) - (Number(a.budget) || 0));
-  } else if (sortBy === 'applicants-high-low') {
-    filteredJobs = [...filteredJobs].sort((a, b) => (Number(b.applicantsCount) || 0) - (Number(a.applicantsCount) || 0));
-  } else if (sortBy === 'applicants-low-high') {
-    filteredJobs = [...filteredJobs].sort((a, b) => (Number(a.applicantsCount) || 0) - (Number(b.applicantsCount) || 0));
-  } else if (sortBy === 'recent') {
-    filteredJobs = [...filteredJobs].sort((a, b) => new Date(b.postedDate) - new Date(a.postedDate));
-  } else if (sortBy === 'oldest') {
-    filteredJobs = [...filteredJobs].sort((a, b) => new Date(a.postedDate) - new Date(b.postedDate));
-  }
-
-  const totalJobs = jobs.length;
+  const totalJobs = totalJobsCount || jobs.length;
   const totalBudget = jobs.reduce((s, j) => s + (Number(j.budget) || 0), 0);
   const openJobs = jobs.filter(j => j.status === 'open' || j.status === 'active').length;
   
@@ -343,7 +326,10 @@ const ModeratorJobListings = () => {
               type="text"
               placeholder="Search jobs..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setSearchTerm(e.target.value);
+              }}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -395,11 +381,11 @@ const ModeratorJobListings = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-lg font-medium text-red-600 mb-2">Error loading jobs</p>
           <p className="text-gray-500 mb-4">{error}</p>
-          <button onClick={fetchJobs} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
+          <button onClick={() => fetchJobs(currentPage, pageSize)} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
         </div>
       )}
 
-      {!loading && !error && filteredJobs.length === 0 && (
+      {!loading && !error && displayedJobs.length === 0 && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-lg font-medium text-gray-700 mb-1">No jobs found</p>
           <p className="text-gray-500">
@@ -409,7 +395,7 @@ const ModeratorJobListings = () => {
       )}
 
       {/* Jobs Table */}
-      {!loading && !error && filteredJobs.length > 0 && (
+      {!loading && !error && displayedJobs.length > 0 && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -425,6 +411,7 @@ const ModeratorJobListings = () => {
                             field="title"
                             selectedValues={titleFilters}
                             onFilterChange={setTitleFilters}
+                            options={metaFilters.titles}
                           />
                         </div>
                       </th>
@@ -440,6 +427,7 @@ const ModeratorJobListings = () => {
                             field="companyName"
                             selectedValues={companyFilters}
                             onFilterChange={setCompanyFilters}
+                            options={metaFilters.companies}
                           />
                         </div>
                       </th>
@@ -459,6 +447,7 @@ const ModeratorJobListings = () => {
                             field="jobType"
                             selectedValues={typeFiltersColumn}
                             onFilterChange={setTypeFiltersColumn}
+                            options={metaFilters.types}
                           />
                         </div>
                       </th>
@@ -474,6 +463,7 @@ const ModeratorJobListings = () => {
                             field="status"
                             selectedValues={statusFiltersColumn}
                             onFilterChange={setStatusFiltersColumn}
+                            options={metaFilters.statuses}
                           />
                         </div>
                       </th>
@@ -493,7 +483,7 @@ const ModeratorJobListings = () => {
                   </tr>
                 </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredJobs.map((job) => (
+                {displayedJobs.map((job) => (
                   <tr key={job.jobId} className="hover:bg-gray-50">
                     {visibleColumns.has('title') && (
                       <td className="px-4 py-3 font-medium text-gray-900">{job.title}</td>
@@ -560,7 +550,44 @@ const ModeratorJobListings = () => {
             </table>
           </div>
           {/* Showing count moved to table footer */}
-          <div className="px-4 py-3 text-sm text-gray-600">Showing: {filteredJobs.length} of {totalJobs}</div>
+          <div className="px-4 py-3 text-sm text-gray-600 bg-gray-50 border-t border-gray-200">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                Showing {displayedJobs.length} jobs on page {currentPage} (total {totalJobs})
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Rows:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                  }}
+                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={loading || currentPage <= 1}
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  disabled={loading || !serverPagination?.hasNextPage}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

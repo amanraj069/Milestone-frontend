@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
@@ -24,16 +25,94 @@ const SORT_OPTIONS = [
 ];
 
 const ADMIN_PAYMENTS_QUERY = `
-  query AdminPayments {
-    adminPayments {
-      payments { jobId jobTitle milestoneId milestoneDescription amount status employerName companyName freelancerName date }
+  query AdminPayments(
+    $first: Int!
+    $after: String
+    $search: String
+    $jobTitleIn: [String!]
+    $milestoneIn: [String!]
+    $employerIn: [String!]
+    $freelancerIn: [String!]
+    $statusIn: [String!]
+    $sortBy: String
+    $sortOrder: String
+  ) {
+    adminPayments(
+      first: $first
+      after: $after
+      search: $search
+      jobTitleIn: $jobTitleIn
+      milestoneIn: $milestoneIn
+      employerIn: $employerIn
+      freelancerIn: $freelancerIn
+      statusIn: $statusIn
+      sortBy: $sortBy
+      sortOrder: $sortOrder
+    ) {
+      edges {
+        cursor
+        node { jobId jobTitle milestoneId milestoneDescription amount status employerName companyName freelancerName date }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
       total
+      summary {
+        totalTransactions
+        paidTotal
+        pendingTotal
+        inProgressTotal
+        paidCount
+        pendingCount
+        inProgressCount
+      }
+    }
+    adminPaymentsMeta {
+      summary {
+        totalTransactions
+        paidTotal
+        pendingTotal
+        inProgressTotal
+        paidCount
+        pendingCount
+        inProgressCount
+      }
+      filterOptions {
+        jobs
+        milestones
+        employers
+        freelancers
+        statuses
+      }
     }
   }
 `;
 
 const AdminPayments = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [payments, setPayments] = useState([]);
+  const [totalPayments, setTotalPayments] = useState(0);
+  const [metaSummary, setMetaSummary] = useState(null);
+  const [metaFilters, setMetaFilters] = useState({ jobs: [], milestones: [], employers: [], freelancers: [], statuses: [] });
+  const [summaryTotals, setSummaryTotals] = useState({
+    totalTransactions: 0,
+    paidTotal: 0,
+    pendingTotal: 0,
+    inProgressTotal: 0,
+    paidCount: 0,
+    pendingCount: 0,
+    inProgressCount: 0,
+  });
+  const [serverPagination, setServerPagination] = useState(null);
+  const [pageSize, setPageSize] = useState(() => {
+    const urlLimit = Number(searchParams.get('limit') || '25');
+    if (!Number.isFinite(urlLimit) || urlLimit < 1) return 25;
+    return Math.min(100, urlLimit);
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [afterCursor, setAfterCursor] = useState(null);
+  const [cursorStack, setCursorStack] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortKey, setSortKey] = useState('date-desc');
@@ -46,19 +125,117 @@ const AdminPayments = () => {
   const [freelancerFilters, setFreelancerFilters] = useState([]);
   const [statusFilters,     setStatusFilters]     = useState([]);
 
+  const [sortField, sortDir] = sortKey.split('-');
+  const mappedSortBy =
+    sortField === 'date'
+      ? 'date'
+      : sortField === 'amount'
+        ? 'amount'
+        : 'jobTitle';
+
+  const filterSignature = JSON.stringify({
+    searchTerm,
+    sortBy: mappedSortBy,
+    sortOrder: sortDir,
+    jobFilters,
+    milestoneFilters,
+    employerFilters,
+    freelancerFilters,
+    statusFilters,
+  });
+
   useEffect(() => {
-    const fetchPayments = async () => {
-      try {
-        const result = await graphqlQuery(ADMIN_PAYMENTS_QUERY);
-        if (result?.adminPayments?.payments) setPayments(result.adminPayments.payments);
-      } catch (error) {
-        console.error('Error fetching payments:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPayments();
-  }, []);
+    const timer = setTimeout(() => {
+      resetAndFetchPayments();
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [pageSize, filterSignature]);
+
+  useEffect(() => {
+    const urlLimit = Number(searchParams.get('limit') || '25');
+    if (Number.isFinite(urlLimit) && urlLimit > 0 && urlLimit !== pageSize) {
+      setPageSize(Math.min(100, urlLimit));
+    }
+  }, [searchParams]);
+
+  const fetchPayments = async ({ after = afterCursor } = {}) => {
+    setLoading(true);
+    try {
+      const result = await graphqlQuery(ADMIN_PAYMENTS_QUERY, {
+        first: pageSize,
+        after,
+        search: searchTerm.trim() || null,
+        jobTitleIn: jobFilters.length ? jobFilters : null,
+        milestoneIn: milestoneFilters.length ? milestoneFilters : null,
+        employerIn: employerFilters.length ? employerFilters : null,
+        freelancerIn: freelancerFilters.length ? freelancerFilters : null,
+        statusIn: statusFilters.length ? statusFilters : null,
+        sortBy: mappedSortBy,
+        sortOrder: sortDir,
+      });
+      const connection = result?.adminPayments;
+      const edges = connection?.edges || [];
+
+      setPayments(edges.map((edge) => edge.node));
+      setTotalPayments(connection?.total || 0);
+      setMetaSummary(result?.adminPaymentsMeta?.summary || null);
+      setMetaFilters(result?.adminPaymentsMeta?.filterOptions || { jobs: [], milestones: [], employers: [], freelancers: [], statuses: [] });
+      setSummaryTotals({
+        totalTransactions: connection?.summary?.totalTransactions || 0,
+        paidTotal: connection?.summary?.paidTotal || 0,
+        pendingTotal: connection?.summary?.pendingTotal || 0,
+        inProgressTotal: connection?.summary?.inProgressTotal || 0,
+        paidCount: connection?.summary?.paidCount || 0,
+        pendingCount: connection?.summary?.pendingCount || 0,
+        inProgressCount: connection?.summary?.inProgressCount || 0,
+      });
+      setServerPagination({
+        hasNextPage: connection?.pageInfo?.hasNextPage || false,
+        endCursor: connection?.pageInfo?.endCursor || null,
+      });
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetAndFetchPayments = async () => {
+    setCurrentPage(1);
+    setAfterCursor(null);
+    setCursorStack([]);
+    await fetchPayments({ after: null });
+  };
+
+  const handleNextPage = async () => {
+    if (!serverPagination?.hasNextPage || !serverPagination?.endCursor) return;
+    const nextAfter = serverPagination.endCursor;
+    setCursorStack((prev) => [...prev, afterCursor]);
+    setAfterCursor(nextAfter);
+    setCurrentPage((p) => p + 1);
+    await fetchPayments({ after: nextAfter });
+  };
+
+  const handlePrevPage = async () => {
+    if (currentPage <= 1) return;
+    const nextStack = [...cursorStack];
+    const prevAfter = nextStack.pop() ?? null;
+    setCursorStack(nextStack);
+    setAfterCursor(prevAfter);
+    setCurrentPage((p) => Math.max(1, p - 1));
+    await fetchPayments({ after: prevAfter });
+  };
+
+  const handlePageSizeChange = (nextSize) => {
+    const normalized = Math.min(100, Math.max(1, Number(nextSize) || 25));
+    setSearchParams((prev) => {
+      const updated = new URLSearchParams(prev);
+      updated.set('limit', String(normalized));
+      return updated;
+    });
+    setPageSize(normalized);
+  };
 
   const formatCurrency = (val) => `₹${(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -74,53 +251,23 @@ const AdminPayments = () => {
     setStatusFilters([]);
   };
 
-  const [sortField, sortDir] = sortKey.split('-');
+  const displayedPayments = payments;
 
-  const filtered = payments
-    .filter((p) => {
-      if (!searchTerm) return true;
-      const term = searchTerm.toLowerCase();
-      return (
-        p.jobTitle?.toLowerCase().includes(term) ||
-        p.employerName?.toLowerCase().includes(term) ||
-        p.freelancerName?.toLowerCase().includes(term) ||
-        p.companyName?.toLowerCase().includes(term)
-      );
-    })
-    .filter((p) => !jobFilters.length        || jobFilters.includes(p.jobTitle))
-    .filter((p) => !milestoneFilters.length  || milestoneFilters.includes(p.milestoneDescription))
-    .filter((p) => !employerFilters.length   || employerFilters.includes(p.employerName))
-    .filter((p) => !freelancerFilters.length || freelancerFilters.includes(p.freelancerName))
-    .filter((p) => !statusFilters.length     || statusFilters.includes(p.status))
-    .sort((a, b) => {
-      let cmp = 0;
-      if (sortField === 'date')   cmp = new Date(a.date) - new Date(b.date);
-      if (sortField === 'amount') cmp = (a.amount || 0) - (b.amount || 0);
-      if (sortField === 'job')    cmp = (a.jobTitle || '').localeCompare(b.jobTitle || '');
-      return sortDir === 'desc' ? -cmp : cmp;
-    });
+  const totalPaid = metaSummary?.paidTotal ?? summaryTotals.paidTotal ?? 0;
+  const totalPending = metaSummary?.pendingTotal ?? summaryTotals.pendingTotal ?? 0;
+  const totalInProgress = metaSummary?.inProgressTotal ?? summaryTotals.inProgressTotal ?? 0;
 
-  const totalPaid = payments.filter(p => p.status === 'Paid').reduce((s, p) => s + p.amount, 0);
-  const totalPending = payments.filter(p => p.status === 'Pending').reduce((s, p) => s + p.amount, 0);
-  const totalInProgress = payments.filter(p => p.status === 'In Progress').reduce((s, p) => s + p.amount, 0);
-
-  if (loading) {
-    return (
-      <DashboardPage title="All Payments">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mb-3"></div>
-          <p className="text-gray-500">Loading payments...</p>
-        </div>
-      </DashboardPage>
-    );
-  }
+  const pageAmountTotal = displayedPayments.reduce((s, p) => s + (p.amount || 0), 0);
+  const pagePaidCount = displayedPayments.filter((p) => p.status === 'Paid').length;
+  const pagePendingCount = displayedPayments.filter((p) => p.status === 'Pending').length;
+  const pageInProgressCount = displayedPayments.filter((p) => p.status === 'In Progress').length;
 
   return (
     <DashboardPage title="All Payments">
       {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Total Transactions', value: payments.length,          iconBg: 'bg-blue-100',   iconColor: 'text-blue-600',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
+          { label: 'Total Transactions', value: metaSummary?.totalTransactions ?? totalPayments ?? payments.length, iconBg: 'bg-blue-100',   iconColor: 'text-blue-600',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
           { label: 'Paid',              value: formatCurrency(totalPaid), iconBg: 'bg-green-100',  iconColor: 'text-green-600',  icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /> },
           { label: 'Pending',           value: formatCurrency(totalPending), iconBg: 'bg-orange-100', iconColor: 'text-orange-600', icon: <><circle cx="12" cy="12" r="10" strokeWidth={2} /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2" /></> },
           { label: 'In Progress',       value: formatCurrency(totalInProgress), iconBg: 'bg-blue-100', iconColor: 'text-blue-500', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /> },
@@ -180,8 +327,8 @@ const AdminPayments = () => {
       </div>
 
       {/* Payments Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-[calc(90vh-20rem)] flex flex-col">
+        <div className="overflow-auto flex-1">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -195,6 +342,7 @@ const AdminPayments = () => {
                         field="jobTitle"
                         selectedValues={jobFilters}
                         onFilterChange={setJobFilters}
+                        options={metaFilters?.jobs || []}
                       />
                     </div>
                   </th>
@@ -209,6 +357,7 @@ const AdminPayments = () => {
                         field="milestoneDescription"
                         selectedValues={milestoneFilters}
                         onFilterChange={setMilestoneFilters}
+                        options={metaFilters?.milestones || []}
                       />
                     </div>
                   </th>
@@ -223,6 +372,7 @@ const AdminPayments = () => {
                         field="employerName"
                         selectedValues={employerFilters}
                         onFilterChange={setEmployerFilters}
+                        options={metaFilters?.employers || []}
                       />
                     </div>
                   </th>
@@ -237,6 +387,7 @@ const AdminPayments = () => {
                         field="freelancerName"
                         selectedValues={freelancerFilters}
                         onFilterChange={setFreelancerFilters}
+                        options={metaFilters?.freelancers || []}
                       />
                     </div>
                   </th>
@@ -254,6 +405,7 @@ const AdminPayments = () => {
                         field="status"
                         selectedValues={statusFilters}
                         onFilterChange={setStatusFilters}
+                        options={metaFilters?.statuses || []}
                       />
                     </div>
                   </th>
@@ -264,8 +416,17 @@ const AdminPayments = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.length > 0 ? (
-                filtered.map((payment, i) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={visible.size} className="px-4 py-12 text-center text-gray-500">
+                    <div className="inline-flex items-center gap-2">
+                      <span className="inline-block animate-spin rounded-full h-5 w-5 border-2 border-gray-300 border-t-blue-600"></span>
+                      <span>Loading payments...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : displayedPayments.length > 0 ? (
+                displayedPayments.map((payment, i) => (
                   <tr key={i} className="hover:bg-gray-50 transition-colors">
                     {visible.has('job') && (
                       <td className="px-4 py-3">
@@ -315,7 +476,69 @@ const AdminPayments = () => {
                 </tr>
               )}
             </tbody>
+            {!loading && displayedPayments.length > 0 && (
+              <tfoot className="sticky bottom-0 z-10">
+                <tr className="bg-slate-50 border-t border-gray-200 shadow-[0_-1px_0_0_rgba(229,231,235,1)]">
+                  {visible.has('job') && (
+                    <td className="px-4 py-3 text-xs font-bold text-gray-700">Total</td>
+                  )}
+                  {visible.has('milestone') && (
+                    <td className="px-4 py-3 text-xs text-gray-500">{displayedPayments.length} rows shown</td>
+                  )}
+                  {visible.has('employer') && (
+                    <td className="px-4 py-3 text-xs text-gray-500">Paid: {pagePaidCount}</td>
+                  )}
+                  {visible.has('freelancer') && (
+                    <td className="px-4 py-3 text-xs text-gray-500">Pending: {pagePendingCount}</td>
+                  )}
+                  {visible.has('amount') && (
+                    <td className="px-4 py-3 text-sm font-bold text-gray-900">{formatCurrency(pageAmountTotal)}</td>
+                  )}
+                  {visible.has('status') && (
+                    <td className="px-4 py-3 text-xs font-semibold text-gray-600">In Progress: {pageInProgressCount}</td>
+                  )}
+                  {visible.has('date') && (
+                    <td className="px-4 py-3 text-xs text-gray-500 text-right">Page {currentPage}</td>
+                  )}
+                </tr>
+              </tfoot>
+            )}
           </table>
+        </div>
+        <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500 mt-auto">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              Showing {displayedPayments.length} payments on page {currentPage} (total {metaSummary?.totalTransactions ?? totalPayments ?? payments.length})
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">Rows:</label>
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(e.target.value)}
+                className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <button
+                onClick={handlePrevPage}
+                disabled={loading || currentPage <= 1}
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Previous
+              </button>
+              <button
+                onClick={handleNextPage}
+                disabled={loading || !serverPagination?.hasNextPage}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </DashboardPage>
