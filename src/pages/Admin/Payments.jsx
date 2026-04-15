@@ -330,91 +330,93 @@ const AdminPayments = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-[calc(90vh-20rem)] flex flex-col">
         <div className="overflow-auto flex-1">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                {visible.has('job') && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    <div className="flex items-center gap-1.5">
-                      Job
-                      <SmartFilter
-                        label="Job"
-                        data={payments}
-                        field="jobTitle"
-                        selectedValues={jobFilters}
-                        onFilterChange={setJobFilters}
-                        options={metaFilters?.jobs || []}
-                      />
-                    </div>
-                  </th>
-                )}
-                {visible.has('milestone') && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    <div className="flex items-center gap-1.5">
-                      Milestone
-                      <SmartFilter
-                        label="Milestone"
-                        data={payments}
-                        field="milestoneDescription"
-                        selectedValues={milestoneFilters}
-                        onFilterChange={setMilestoneFilters}
-                        options={metaFilters?.milestones || []}
-                      />
-                    </div>
-                  </th>
-                )}
-                {visible.has('employer') && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    <div className="flex items-center gap-1.5">
-                      Employer
-                      <SmartFilter
-                        label="Employer"
-                        data={payments}
-                        field="employerName"
-                        selectedValues={employerFilters}
-                        onFilterChange={setEmployerFilters}
-                        options={metaFilters?.employers || []}
-                      />
-                    </div>
-                  </th>
-                )}
-                {visible.has('freelancer') && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    <div className="flex items-center gap-1.5">
-                      Freelancer
-                      <SmartFilter
-                        label="Freelancer"
-                        data={payments}
-                        field="freelancerName"
-                        selectedValues={freelancerFilters}
-                        onFilterChange={setFreelancerFilters}
-                        options={metaFilters?.freelancers || []}
-                      />
-                    </div>
-                  </th>
-                )}
-                {visible.has('amount') && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Amount</th>
-                )}
-                {visible.has('status') && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    <div className="flex items-center gap-1.5">
-                      Status
-                      <SmartFilter
-                        label="Status"
-                        data={payments}
-                        field="status"
-                        selectedValues={statusFilters}
-                        onFilterChange={setStatusFilters}
-                        options={metaFilters?.statuses || []}
-                      />
-                    </div>
-                  </th>
-                )}
-                {visible.has('date') && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
-                )}
-              </tr>
-            </thead>
+            {!loading && (
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {visible.has('job') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        Job
+                        <SmartFilter
+                          label="Job"
+                          data={payments}
+                          field="jobTitle"
+                          selectedValues={jobFilters}
+                          onFilterChange={setJobFilters}
+                          options={metaFilters?.jobs || []}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {visible.has('milestone') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        Milestone
+                        <SmartFilter
+                          label="Milestone"
+                          data={payments}
+                          field="milestoneDescription"
+                          selectedValues={milestoneFilters}
+                          onFilterChange={setMilestoneFilters}
+                          options={metaFilters?.milestones || []}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {visible.has('employer') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        Employer
+                        <SmartFilter
+                          label="Employer"
+                          data={payments}
+                          field="employerName"
+                          selectedValues={employerFilters}
+                          onFilterChange={setEmployerFilters}
+                          options={metaFilters?.employers || []}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {visible.has('freelancer') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        Freelancer
+                        <SmartFilter
+                          label="Freelancer"
+                          data={payments}
+                          field="freelancerName"
+                          selectedValues={freelancerFilters}
+                          onFilterChange={setFreelancerFilters}
+                          options={metaFilters?.freelancers || []}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {visible.has('amount') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Amount</th>
+                  )}
+                  {visible.has('status') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">
+                        Status
+                        <SmartFilter
+                          label="Status"
+                          data={payments}
+                          field="status"
+                          selectedValues={statusFilters}
+                          onFilterChange={setStatusFilters}
+                          options={metaFilters?.statuses || []}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {visible.has('date') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                  )}
+                </tr>
+              </thead>
+            )}
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>

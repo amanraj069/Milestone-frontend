@@ -21,14 +21,15 @@ const UNAPPROVED_EMPLOYER_ALLOWED_PATHS = [
 ];
 
 const DashboardLayout = ({ children }) => {
-  const { user, logout, checkAuthStatus } = useAuth();
+  const { user, loading: authLoading, logout, checkAuthStatus } = useAuth();
   const { totalUnreadCount } = useChatNotifications();
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [isPremium, setIsPremium] = useState(false);
   const [pendingApplicationsCount, setPendingApplicationsCount] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const isPremium = user?.subscription === 'Premium';
   
   const unreadCount = useSelector(selectUnreadCount);
   const { socket } = useSocket();
@@ -56,11 +57,6 @@ const DashboardLayout = ({ children }) => {
       (allowedPath) => path === allowedPath || path.startsWith(allowedPath + '/')
     );
   };
-
-  useEffect(() => {
-    // Update premium status whenever user changes
-    setIsPremium(user?.subscription === 'Premium');
-  }, [user]);
 
   // Fetch unread notification count
   useEffect(() => {
@@ -291,9 +287,15 @@ const DashboardLayout = ({ children }) => {
               </div>
             </div>
             <div>
-              <h2 className="text-[15px] font-semibold leading-tight">Welcome, {getRoleDisplay()} {user?.name ? user.name.split(' ')[0] : 'User'}!</h2>
-              {isPremium && (
-                <p className="text-xs text-yellow-300 font-medium mt-0.5">Premium Member</p>
+              {!authLoading && user ? (
+                <>
+                  <h2 className="text-[15px] font-semibold leading-tight">Welcome, {getRoleDisplay()} {user?.name ? user.name.split(' ')[0] : 'User'}!</h2>
+                  {isPremium && (
+                    <p className="text-xs text-yellow-300 font-medium mt-0.5">Premium Member</p>
+                  )}
+                </>
+              ) : (
+                <div className="h-9 w-40 rounded bg-white/10 animate-pulse" />
               )}
             </div>
           </div>
