@@ -1,29 +1,94 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import DashboardPage from '../../../components/DashboardPage';
 import FeedbackForm from '../../../components/FeedbackForm';
 import SmartSearchInput from '../../../components/SmartSearchInput';
 import FreelancerCard from './FreelancerCard';
-import axios from 'axios';
+import { graphqlRequest } from '../../../utils/graphqlClient';
 import { checkCanGiveFeedback } from '../../../redux/slices/feedbackSlice';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const EMPLOYER_WORK_HISTORY_QUERY = `
+  query EmployerWorkHistory(
+    $search: String
+    $searchFeature: String
+    $sortBy: String
+    $page: Int
+    $limit: Int
+    $statusIn: [String]
+  ) {
+    employerWorkHistory(
+      search: $search
+      searchFeature: $searchFeature
+      sortBy: $sortBy
+      page: $page
+      limit: $limit
+      statusIn: $statusIn
+    ) {
+      freelancers {
+        userId
+        freelancerId
+        name
+        email
+        phone
+        location
+        picture
+        rating
+        jobId
+        jobTitle
+        jobDescription
+        startDate
+        endDate
+        completedDate
+        status
+      }
+      stats {
+        total
+        avgRating
+        avgDays
+        successRate
+      }
+      pagination {
+        page
+        limit
+        total
+        totalPages
+        hasNextPage
+        hasPrevPage
+      }
+      filterOptions {
+        statuses
+      }
+    }
+  }
+`;
 
 const EmployerWorkHistory = () => {
   const [freelancers, setFreelancers] = useState([]);
-  const [filteredFreelancers, setFilteredFreelancers] = useState([]);
   const [stats, setStats] = useState({
     total: 0,
     avgRating: 0,
     avgDays: 0,
     successRate: 0
   });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 25,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [searchFeature, setSearchFeature] = useState('name');
   const [sortBy, setSortBy] = useState('date-desc');
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
   const [feedbackModal, setFeedbackModal] = useState(null); // { jobId, toUserId, toRole, counterpartyName }
+  const inFlightRef = useRef('');
   
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -32,60 +97,24 @@ const EmployerWorkHistory = () => {
   const feedbackEligibilityMap = useSelector((state) => state.feedback.eligibilityByJob || {});
 
   useEffect(() => {
-    fetchWorkHistory();
-  }, []);
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const querySignature = JSON.stringify({
+    debouncedSearchTerm,
+    searchFeature,
+    sortBy,
+    currentPage,
+    pageSize,
+  });
 
   useEffect(() => {
-    let list;
-    if (searchTerm.trim() === '') {
-      list = [...freelancers];
-    } else {
-      const searchLower = searchTerm.toLowerCase();
-      list = freelancers.filter((f) => {
-        if (searchFeature === 'name') {
-          return f.name?.toLowerCase().includes(searchLower);
-        }
-        if (searchFeature === 'jobRole') {
-          return f.jobTitle?.toLowerCase().includes(searchLower);
-        }
-        if (searchFeature === 'location') {
-          return f.location?.toLowerCase().includes(searchLower);
-        }
-        return (
-          f.name?.toLowerCase().includes(searchLower) ||
-          f.jobTitle?.toLowerCase().includes(searchLower) ||
-          f.location?.toLowerCase().includes(searchLower)
-        );
-      });
-    }
-
-    // Apply sort
-    list = [...list];
-    switch (sortBy) {
-      case 'date-desc':
-        list.sort((a, b) => new Date(b.completedDate || b.leftDate || 0) - new Date(a.completedDate || a.leftDate || 0));
-        break;
-      case 'date-asc':
-        list.sort((a, b) => new Date(a.completedDate || a.leftDate || 0) - new Date(b.completedDate || b.leftDate || 0));
-        break;
-      case 'name-asc':
-        list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        break;
-      case 'name-desc':
-        list.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
-        break;
-      case 'rating-desc':
-        list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        break;
-      case 'rating-asc':
-        list.sort((a, b) => (a.rating || 0) - (b.rating || 0));
-        break;
-      default:
-        break;
-    }
-
-    setFilteredFreelancers(list);
-  }, [searchTerm, freelancers, searchFeature, sortBy]);
+    fetchWorkHistory();
+  }, [querySignature]);
 
   // Check feedback eligibility for all completed jobs
   useEffect(() => {
@@ -99,21 +128,46 @@ const EmployerWorkHistory = () => {
   }, [freelancers, dispatch]);
 
   const fetchWorkHistory = async () => {
+    const variables = {
+      search: debouncedSearchTerm || null,
+      searchFeature,
+      sortBy,
+      page: currentPage,
+      limit: pageSize,
+    };
+
+    // Deduplicate in-flight requests 
+    const requestKey = JSON.stringify(variables);
+    if (inFlightRef.current === requestKey) return;
+
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/api/employer/work-history`, {
-        withCredentials: true
+      inFlightRef.current = requestKey;
+
+      const data = await graphqlRequest({
+        query: EMPLOYER_WORK_HISTORY_QUERY,
+        variables,
       });
 
-      if (response.data.success) {
-        setFreelancers(response.data.data.freelancers);
-        setFilteredFreelancers(response.data.data.freelancers);
-        setStats(response.data.data.stats);
+      const payload = data?.employerWorkHistory;
+      if (payload) {
+        setFreelancers(payload.freelancers || []);
+        setStats(payload.stats || { total: 0, avgRating: 0, avgDays: 0, successRate: 0 });
+        setPagination(payload.pagination || {
+          page: currentPage,
+          limit: pageSize,
+          total: 0,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        });
       }
     } catch (error) {
       console.error('Error fetching work history:', error);
     } finally {
+      inFlightRef.current = '';
       setLoading(false);
+      setHasLoadedOnce(true);
     }
   };
 
@@ -219,9 +273,15 @@ const EmployerWorkHistory = () => {
             <div className="flex-1">
               <SmartSearchInput
                 value={searchTerm}
-                onChange={setSearchTerm}
+                onChange={(value) => {
+                  setCurrentPage(1);
+                  setSearchTerm(value);
+                }}
                 selectedFeature={searchFeature}
-                onFeatureChange={setSearchFeature}
+                onFeatureChange={(value) => {
+                  setCurrentPage(1);
+                  setSearchFeature(value);
+                }}
                 dataSource={freelancers}
                 searchFields={[
                   { key: 'name', label: 'Name', getValue: (item) => item.name || '' },
@@ -233,7 +293,10 @@ const EmployerWorkHistory = () => {
             </div>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setSortBy(e.target.value);
+              }}
               className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 shrink-0"
             >
               <option value="date-desc">Newest First</option>
@@ -247,13 +310,21 @@ const EmployerWorkHistory = () => {
         </div>
 
         {/* Freelancers List */}
+        {!hasLoadedOnce ? (
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Loading work history...</p>
+            </div>
+          </div>
+        ) : (
         <div className="bg-white rounded-xl shadow-md p-6">
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
               <p className="mt-4 text-gray-600">Loading work history...</p>
             </div>
-          ) : filteredFreelancers.length === 0 ? (
+          ) : freelancers.length === 0 ? (
             <div className="text-center py-12">
               <i className="fas fa-history text-6xl text-gray-300 mb-4"></i>
               <p className="text-gray-600">
@@ -262,16 +333,53 @@ const EmployerWorkHistory = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredFreelancers.map((freelancer) => (
+              {freelancers.map((freelancer) => (
                 <FreelancerCard
                   key={`${freelancer.freelancerId}-${freelancer.jobId}`}
                   freelancer={freelancer}
                   onLeaveFeedback={handleLeaveFeedback}
                 />
               ))}
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
+                <p className="text-xs text-gray-500">
+                  Showing {freelancers.length} of {pagination.total} records
+                </p>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500">Rows:</label>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setCurrentPage(1);
+                      setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                    }}
+                    className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={loading || !pagination.hasPrevPage}
+                    className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                    disabled={loading || !pagination.hasNextPage}
+                    className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Feedback Drawer */}

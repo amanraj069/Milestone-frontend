@@ -6,13 +6,17 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'
 // Thunk to load job history for a freelancer — now uses GraphQL with DataLoader batching
 export const loadJobHistory = createAsyncThunk(
   'jobs/loadJobHistory',
-  async (_, { rejectWithValue }) => {
+  async ({ search = '', sortBy = 'newest', statusIn = [], page = 1, limit = 25 } = {}, { rejectWithValue }) => {
     try {
       console.log('Fetching job history via GraphQL');
       
       const data = await graphqlQuery(`
-        query FreelancerJobHistory {
-          freelancerJobHistory {
+        query FreelancerJobHistory($search: String, $sortBy: String, $statusIn: [String], $page: Int, $limit: Int) {
+          freelancerJobHistory(search: $search, sortBy: $sortBy, statusIn: $statusIn, page: $page, limit: $limit) {
+            total
+            filterOptions { statuses employers }
+            pagination { page limit total totalPages hasNextPage hasPrevPage }
+            jobs {
             id
             _id
             title
@@ -51,12 +55,25 @@ export const loadJobHistory = createAsyncThunk(
             completedMilestones
             progress
             cancelReason
+            }
           }
         }
-      `);
+      `, {
+        search: search || null,
+        sortBy,
+        statusIn: statusIn.length ? statusIn : null,
+        page,
+        limit,
+      });
 
-      console.log('Job history GraphQL result:', data.freelancerJobHistory?.length, 'jobs');
-      return data.freelancerJobHistory || [];
+      const payload = data.freelancerJobHistory || {};
+      console.log('Job history GraphQL result:', payload.jobs?.length || 0, 'jobs');
+      return {
+        jobs: payload.jobs || [],
+        total: payload.total || 0,
+        filterOptions: payload.filterOptions || { statuses: [], employers: [] },
+        pagination: payload.pagination || null,
+      };
     } catch (error) {
       console.error('Job history GraphQL error:', error);
       return rejectWithValue(error.message);
@@ -67,13 +84,16 @@ export const loadJobHistory = createAsyncThunk(
 // Thunk to load active jobs for a freelancer — now uses GraphQL with DataLoader batching
 export const loadActiveJobs = createAsyncThunk(
   'jobs/loadActiveJobs',
-  async (_, { rejectWithValue }) => {
+  async ({ search = '', sortBy = 'newest', page = 1, limit = 25 } = {}, { rejectWithValue }) => {
     try {
       console.log('Fetching active jobs via GraphQL');
       
       const data = await graphqlQuery(`
-        query FreelancerActiveJobs {
-          freelancerActiveJobs {
+        query FreelancerActiveJobs($search: String, $sortBy: String, $page: Int, $limit: Int) {
+          freelancerActiveJobs(search: $search, sortBy: $sortBy, page: $page, limit: $limit) {
+            total
+            pagination { page limit total totalPages hasNextPage hasPrevPage }
+            jobs {
             id
             title
             company
@@ -107,12 +127,23 @@ export const loadActiveJobs = createAsyncThunk(
             daysSinceStart
             startDate
             startDateRaw
+            }
           }
         }
-      `);
+      `, {
+        search: search || null,
+        sortBy,
+        page,
+        limit,
+      });
 
-      console.log('Active jobs GraphQL result:', data.freelancerActiveJobs?.length, 'jobs');
-      return data.freelancerActiveJobs || [];
+      const payload = data.freelancerActiveJobs || {};
+      console.log('Active jobs GraphQL result:', payload.jobs?.length || 0, 'jobs');
+      return {
+        jobs: payload.jobs || [],
+        total: payload.total || 0,
+        pagination: payload.pagination || null,
+      };
     } catch (error) {
       console.error('Active jobs GraphQL error:', error);
       return rejectWithValue(error.message);
@@ -125,6 +156,15 @@ const jobsSlice = createSlice({
   initialState: {
     jobHistory: [],
     activeJobs: [],
+    jobHistoryMeta: {
+      total: 0,
+      filterOptions: { statuses: [], employers: [] },
+      pagination: null,
+    },
+    activeJobsMeta: {
+      total: 0,
+      pagination: null,
+    },
     loading: false,
     error: null,
   },
@@ -142,7 +182,12 @@ const jobsSlice = createSlice({
       })
       .addCase(loadJobHistory.fulfilled, (state, action) => {
         state.loading = false;
-        state.jobHistory = action.payload;
+        state.jobHistory = action.payload.jobs;
+        state.jobHistoryMeta = {
+          total: action.payload.total,
+          filterOptions: action.payload.filterOptions,
+          pagination: action.payload.pagination,
+        };
       })
       .addCase(loadJobHistory.rejected, (state, action) => {
         state.loading = false;
@@ -157,7 +202,11 @@ const jobsSlice = createSlice({
       })
       .addCase(loadActiveJobs.fulfilled, (state, action) => {
         state.loading = false;
-        state.activeJobs = action.payload;
+        state.activeJobs = action.payload.jobs;
+        state.activeJobsMeta = {
+          total: action.payload.total,
+          pagination: action.payload.pagination,
+        };
       })
       .addCase(loadActiveJobs.rejected, (state, action) => {
         state.loading = false;
@@ -171,6 +220,8 @@ export const { clearJobError } = jobsSlice.actions;
 // Selectors
 export const selectJobHistory = (state) => state.jobs.jobHistory;
 export const selectActiveJobs = (state) => state.jobs.activeJobs;
+export const selectJobHistoryMeta = (state) => state.jobs.jobHistoryMeta;
+export const selectActiveJobsMeta = (state) => state.jobs.activeJobsMeta;
 export const selectJobsLoading = (state) => state.jobs.loading;
 export const selectJobsError = (state) => state.jobs.error;
 

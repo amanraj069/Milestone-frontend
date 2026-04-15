@@ -21,6 +21,11 @@ export default defineConfig(({ mode }) => {
           target: backendUrl,
           changeOrigin: true,
           secure: false,
+        },
+        '/graphql': {
+          target: backendUrl,
+          changeOrigin: true,
+          secure: false,
         }
       }
     },

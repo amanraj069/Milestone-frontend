@@ -7,7 +7,13 @@ import JobDetailsModal from '../../components/freelancer/JobDetailsModal';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 import SmartSearchInput from '../../components/SmartSearchInput';
 import SmartFilter from '../../components/SmartFilter';
-import { loadJobHistory, selectJobHistory, selectJobsLoading, selectJobsError } from '../../redux/slices/jobsSlice';
+import {
+  loadJobHistory,
+  selectJobHistory,
+  selectJobHistoryMeta,
+  selectJobsLoading,
+  selectJobsError,
+} from '../../redux/slices/jobsSlice';
 import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../redux/slices/feedbackSlice';
 import { useChatContext } from '../../context/ChatContext';
 
@@ -23,6 +29,8 @@ const COLUMNS = [
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Most Recent' },
   { value: 'oldest', label: 'Oldest First' },
+  { value: 'earned-high', label: 'Earned (High to Low)' },
+  { value: 'earned-low', label: 'Earned (Low to High)' },
 ];
 
 
@@ -31,6 +39,7 @@ export default function FreelancerJobHistory() {
   const navigate = useNavigate();
   const { openChatWith } = useChatContext();
   const jobs = useSelector(selectJobHistory);
+  const jobHistoryMeta = useSelector(selectJobHistoryMeta);
   const loading = useSelector(selectJobsLoading);
   const error = useSelector(selectJobsError);
   const feedbackEligibilityMap = useSelector((state) => state.feedback.eligibilityByJob || {});
@@ -40,12 +49,41 @@ export default function FreelancerJobHistory() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [columnFilters, setColumnFilters] = useState({ status: [], employer: [], jobName: [] });
   const setColFilter = (field) => (values) => setColumnFilters(prev => ({ ...prev, [field]: values }));
 
   const cols = useSmartColumnToggle(COLUMNS, 'job-history-cols');
 
-  useEffect(() => { dispatch(loadJobHistory()); }, [dispatch]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const querySignature = JSON.stringify({
+    debouncedSearchTerm,
+    sortBy,
+    statusIn: columnFilters.status,
+    page: currentPage,
+    limit: pageSize,
+  });
+
+  useEffect(() => {
+    dispatch(
+      loadJobHistory({
+        search: debouncedSearchTerm,
+        sortBy,
+        statusIn: columnFilters.status,
+        page: currentPage,
+        limit: pageSize,
+      }),
+    );
+  }, [dispatch, querySignature]);
 
   useEffect(() => {
     if (jobs?.length > 0) {
@@ -85,27 +123,8 @@ export default function FreelancerJobHistory() {
     }
 
     // Search
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      list = list.filter(j =>
-        j.title?.toLowerCase().includes(q) ||
-        j.company?.toLowerCase().includes(q) ||
-        j.tech?.some(t => t.toLowerCase().includes(q))
-      );
-    }
-
-    // Sort
-    const sorted = [...list];
-    switch (sortBy) {
-      case 'newest':      sorted.sort((a, b) => new Date(b.endDateRaw || b.startDateRaw || 0) - new Date(a.endDateRaw || a.startDateRaw || 0)); break;
-      case 'oldest':      sorted.sort((a, b) => new Date(a.endDateRaw || a.startDateRaw || 0) - new Date(b.endDateRaw || b.startDateRaw || 0)); break;
-      case 'earned-high': sorted.sort((a, b) => (b.paidAmount || 0) - (a.paidAmount || 0)); break;
-      case 'earned-low':  sorted.sort((a, b) => (a.paidAmount || 0) - (b.paidAmount || 0)); break;
-      case 'rating-high': sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0)); break;
-      case 'rating-low':  sorted.sort((a, b) => (a.rating || 0) - (b.rating || 0)); break;
-    }
-    return sorted;
-  }, [jobs, searchTerm, sortBy, columnFilters]);
+    return [...list];
+  }, [jobs, columnFilters]);
 
   const handleChat = (job) => {
     const userId = job.employerUserId || job.employer?.userId;
@@ -167,7 +186,10 @@ export default function FreelancerJobHistory() {
           <div className="flex-1">
             <SmartSearchInput
               value={searchTerm}
-              onChange={setSearchTerm}
+              onChange={(value) => {
+                setCurrentPage(1);
+                setSearchTerm(value);
+              }}
               dataSource={jobs || []}
               getSearchValue={(item) => item.title || ''}
               placeholder="Search by job title, company, or skills..."
@@ -177,7 +199,10 @@ export default function FreelancerJobHistory() {
           {/* Sort */}
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
+            onChange={(e) => {
+              setCurrentPage(1);
+              setSortBy(e.target.value);
+            }}
             className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
           >
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -230,7 +255,10 @@ export default function FreelancerJobHistory() {
                           data={jobs || []}
                           field="title"
                           selectedValues={columnFilters.jobName}
-                          onFilterChange={setColFilter('jobName')}
+                          onFilterChange={(values) => {
+                            setCurrentPage(1);
+                            setColFilter('jobName')(values);
+                          }}
                         />
                       </div>
                     </th>
@@ -244,7 +272,11 @@ export default function FreelancerJobHistory() {
                           data={jobs || []}
                           field="company"
                           selectedValues={columnFilters.employer}
-                          onFilterChange={setColFilter('employer')}
+                          onFilterChange={(values) => {
+                            setCurrentPage(1);
+                            setColFilter('employer')(values);
+                          }}
+                          options={jobHistoryMeta?.filterOptions?.employers || []}
                         />
                       </div>
                     </th>
@@ -259,7 +291,11 @@ export default function FreelancerJobHistory() {
                           data={jobs || []}
                           field="status"
                           selectedValues={columnFilters.status}
-                          onFilterChange={setColFilter('status')}
+                          onFilterChange={(values) => {
+                            setCurrentPage(1);
+                            setColFilter('status')(values);
+                          }}
+                          options={jobHistoryMeta?.filterOptions?.statuses || []}
                           valueFormatter={(v) => v === 'finished' ? 'Completed' : v === 'left' ? 'Left' : v}
                         />
                       </div>
@@ -339,7 +375,44 @@ export default function FreelancerJobHistory() {
             </table>
             {!loading && processedJobs.length > 0 && (
               <div className="border-t border-gray-100 bg-gray-50 px-5 py-3">
-                <p className="text-xs text-gray-400">Showing {processedJobs.length} of {jobs.length} job{jobs.length !== 1 ? 's' : ''}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-gray-400">Showing {processedJobs.length} of {jobHistoryMeta?.total ?? jobs.length} job{(jobHistoryMeta?.total ?? jobs.length) !== 1 ? 's' : ''}</p>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500">Rows:</label>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setCurrentPage(1);
+                        setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                      }}
+                      className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    {Number(jobHistoryMeta?.pagination?.totalPages || 1) > 1 && (
+                      <>
+                        <button
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          disabled={loading || !jobHistoryMeta?.pagination?.hasPrevPage}
+                          className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                        >
+                          Previous
+                        </button>
+                        <button
+                          onClick={() => setCurrentPage((p) => p + 1)}
+                          disabled={loading || !jobHistoryMeta?.pagination?.hasNextPage}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                        >
+                          Next
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
