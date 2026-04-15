@@ -6,15 +6,26 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'
 // Thunk to load job history for a freelancer — now uses GraphQL with DataLoader batching
 export const loadJobHistory = createAsyncThunk(
   'jobs/loadJobHistory',
-  async ({ search = '', sortBy = 'newest', statusIn = [], page = 1, limit = 25 } = {}, { rejectWithValue }) => {
+  async (
+    {
+      search = '',
+      sortBy = 'newest',
+      statusIn = [],
+      employerIn = [],
+      jobTitleIn = [],
+      page = 1,
+      limit = 25,
+    } = {},
+    { rejectWithValue },
+  ) => {
     try {
       console.log('Fetching job history via GraphQL');
       
       const data = await graphqlQuery(`
-        query FreelancerJobHistory($search: String, $sortBy: String, $statusIn: [String], $page: Int, $limit: Int) {
-          freelancerJobHistory(search: $search, sortBy: $sortBy, statusIn: $statusIn, page: $page, limit: $limit) {
+        query FreelancerJobHistory($search: String, $sortBy: String, $statusIn: [String], $employerIn: [String], $jobTitleIn: [String], $page: Int, $limit: Int) {
+          freelancerJobHistory(search: $search, sortBy: $sortBy, statusIn: $statusIn, employerIn: $employerIn, jobTitleIn: $jobTitleIn, page: $page, limit: $limit) {
             total
-            filterOptions { statuses employers }
+            filterOptions { statuses employers jobTitles }
             pagination { page limit total totalPages hasNextPage hasPrevPage }
             jobs {
             id
@@ -62,6 +73,8 @@ export const loadJobHistory = createAsyncThunk(
         search: search || null,
         sortBy,
         statusIn: statusIn.length ? statusIn : null,
+        employerIn: employerIn.length ? employerIn : null,
+        jobTitleIn: jobTitleIn.length ? jobTitleIn : null,
         page,
         limit,
       });
@@ -71,7 +84,7 @@ export const loadJobHistory = createAsyncThunk(
       return {
         jobs: payload.jobs || [],
         total: payload.total || 0,
-        filterOptions: payload.filterOptions || { statuses: [], employers: [] },
+        filterOptions: payload.filterOptions || { statuses: [], employers: [], jobTitles: [] },
         pagination: payload.pagination || null,
       };
     } catch (error) {
@@ -158,7 +171,7 @@ const jobsSlice = createSlice({
     activeJobs: [],
     jobHistoryMeta: {
       total: 0,
-      filterOptions: { statuses: [], employers: [] },
+      filterOptions: { statuses: [], employers: [], jobTitles: [] },
       pagination: null,
     },
     activeJobsMeta: {

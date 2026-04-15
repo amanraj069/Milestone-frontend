@@ -69,6 +69,8 @@ export default function FreelancerJobHistory() {
     debouncedSearchTerm,
     sortBy,
     statusIn: columnFilters.status,
+    employerIn: columnFilters.employer,
+    jobTitleIn: columnFilters.jobName,
     page: currentPage,
     limit: pageSize,
   });
@@ -79,6 +81,8 @@ export default function FreelancerJobHistory() {
         search: debouncedSearchTerm,
         sortBy,
         statusIn: columnFilters.status,
+        employerIn: columnFilters.employer,
+        jobTitleIn: columnFilters.jobName,
         page: currentPage,
         limit: pageSize,
       }),
@@ -105,26 +109,14 @@ export default function FreelancerJobHistory() {
   }, [jobs]);
 
   const processedJobs = useMemo(() => {
-    let list = jobs || [];
+    return [...(jobs || [])];
+  }, [jobs]);
 
-    // Status filter
-    if (columnFilters.status.length > 0) {
-      list = list.filter(j => columnFilters.status.includes(j.status));
-    }
-
-    // Employer filter
-    if (columnFilters.employer.length > 0) {
-      list = list.filter(j => columnFilters.employer.includes(j.company));
-    }
-
-    // Job name filter
-    if (columnFilters.jobName.length > 0) {
-      list = list.filter(j => columnFilters.jobName.includes(j.title));
-    }
-
-    // Search
-    return [...list];
-  }, [jobs, columnFilters]);
+  const hasActiveFilters =
+    debouncedSearchTerm ||
+    columnFilters.status.length > 0 ||
+    columnFilters.employer.length > 0 ||
+    columnFilters.jobName.length > 0;
 
   const handleChat = (job) => {
     const userId = job.employerUserId || job.employer?.userId;
@@ -225,21 +217,45 @@ export default function FreelancerJobHistory() {
             </div>
             <p className="text-gray-800 font-medium mb-1">Failed to load job history</p>
             <p className="text-gray-500 text-sm mb-4">{typeof error === 'string' ? error : error?.message || 'Unknown error'}</p>
-            <button onClick={() => dispatch(loadJobHistory())} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
+            <button
+              onClick={() =>
+                dispatch(
+                  loadJobHistory({
+                    search: debouncedSearchTerm,
+                    sortBy,
+                    statusIn: columnFilters.status,
+                    employerIn: columnFilters.employer,
+                    jobTitleIn: columnFilters.jobName,
+                    page: currentPage,
+                    limit: pageSize,
+                  }),
+                )
+              }
+              className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Retry
+            </button>
           </div>
         ) : (!jobs || jobs.length === 0) ? (
           <div className="text-center py-16">
             <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
             </div>
-            <p className="text-gray-800 font-medium mb-1">No job history</p>
-            <p className="text-gray-500 text-sm">You haven't completed any jobs yet.</p>
-          </div>
-        ) : processedJobs.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-gray-800 font-medium mb-1">No matching jobs</p>
-            <p className="text-gray-500 text-sm mb-3">Try adjusting your search or filters</p>
-            <button onClick={() => { setSearchTerm(''); setSortBy('newest'); setColumnFilters({ status: [], employer: [], jobName: [] }); }}  className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
+            <p className="text-gray-800 font-medium mb-1">{hasActiveFilters ? 'No matching jobs' : 'No job history'}</p>
+            <p className="text-gray-500 text-sm">{hasActiveFilters ? 'Try adjusting your search or filters' : "You haven't completed any jobs yet."}</p>
+            {hasActiveFilters && (
+              <button
+                onClick={() => {
+                  setCurrentPage(1);
+                  setSearchTerm('');
+                  setSortBy('newest');
+                  setColumnFilters({ status: [], employer: [], jobName: [] });
+                }}
+                className="mt-3 px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -259,6 +275,7 @@ export default function FreelancerJobHistory() {
                             setCurrentPage(1);
                             setColFilter('jobName')(values);
                           }}
+                          options={jobHistoryMeta?.filterOptions?.jobTitles || []}
                         />
                       </div>
                     </th>
@@ -436,7 +453,19 @@ export default function FreelancerJobHistory() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           job={selectedJob}
-          onJobLeft={() => dispatch(loadJobHistory())}
+          onJobLeft={() =>
+            dispatch(
+              loadJobHistory({
+                search: debouncedSearchTerm,
+                sortBy,
+                statusIn: columnFilters.status,
+                employerIn: columnFilters.employer,
+                jobTitleIn: columnFilters.jobName,
+                page: currentPage,
+                limit: pageSize,
+              }),
+            )
+          }
           showLeaveButton={false}
         />
       )}
