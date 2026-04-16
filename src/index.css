@@ -54,3 +54,32 @@ body {
 .animate-scale-in {
   animation: scaleIn 0.3s ease-out;
 }
+
+/* Dashboard-specific custom scrollbar */
+.dashboard-nav-scroll,
+.dashboard-main-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.55) transparent;
+}
+
+.dashboard-nav-scroll::-webkit-scrollbar,
+.dashboard-main-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dashboard-nav-scroll::-webkit-scrollbar-track,
+.dashboard-main-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-nav-scroll::-webkit-scrollbar-thumb,
+.dashboard-main-scroll::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.45);
+  border-radius: 9999px;
+}
+
+.dashboard-nav-scroll::-webkit-scrollbar-thumb:hover,
+.dashboard-main-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.7);
+}

@@ -270,53 +270,54 @@ const AdminFreelancers = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden min-h-[calc(90vh-20rem)] flex flex-col">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                {visible.has('photo')        && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Photo</th>}
-                {visible.has('name')         && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Name</th>}
-                {visible.has('email')        && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>}
-                {visible.has('phone')        && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Phone</th>}
-                {visible.has('location')     && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    <div className="flex items-center gap-1.5">Location
-                      <SmartFilter label="Location" data={freelancers} field="location"
-                        selectedValues={filters.location} onFilterChange={setFilter('location')} options={metaFilters?.locations || []} />
-                    </div>
-                  </th>
-                )}
-                {visible.has('rating')       && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    <div className="flex items-center gap-1.5">Rating
-                      <SmartFilter label="Rating" data={freelancers} field="rating"
-                        selectedValues={filters.rating} onFilterChange={setFilter('rating')}
-                        valueFormatter={(v) => `★ ${Number(v).toFixed(1)}`} options={metaFilters?.ratings || []} />
-                    </div>
-                  </th>
-                )}
-                {visible.has('skills')       && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Skills</th>}
-                {visible.has('subscription') && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    <div className="flex items-center gap-1.5">Subscription
-                      <SmartFilter label="Subscription" data={freelancers} field="subscription"
-                        selectedValues={filters.subscription} onFilterChange={setFilter('subscription')} options={metaFilters?.subscriptions || []} />
-                    </div>
-                  </th>
-                )}
-                {visible.has('applications') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Applications</th>}
-                {visible.has('status')       && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    <div className="flex items-center gap-1.5">Status
-                      <SmartFilter label="Status"
-                        data={freelancers.map((f) => ({ ...f, _sl: f.isCurrentlyWorking ? 'Working' : 'Available' }))}
-                        field="_sl" selectedValues={filters.status} onFilterChange={setFilter('status')} options={metaFilters?.statuses || []} />
-                      
-                    </div>
-                  </th>
-                )}
-                {visible.has('joined')       && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Joined</th>}
-                {visible.has('actions')      && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>}
-              </tr>
-            </thead>
+            {!loading && (
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {visible.has('photo')        && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Photo</th>}
+                  {visible.has('name')         && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Name</th>}
+                  {visible.has('email')        && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>}
+                  {visible.has('phone')        && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Phone</th>}
+                  {visible.has('location')     && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">Location
+                        <SmartFilter label="Location" data={freelancers} field="location"
+                          selectedValues={filters.location} onFilterChange={setFilter('location')} options={metaFilters?.locations || []} />
+                      </div>
+                    </th>
+                  )}
+                  {visible.has('rating')       && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">Rating
+                        <SmartFilter label="Rating" data={freelancers} field="rating"
+                          selectedValues={filters.rating} onFilterChange={setFilter('rating')}
+                          valueFormatter={(v) => `★ ${Number(v).toFixed(1)}`} options={metaFilters?.ratings || []} />
+                      </div>
+                    </th>
+                  )}
+                  {visible.has('skills')       && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Skills</th>}
+                  {visible.has('subscription') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">Subscription
+                        <SmartFilter label="Subscription" data={freelancers} field="subscription"
+                          selectedValues={filters.subscription} onFilterChange={setFilter('subscription')} options={metaFilters?.subscriptions || []} />
+                      </div>
+                    </th>
+                  )}
+                  {visible.has('applications') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Applications</th>}
+                  {visible.has('status')       && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">Status
+                        <SmartFilter label="Status"
+                          data={freelancers.map((f) => ({ ...f, _sl: f.isCurrentlyWorking ? 'Working' : 'Available' }))}
+                          field="_sl" selectedValues={filters.status} onFilterChange={setFilter('status')} options={metaFilters?.statuses || []} />
+                      </div>
+                    </th>
+                  )}
+                  {visible.has('joined')       && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Joined</th>}
+                  {visible.has('actions')      && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>}
+                </tr>
+              </thead>
+            )}
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>

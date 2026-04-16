@@ -11,9 +11,6 @@ export const fetchNotifications = createAsyncThunk(
       const response = await fetch(`${API_BASE_URL}/api/notifications`, {
         method: "GET",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
       });
 
       const data = await response.json();
@@ -39,9 +36,6 @@ export const fetchUnreadCount = createAsyncThunk(
         {
           method: "GET",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
         }
       );
 
@@ -55,6 +49,20 @@ export const fetchUnreadCount = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
+  },
+  {
+    condition: (arg, { getState }) => {
+      const notificationsState = getState()?.notifications;
+      if (!notificationsState) return true;
+
+      const force = !!arg?.force;
+      if (force) return true;
+      if (notificationsState.unreadCountLoading) return false;
+
+      const lastFetchedAt = notificationsState.lastUnreadFetchAt || 0;
+      const minIntervalMs = 15000;
+      return Date.now() - lastFetchedAt >= minIntervalMs;
+    },
   }
 );
 
@@ -152,6 +160,8 @@ const notificationsSlice = createSlice({
   initialState: {
     notifications: [],
     unreadCount: 0,
+    unreadCountLoading: false,
+    lastUnreadFetchAt: 0,
     loading: false,
     error: null,
   },
@@ -167,6 +177,8 @@ const notificationsSlice = createSlice({
     resetNotifications: (state) => {
       state.notifications = [];
       state.unreadCount = 0;
+      state.unreadCountLoading = false;
+      state.lastUnreadFetchAt = 0;
       state.loading = false;
       state.error = null;
     },
@@ -191,12 +203,16 @@ const notificationsSlice = createSlice({
     // fetchUnreadCount
     builder
       .addCase(fetchUnreadCount.pending, (state) => {
+        state.unreadCountLoading = true;
         state.error = null;
       })
       .addCase(fetchUnreadCount.fulfilled, (state, action) => {
         state.unreadCount = action.payload;
+        state.unreadCountLoading = false;
+        state.lastUnreadFetchAt = Date.now();
       })
       .addCase(fetchUnreadCount.rejected, (state, action) => {
+        state.unreadCountLoading = false;
         state.error = action.payload;
       });
 

@@ -7,7 +7,13 @@ import JobDetailsModal from '../../components/freelancer/JobDetailsModal';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 import SmartSearchInput from '../../components/SmartSearchInput';
 import SmartFilter from '../../components/SmartFilter';
-import { loadJobHistory, selectJobHistory, selectJobsLoading, selectJobsError } from '../../redux/slices/jobsSlice';
+import {
+  loadJobHistory,
+  selectJobHistory,
+  selectJobHistoryMeta,
+  selectJobsLoading,
+  selectJobsError,
+} from '../../redux/slices/jobsSlice';
 import { checkCanGiveFeedback, selectFeedbackEligibility } from '../../redux/slices/feedbackSlice';
 import { useChatContext } from '../../context/ChatContext';
 
@@ -23,6 +29,8 @@ const COLUMNS = [
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Most Recent' },
   { value: 'oldest', label: 'Oldest First' },
+  { value: 'earned-high', label: 'Earned (High to Low)' },
+  { value: 'earned-low', label: 'Earned (Low to High)' },
 ];
 
 
@@ -31,6 +39,7 @@ export default function FreelancerJobHistory() {
   const navigate = useNavigate();
   const { openChatWith } = useChatContext();
   const jobs = useSelector(selectJobHistory);
+  const jobHistoryMeta = useSelector(selectJobHistoryMeta);
   const loading = useSelector(selectJobsLoading);
   const error = useSelector(selectJobsError);
   const feedbackEligibilityMap = useSelector((state) => state.feedback.eligibilityByJob || {});
@@ -40,12 +49,45 @@ export default function FreelancerJobHistory() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [columnFilters, setColumnFilters] = useState({ status: [], employer: [], jobName: [] });
   const setColFilter = (field) => (values) => setColumnFilters(prev => ({ ...prev, [field]: values }));
 
   const cols = useSmartColumnToggle(COLUMNS, 'job-history-cols');
 
-  useEffect(() => { dispatch(loadJobHistory()); }, [dispatch]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const querySignature = JSON.stringify({
+    debouncedSearchTerm,
+    sortBy,
+    statusIn: columnFilters.status,
+    employerIn: columnFilters.employer,
+    jobTitleIn: columnFilters.jobName,
+    page: currentPage,
+    limit: pageSize,
+  });
+
+  useEffect(() => {
+    dispatch(
+      loadJobHistory({
+        search: debouncedSearchTerm,
+        sortBy,
+        statusIn: columnFilters.status,
+        employerIn: columnFilters.employer,
+        jobTitleIn: columnFilters.jobName,
+        page: currentPage,
+        limit: pageSize,
+      }),
+    );
+  }, [dispatch, querySignature]);
 
   useEffect(() => {
     if (jobs?.length > 0) {
@@ -67,45 +109,14 @@ export default function FreelancerJobHistory() {
   }, [jobs]);
 
   const processedJobs = useMemo(() => {
-    let list = jobs || [];
+    return [...(jobs || [])];
+  }, [jobs]);
 
-    // Status filter
-    if (columnFilters.status.length > 0) {
-      list = list.filter(j => columnFilters.status.includes(j.status));
-    }
-
-    // Employer filter
-    if (columnFilters.employer.length > 0) {
-      list = list.filter(j => columnFilters.employer.includes(j.company));
-    }
-
-    // Job name filter
-    if (columnFilters.jobName.length > 0) {
-      list = list.filter(j => columnFilters.jobName.includes(j.title));
-    }
-
-    // Search
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      list = list.filter(j =>
-        j.title?.toLowerCase().includes(q) ||
-        j.company?.toLowerCase().includes(q) ||
-        j.tech?.some(t => t.toLowerCase().includes(q))
-      );
-    }
-
-    // Sort
-    const sorted = [...list];
-    switch (sortBy) {
-      case 'newest':      sorted.sort((a, b) => new Date(b.endDateRaw || b.startDateRaw || 0) - new Date(a.endDateRaw || a.startDateRaw || 0)); break;
-      case 'oldest':      sorted.sort((a, b) => new Date(a.endDateRaw || a.startDateRaw || 0) - new Date(b.endDateRaw || b.startDateRaw || 0)); break;
-      case 'earned-high': sorted.sort((a, b) => (b.paidAmount || 0) - (a.paidAmount || 0)); break;
-      case 'earned-low':  sorted.sort((a, b) => (a.paidAmount || 0) - (b.paidAmount || 0)); break;
-      case 'rating-high': sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0)); break;
-      case 'rating-low':  sorted.sort((a, b) => (a.rating || 0) - (b.rating || 0)); break;
-    }
-    return sorted;
-  }, [jobs, searchTerm, sortBy, columnFilters]);
+  const hasActiveFilters =
+    debouncedSearchTerm ||
+    columnFilters.status.length > 0 ||
+    columnFilters.employer.length > 0 ||
+    columnFilters.jobName.length > 0;
 
   const handleChat = (job) => {
     const userId = job.employerUserId || job.employer?.userId;
@@ -167,7 +178,10 @@ export default function FreelancerJobHistory() {
           <div className="flex-1">
             <SmartSearchInput
               value={searchTerm}
-              onChange={setSearchTerm}
+              onChange={(value) => {
+                setCurrentPage(1);
+                setSearchTerm(value);
+              }}
               dataSource={jobs || []}
               getSearchValue={(item) => item.title || ''}
               placeholder="Search by job title, company, or skills..."
@@ -177,7 +191,10 @@ export default function FreelancerJobHistory() {
           {/* Sort */}
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
+            onChange={(e) => {
+              setCurrentPage(1);
+              setSortBy(e.target.value);
+            }}
             className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
           >
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -200,21 +217,45 @@ export default function FreelancerJobHistory() {
             </div>
             <p className="text-gray-800 font-medium mb-1">Failed to load job history</p>
             <p className="text-gray-500 text-sm mb-4">{typeof error === 'string' ? error : error?.message || 'Unknown error'}</p>
-            <button onClick={() => dispatch(loadJobHistory())} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">Retry</button>
+            <button
+              onClick={() =>
+                dispatch(
+                  loadJobHistory({
+                    search: debouncedSearchTerm,
+                    sortBy,
+                    statusIn: columnFilters.status,
+                    employerIn: columnFilters.employer,
+                    jobTitleIn: columnFilters.jobName,
+                    page: currentPage,
+                    limit: pageSize,
+                  }),
+                )
+              }
+              className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Retry
+            </button>
           </div>
         ) : (!jobs || jobs.length === 0) ? (
           <div className="text-center py-16">
             <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
             </div>
-            <p className="text-gray-800 font-medium mb-1">No job history</p>
-            <p className="text-gray-500 text-sm">You haven't completed any jobs yet.</p>
-          </div>
-        ) : processedJobs.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-gray-800 font-medium mb-1">No matching jobs</p>
-            <p className="text-gray-500 text-sm mb-3">Try adjusting your search or filters</p>
-            <button onClick={() => { setSearchTerm(''); setSortBy('newest'); setColumnFilters({ status: [], employer: [], jobName: [] }); }}  className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Clear Filters</button>
+            <p className="text-gray-800 font-medium mb-1">{hasActiveFilters ? 'No matching jobs' : 'No job history'}</p>
+            <p className="text-gray-500 text-sm">{hasActiveFilters ? 'Try adjusting your search or filters' : "You haven't completed any jobs yet."}</p>
+            {hasActiveFilters && (
+              <button
+                onClick={() => {
+                  setCurrentPage(1);
+                  setSearchTerm('');
+                  setSortBy('newest');
+                  setColumnFilters({ status: [], employer: [], jobName: [] });
+                }}
+                className="mt-3 px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -230,7 +271,11 @@ export default function FreelancerJobHistory() {
                           data={jobs || []}
                           field="title"
                           selectedValues={columnFilters.jobName}
-                          onFilterChange={setColFilter('jobName')}
+                          onFilterChange={(values) => {
+                            setCurrentPage(1);
+                            setColFilter('jobName')(values);
+                          }}
+                          options={jobHistoryMeta?.filterOptions?.jobTitles || []}
                         />
                       </div>
                     </th>
@@ -244,7 +289,11 @@ export default function FreelancerJobHistory() {
                           data={jobs || []}
                           field="company"
                           selectedValues={columnFilters.employer}
-                          onFilterChange={setColFilter('employer')}
+                          onFilterChange={(values) => {
+                            setCurrentPage(1);
+                            setColFilter('employer')(values);
+                          }}
+                          options={jobHistoryMeta?.filterOptions?.employers || []}
                         />
                       </div>
                     </th>
@@ -259,7 +308,11 @@ export default function FreelancerJobHistory() {
                           data={jobs || []}
                           field="status"
                           selectedValues={columnFilters.status}
-                          onFilterChange={setColFilter('status')}
+                          onFilterChange={(values) => {
+                            setCurrentPage(1);
+                            setColFilter('status')(values);
+                          }}
+                          options={jobHistoryMeta?.filterOptions?.statuses || []}
                           valueFormatter={(v) => v === 'finished' ? 'Completed' : v === 'left' ? 'Left' : v}
                         />
                       </div>
@@ -339,7 +392,44 @@ export default function FreelancerJobHistory() {
             </table>
             {!loading && processedJobs.length > 0 && (
               <div className="border-t border-gray-100 bg-gray-50 px-5 py-3">
-                <p className="text-xs text-gray-400">Showing {processedJobs.length} of {jobs.length} job{jobs.length !== 1 ? 's' : ''}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-gray-400">Showing {processedJobs.length} of {jobHistoryMeta?.total ?? jobs.length} job{(jobHistoryMeta?.total ?? jobs.length) !== 1 ? 's' : ''}</p>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500">Rows:</label>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setCurrentPage(1);
+                        setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                      }}
+                      className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    {Number(jobHistoryMeta?.pagination?.totalPages || 1) > 1 && (
+                      <>
+                        <button
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          disabled={loading || !jobHistoryMeta?.pagination?.hasPrevPage}
+                          className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                        >
+                          Previous
+                        </button>
+                        <button
+                          onClick={() => setCurrentPage((p) => p + 1)}
+                          disabled={loading || !jobHistoryMeta?.pagination?.hasNextPage}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                        >
+                          Next
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -363,7 +453,19 @@ export default function FreelancerJobHistory() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           job={selectedJob}
-          onJobLeft={() => dispatch(loadJobHistory())}
+          onJobLeft={() =>
+            dispatch(
+              loadJobHistory({
+                search: debouncedSearchTerm,
+                sortBy,
+                statusIn: columnFilters.status,
+                employerIn: columnFilters.employer,
+                jobTitleIn: columnFilters.jobName,
+                page: currentPage,
+                limit: pageSize,
+              }),
+            )
+          }
           showLeaveButton={false}
         />
       )}
