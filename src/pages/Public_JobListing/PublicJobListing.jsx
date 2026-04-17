@@ -234,14 +234,15 @@ const PublicJobListing = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white/95 border-gray-200 backdrop-blur-md border-b fixed top-0 left-0 right-0 z-50">
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="flex items-center justify-between py-4">
-            <div className="text-4xl font-bold text-gray-900">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <div className="flex flex-wrap md:flex-nowrap items-center justify-between py-3 gap-y-3">
+            <div className="text-2xl md:text-4xl font-bold text-gray-900 order-1">
               <Link to="/" className="hover:text-navy-700 transition-colors">
                 Mile<span className="text-navy-700">stone</span>
               </Link>
             </div>
-            <div className="flex-1 max-w-md mx-8 text-black">
+            
+            <div className="w-full md:w-auto md:flex-1 max-w-md mx-0 md:mx-8 text-black order-3 md:order-2">
               <SolrSearchBar 
                 query={searchTerm}
                 onQueryChange={setSearchTerm}
@@ -254,22 +255,23 @@ const PublicJobListing = () => {
                 }}
               />
             </div>
-            <div className="flex items-center gap-4">
+            
+            <div className="flex items-center gap-2 md:gap-4 order-2 md:order-3">
               {user ? (
                 <Link 
                   to={getDashboardRoute()} 
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white rounded-lg font-medium no-underline transition-all hover:shadow-lg hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white rounded-lg text-sm md:text-base font-medium no-underline transition-all hover:shadow-lg hover:-translate-y-0.5"
                 >
-                  <i className="fas fa-tachometer-alt"></i>
-                  Dashboard
+                  <i className="fas fa-th-large"></i>
+                  <span className="hidden sm:inline">Dashboard</span>
                 </Link>
               ) : (
                 <Link 
                   to="/login" 
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white rounded-lg font-medium no-underline transition-all hover:shadow-lg hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-navy-950 via-navy-900 to-navy-800 text-white rounded-lg text-sm md:text-base font-medium no-underline transition-all hover:shadow-lg hover:-translate-y-0.5"
                 >
                   <i className="fas fa-sign-in-alt"></i>
-                  Sign In
+                  <span className="hidden sm:inline">Sign In</span>
                 </Link>
               )}
             </div>
@@ -278,11 +280,23 @@ const PublicJobListing = () => {
       </header>
 
       {/* Main Content */}
-      <main className="pt-24 pb-12 min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6 py-8">
+      <main className="pt-32 md:pt-24 pb-12 min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+          
+          {/* Mobile Filter Toggle */}
+          <div className="lg:hidden mb-4">
+            <button 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="w-full py-3 bg-white border border-gray-200 rounded-lg shadow-sm text-gray-700 font-medium flex items-center justify-center gap-2"
+            >
+              <i className="fas fa-filter"></i>
+              {mobileMenuOpen ? 'Hide Filters' : 'Show Filters'}
+            </button>
+          </div>
+
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Filters Sidebar */}
-            <aside className="lg:w-80 flex-shrink-0">
+            <aside className={`lg:w-80 flex-shrink-0 transition-all ${mobileMenuOpen ? 'block' : 'hidden lg:block'}`}>
               <div className="rounded-lg border p-6 sticky top-28 bg-white border-gray-200">
                 {/* Job Type Section */}
                 <div className="mb-6">
@@ -402,20 +416,23 @@ const PublicJobListing = () => {
                     {filteredJobs.map((job) => (
                       <div
                         key={job.jobId}
-                        className="rounded-lg border-2 p-5 hover:shadow-md hover:border-blue-600 transition-all duration-200 bg-white border-gray-200"
+                        className="rounded-lg border-2 p-4 sm:p-5 hover:shadow-md hover:border-blue-600 transition-all duration-200 bg-white border-gray-200"
                       >
-                        <div className="flex gap-5 min-h-[140px]">
-                          {/* Company Logo - Circular */}
-                          <div className="flex-shrink-0">
-                            <img
-                              src={job.imageUrl}
-                              alt={job.title}
-                              className="w-30 h-30 rounded-full object-cover border-2 border-gray-100"
-                            />
-                          </div>
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 min-h-[140px]">
+                          
+                          {/* Image and Info Group - Always Row */}
+                          <div className="flex flex-row gap-4 sm:gap-5 flex-1 min-w-0">
+                            {/* Company Logo - Circular */}
+                            <div className="flex-shrink-0">
+                              <img
+                                src={job.imageUrl}
+                                alt={job.title}
+                                className="w-16 h-16 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-gray-100 mt-1"
+                              />
+                            </div>
 
-                          {/* Job Info */}
-                          <div className="flex-1 min-w-0">
+                            {/* Job Info */}
+                            <div className="flex-1 min-w-0">
                             {/* 1. Job Title and Badges */}
                             <div className="flex items-center gap-2 mb-2 flex-wrap">
                               <h1 className="text-lg font-bold text-gray-900">
@@ -478,9 +495,10 @@ const PublicJobListing = () => {
                               )}
                             </div>
                           </div>
+                        </div>
 
-                          {/* Right Side - Actions */}
-                          <div className="flex flex-col items-center justify-between gap-2">
+                        {/* Right Side - Actions */}
+                        <div className="flex sm:flex-col items-center justify-between sm:justify-center gap-3 sm:gap-2 mt-4 sm:mt-0 border-t border-gray-100 sm:border-t-0 pt-4 sm:pt-0">
                             {/* Application Count Button - Top */}
                             <button 
                               onClick={() => {
@@ -489,7 +507,7 @@ const PublicJobListing = () => {
                                   navigate(`/employer/applications?jobId=${job.jobId}`);
                                 }
                               }}
-                              className={`w-[120px] px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                              className={`w-full sm:w-[120px] px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                                 user && user.role === 'Employer' ? 'hover:bg-blue-600 hover:text-white cursor-pointer' : 'cursor-default'
                               }`}
                               title={user && user.role === 'Employer' ? 'Click to view applications' : ''}
@@ -500,17 +518,18 @@ const PublicJobListing = () => {
                             {/* See More Button - Middle */}
                             <Link
                               to={`/jobs/${job.jobId}`}
-                              className="w-[120px] px-4 py-2 inline-flex items-center justify-center bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap no-underline shadow-sm hover:shadow-md"
+                              className="w-full sm:w-[120px] px-4 py-2 inline-flex items-center justify-center bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap no-underline shadow-sm hover:shadow-md"
                               aria-label={`View details for ${job.title}`}
                             >
                               See more
                             </Link>
 
                             {/* Posted Date - Bottom Center */}
-                            <div className="text-xs font-medium text-gray-500 text-center">
+                            <div className="hidden sm:block text-xs font-medium text-gray-500 text-center mt-1">
                               {getDaysAgo(job.postedDate)}
                             </div>
                           </div>
+
                         </div>
                       </div>
                     ))}
