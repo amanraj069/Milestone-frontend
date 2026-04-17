@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../../context/AuthContext';
 import { fetchAllBlogs, fetchFeaturedBlog } from '../../redux/slices/blogSlice';
 import Footer from './Footer';
+import SolrSearchBar from '../search/SolrSearchBar';
 
 const BlogList = () => {
   const dispatch = useDispatch();
@@ -12,7 +13,6 @@ const BlogList = () => {
   const { blogs: allBlogs, featuredBlog, loading } = useSelector((state) => state.blog);
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const categories = [
     'All',
@@ -56,31 +56,7 @@ const BlogList = () => {
     });
   };
 
-  // Get search suggestions
-  const getSearchSuggestions = () => {
-    if (!searchTerm.trim()) return [];
-    
-    const search = searchTerm.toLowerCase();
-    return allBlogs
-      .filter(blog => 
-        blog.title.toLowerCase().includes(search) ||
-        blog.category.toLowerCase().includes(search)
-      )
-      .slice(0, 5)
-      .map(blog => ({
-        id: blog.blogId,
-        title: blog.title,
-        category: blog.category
-      }));
-  };
-
-  const suggestions = getSearchSuggestions();
-  const topSuggestions = suggestions.slice(0, 4);
-
-  const handleSuggestionClick = (blog) => {
-    setSearchTerm('');
-    setShowSuggestions(false);
-    navigate(`/blogs/${blog.id}`);
+    });
   };
 
   if (loading) {
@@ -140,71 +116,18 @@ const BlogList = () => {
             </p>
             
             {/* Search Bar */}
-            <div className="max-w-2xl mx-auto relative z-40">
-              <div className="relative">
-                <i className="fas fa-search absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-                <input
-                  type="text"
-                  placeholder="Search Blogs..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setShowSuggestions(true);
-                  }}
-                  onFocus={() => searchTerm && setShowSuggestions(true)}
-                  className="w-full pl-14 pr-6 py-4 rounded-full border-2 border-gray-200 focus:border-indigo-500 focus:outline-none shadow-lg"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => {
-                      setSearchTerm('');
-                      setShowSuggestions(false);
-                    }}
-                    className="absolute right-16 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <i className="fas fa-times"></i>
-                  </button>
-                )}
-              </div>
-
-              {/* Auto-complete Suggestions Dropdown */}
-              {showSuggestions && searchTerm && suggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl z-50 border border-gray-100">
-                  <div className="py-1 max-h-80 overflow-y-auto">
-                    {suggestions.map((blog, index) => (
-                      <button
-                        key={blog.id}
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          handleSuggestionClick(blog);
-                        }}
-                        className="w-full px-4 py-2.5 text-left hover:bg-indigo-50 transition-all duration-200 flex items-center justify-between group border-b border-gray-50 last:border-b-0"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 line-clamp-1 text-sm group-hover:text-indigo-600 transition-colors">{blog.title}</p>
-                          <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                            <i className="fas fa-tag text-gray-400"></i>
-                            {blog.category}
-                          </p>
-                        </div>
-                        <i className="fas fa-chevron-right text-indigo-600 ml-3 text-xs opacity-0 group-hover:opacity-100 transition-opacity"></i>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Show message when no suggestions found */}
-              {showSuggestions && searchTerm && suggestions.length === 0 && (
-                <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-xl shadow-2xl z-50 px-5 py-4 text-center border border-gray-100">
-                  <div className="flex justify-center mb-2">
-                    <i className="fas fa-search text-gray-300 text-lg"></i>
-                  </div>
-                  <p className="text-gray-600 text-sm">No blogs found for "<span className="font-semibold text-gray-900">{searchTerm}</span>"</p>
-                  <p className="text-xs text-gray-400 mt-1">Try searching with different keywords</p>
-                </div>
-              )}
+            <div className="max-w-2xl mx-auto relative z-40 text-black">
+              <SolrSearchBar 
+                query={searchTerm}
+                onQueryChange={setSearchTerm}
+                type="blogs"
+                hideToggle={true}
+                onSearch={(query) => {
+                  if (query.trim()) {
+                    navigate(`/search?q=${encodeURIComponent(query)}&type=blogs`);
+                  }
+                }}
+              />
             </div>
           </div>
         </div>
@@ -213,61 +136,6 @@ const BlogList = () => {
       {/* Featured Blog */}
       {featuredBlog && (
         <section className="py-16 bg-white relative">
-          {/* Floating top suggestions over featured block, same width as search bar */}
-          {showSuggestions && searchTerm && topSuggestions.length > 0 && (
-            <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-40 w-full px-4 flex justify-center">
-              <div className="bg-white/95 backdrop-blur shadow-2xl rounded-2xl border border-gray-100 max-w-2xl w-full">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                    <i className="fas fa-bolt text-indigo-600"></i>
-                    Top suggestions
-                  </div>
-                  <button
-                    onClick={() => setShowSuggestions(false)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                    aria-label="Close suggestions"
-                  >
-                    <i className="fas fa-times"></i>
-                  </button>
-                </div>
-                <div className="divide-y divide-gray-100">
-                  {topSuggestions.map((blog) => (
-                    <button
-                      key={blog.id}
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        handleSuggestionClick(blog);
-                      }}
-                      className="w-full px-4 py-3 text-left hover:bg-indigo-50 transition-colors flex items-center justify-between"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-medium text-gray-900 truncate">{blog.title}</p>
-                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                          <i className="fas fa-tag text-gray-400"></i>
-                          {blog.category}
-                        </p>
-                      </div>
-                      <i className="fas fa-arrow-up-right-from-square text-indigo-600 text-sm"></i>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* No matches overlay over featured block */}
-          {showSuggestions && searchTerm && suggestions.length === 0 && (
-            <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-40 w-full px-4 flex justify-center">
-              <div className="bg-white/95 backdrop-blur shadow-2xl rounded-2xl border border-gray-100 max-w-2xl w-full text-center px-5 py-4">
-                <div className="flex justify-center mb-2">
-                  <i className="fas fa-search text-gray-300 text-lg"></i>
-                </div>
-                <p className="text-gray-900 font-semibold text-sm">No Matches Found</p>
-                <p className="text-xs text-gray-400 mt-1">Try different keywords</p>
-              </div>
-            </div>
-          )}
 
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">

@@ -84,6 +84,9 @@ import AdminEditProfile from './pages/Admin/EditProfile';
 // Payment Demo
 import PaymentDemo from './pages/PaymentDemo';
 
+// Search Page (Solr-powered)
+import SearchPage from './pages/SearchPage';
+
 // 404 Page
 import NotFound from './pages/NotFound';
 
@@ -107,6 +110,7 @@ function App() {
                     <Route path="/blogs" element={<BlogList />} />
                     <Route path="/blogs/:blogId" element={<BlogDetail />} />
                     <Route path="/payment-demo" element={<PaymentDemo />} />
+                    <Route path="/search" element={<SearchPage />} />
                     
                     {/* Admin Routes */}
                     <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="Admin"><AdminDashboard /></ProtectedRoute>} />

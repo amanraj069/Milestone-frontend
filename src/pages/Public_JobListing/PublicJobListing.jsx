@@ -3,6 +3,7 @@ import { Link, useLocation, useSearchParams, useNavigate } from 'react-router-do
 import { useAuth } from '../../context/AuthContext';
 
 import Footer from '../../components/Home/Footer';
+import SolrSearchBar from '../../components/search/SolrSearchBar';
 
 const PublicJobListing = () => {
   const auth = useAuth();
@@ -197,19 +198,18 @@ const PublicJobListing = () => {
                 Mile<span className="text-navy-700">stone</span>
               </Link>
             </div>
-            <div className="flex-1 max-w-md mx-8">
-              <form className="relative" onSubmit={handleSearch}>
-                <input 
-                  type="text" 
-                  placeholder="Search for services..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-5 py-3 border-2 rounded-full text-sm outline-none transition-all focus:border-navy-700 focus:ring-4 focus:ring-navy-100 border-gray-200"
-                />
-                <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy-700 text-white border-none rounded-full w-9 h-9 cursor-pointer transition-all hover:bg-navy-800 flex items-center justify-center shrink-0">
-                  <i className="fas fa-search"></i>
-                </button>
-              </form>
+            <div className="flex-1 max-w-md mx-8 text-black">
+              <SolrSearchBar 
+                query={searchTerm}
+                onQueryChange={setSearchTerm}
+                type="jobs"
+                hideToggle={true}
+                onSearch={(query) => {
+                  if (query.trim()) {
+                    navigate(`/search?q=${encodeURIComponent(query)}&type=jobs`);
+                  }
+                }}
+              />
             </div>
             <div className="flex items-center gap-4">
               {user ? (
