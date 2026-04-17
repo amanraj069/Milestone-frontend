@@ -1,18 +1,94 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import JobDetailsModal from '../../../components/employer/JobDetailsModal';
 import SmartFilter from '../../../components/SmartFilter';
 import { useChatContext } from '../../../context/ChatContext';
-import axios from 'axios';
+import { graphqlRequest } from '../../../utils/graphqlClient';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const EMPLOYER_CURRENT_FREELANCERS_QUERY = `
+  query EmployerCurrentFreelancers(
+    $search: String
+    $sortBy: String
+    $page: Int
+    $limit: Int
+    $nameIn: [String]
+    $jobRoleIn: [String]
+  ) {
+    employerCurrentFreelancers(
+      search: $search
+      sortBy: $sortBy
+      page: $page
+      limit: $limit
+      nameIn: $nameIn
+      jobRoleIn: $jobRoleIn
+    ) {
+      freelancers {
+        freelancerId
+        userId
+        name
+        email
+        phone
+        picture
+        rating
+        jobId
+        jobTitle
+        jobDescription
+        startDate
+        daysSinceStart
+        hasRated
+        employerRating
+      }
+      stats {
+        total
+        avgRating
+        avgDays
+        successRate
+      }
+      pagination {
+        page
+        limit
+        total
+        totalPages
+        hasNextPage
+        hasPrevPage
+      }
+      filterOptions {
+        names
+        jobRoles
+      }
+    }
+  }
+`;
+
+const mergeUniqueValues = (existing = [], incoming = []) => {
+  const seen = new Set();
+  const merged = [];
+
+  [...existing, ...incoming].forEach((value) => {
+    if (value === undefined || value === null || value === '') return;
+    const key = String(value);
+    if (seen.has(key)) return;
+    seen.add(key);
+    merged.push(value);
+  });
+
+  return merged;
+};
 
 const EmployerCurrentJobs = () => {
   const navigate = useNavigate();
   const { openChatWith } = useChatContext();
   const [freelancers, setFreelancers] = useState([]);
-  const [filteredFreelancers, setFilteredFreelancers] = useState([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 25,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+  const [filterOptions, setFilterOptions] = useState({ names: [], jobRoles: [] });
   const [stats, setStats] = useState({
     total: 0,
     avgRating: 0,
@@ -20,88 +96,87 @@ const EmployerCurrentJobs = () => {
     successRate: 0
   });
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('rating-high-low');
   const [nameFilters, setNameFilters] = useState([]);
   const [jobRoleFilters, setJobRoleFilters] = useState([]);
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedFreelancer, setSelectedFreelancer] = useState(null);
   const [showJobModal, setShowJobModal] = useState(false);
+  const inFlightRef = useRef('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const querySignature = JSON.stringify({
+    debouncedSearchTerm,
+    sortBy,
+    nameFilters,
+    jobRoleFilters,
+    currentPage,
+    pageSize,
+  });
 
   useEffect(() => {
     fetchCurrentFreelancers();
-  }, []);
-
-  useEffect(() => {
-    const searchLower = searchTerm.trim().toLowerCase();
-
-    const filtered = freelancers.filter((freelancer) => {
-      const name = String(freelancer.name || '');
-      const jobRole = String(freelancer.jobTitle || '');
-
-      if (!searchLower && (!jobRoleFilters || jobRoleFilters.length === 0) && (!nameFilters || nameFilters.length === 0)) return true;
-
-      if (searchLower) {
-        try {
-          const regex = new RegExp(searchTerm, 'i');
-          if (!regex.test(name) && !regex.test(jobRole)) return false;
-        } catch (e) {
-          const nameLower = name.toLowerCase();
-          const jobRoleLower = jobRole.toLowerCase();
-          if (!nameLower.includes(searchLower) && !jobRoleLower.includes(searchLower)) return false;
-        }
-      }
-
-      if (nameFilters && nameFilters.length > 0) {
-        if (!nameFilters.includes(name)) return false;
-      }
-
-      // apply job role column filters if any
-      if (jobRoleFilters && jobRoleFilters.length > 0) {
-        if (!jobRoleFilters.includes(jobRole)) return false;
-      }
-
-      return true;
-    });
-
-    const sorted = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case 'rating-high-low':
-          return (b.rating || 0) - (a.rating || 0);
-        case 'rating-low-high':
-          return (a.rating || 0) - (b.rating || 0);
-        case 'working-since-oldest':
-          return (b.daysSinceStart || 0) - (a.daysSinceStart || 0);
-        case 'working-since-newest':
-          return (a.daysSinceStart || 0) - (b.daysSinceStart || 0);
-        case 'name-a-z':
-          return String(a.name || '').localeCompare(String(b.name || ''));
-        case 'name-z-a':
-          return String(b.name || '').localeCompare(String(a.name || ''));
-        default:
-          return 0;
-      }
-    });
-
-    setFilteredFreelancers(sorted);
-  }, [searchTerm, freelancers, sortBy, jobRoleFilters, nameFilters]);
+  }, [querySignature]);
 
   const fetchCurrentFreelancers = async () => {
+    const variables = {
+      search: debouncedSearchTerm || null,
+      sortBy,
+      page: currentPage,
+      limit: pageSize,
+      nameIn: nameFilters.length ? nameFilters : null,
+      jobRoleIn: jobRoleFilters.length ? jobRoleFilters : null,
+    };
+
+    // Deduplicate in-flight requests 
+    const requestKey = JSON.stringify(variables);
+    if (inFlightRef.current === requestKey) return;
+
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/api/employer/current-freelancers`, {
-        withCredentials: true
+      inFlightRef.current = requestKey;
+
+      const data = await graphqlRequest({
+        query: EMPLOYER_CURRENT_FREELANCERS_QUERY,
+        variables,
       });
 
-      if (response.data.success) {
-        setFreelancers(response.data.data.freelancers);
-        setFilteredFreelancers(response.data.data.freelancers);
-        setStats(response.data.data.stats);
+      const payload = data?.employerCurrentFreelancers;
+      if (payload) {
+        setFreelancers(payload.freelancers || []);
+        setPagination(payload.pagination || {
+          page: currentPage,
+          limit: pageSize,
+          total: 0,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        });
+        const incomingFilters = payload.filterOptions || { names: [], jobRoles: [] };
+        setFilterOptions((prev) => ({
+          names: mergeUniqueValues(prev.names, incomingFilters.names || []),
+          jobRoles: mergeUniqueValues(prev.jobRoles, incomingFilters.jobRoles || []),
+        }));
+        setStats(payload.stats || { total: 0, avgRating: 0, avgDays: 0, successRate: 0 });
       }
     } catch (error) {
       console.error('Error fetching current freelancers:', error);
     } finally {
+      inFlightRef.current = '';
       setLoading(false);
+      setHasLoadedOnce(true);
     }
   };
 
@@ -111,20 +186,7 @@ const EmployerCurrentJobs = () => {
     setShowJobModal(true);
   };
 
-  const handleRateFreelancer = (freelancer) => {
-    setSelectedFreelancer(freelancer);
-    setShowRatingModal(true);
-  };
-
-  const handleRatingSuccess = () => {
-    fetchCurrentFreelancers();
-  };
-
   const handleChat = (freelancer) => {
-    console.log('Chat clicked for freelancer:', freelancer);
-    console.log('Freelancer userId:', freelancer.userId);
-    console.log('Freelancer freelancerId:', freelancer.freelancerId);
-    
     if (!freelancer.userId) {
       console.error('No userId found for freelancer:', freelancer);
       alert('Error: Unable to start chat. User ID not found.');
@@ -230,7 +292,10 @@ const EmployerCurrentJobs = () => {
                 <input
                   type="text"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setSearchTerm(e.target.value);
+                  }}
                   placeholder="Search by freelancer name or job role..."
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -239,7 +304,10 @@ const EmployerCurrentJobs = () => {
 
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setSortBy(e.target.value);
+              }}
               className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               aria-label="Sort current jobs"
             >
@@ -254,13 +322,21 @@ const EmployerCurrentJobs = () => {
         </div>
 
         {/* Freelancers List - Table Layout */}
+        {!hasLoadedOnce ? (
+          <div className="bg-white rounded-xl shadow-md">
+            <div className="text-center py-16">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Loading freelancers...</p>
+            </div>
+          </div>
+        ) : (
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
               <p className="mt-4 text-gray-600">Loading freelancers...</p>
             </div>
-          ) : filteredFreelancers.length === 0 ? (
+          ) : freelancers.length === 0 ? (
             <div className="text-center py-12">
               <i className="fas fa-users text-6xl text-gray-300 mb-4"></i>
               <p className="text-gray-600">
@@ -280,7 +356,11 @@ const EmployerCurrentJobs = () => {
                           data={freelancers}
                           valueExtractor={(it) => it.name || ''}
                           selectedValues={nameFilters}
-                          onFilterChange={setNameFilters}
+                          onFilterChange={(values) => {
+                            setCurrentPage(1);
+                            setNameFilters(values);
+                          }}
+                          options={filterOptions.names || []}
                         />
                       </div>
                     </th>
@@ -292,7 +372,11 @@ const EmployerCurrentJobs = () => {
                           data={freelancers}
                           valueExtractor={(it) => it.jobTitle}
                           selectedValues={jobRoleFilters}
-                          onFilterChange={setJobRoleFilters}
+                          onFilterChange={(values) => {
+                            setCurrentPage(1);
+                            setJobRoleFilters(values);
+                          }}
+                          options={filterOptions.jobRoles || []}
                         />
                       </div>
                     </th>
@@ -308,7 +392,7 @@ const EmployerCurrentJobs = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredFreelancers.map((freelancer) => (
+                  {freelancers.map((freelancer) => (
                     <tr
                       key={`${freelancer.freelancerId}-${freelancer.jobId}`}
                       className="hover:bg-gray-50 transition-colors"
@@ -342,7 +426,7 @@ const EmployerCurrentJobs = () => {
                                   }`}
                                 ></i>
                               ))}
-                              <span className="text-xs text-gray-600 ml-1">{freelancer.rating.toFixed(1)}</span>
+                              <span className="text-xs text-gray-600 ml-1">{Number(freelancer.rating || 0).toFixed(1)}</span>
                             </div>
                           </div>
                         </div>
@@ -355,7 +439,7 @@ const EmployerCurrentJobs = () => {
                         </div>
                         <div className="flex items-center text-sm text-gray-500">
                           <i className="fas fa-calendar-alt text-blue-600 mr-2"></i>
-                          {formatDays(freelancer.startDate || freelancer.hiredDate || freelancer.daysSinceStart || freelancer.startedAt)}
+                          {formatDays(freelancer.startDate || freelancer.daysSinceStart)}
                         </div>
                       </td>
 
@@ -395,9 +479,44 @@ const EmployerCurrentJobs = () => {
                   ))}
                 </tbody>
               </table>
+              <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
+                <p className="text-xs text-gray-500">Showing {freelancers.length} of {pagination.total} records</p>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500">Rows:</label>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setCurrentPage(1);
+                      setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                    }}
+                    className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={loading || !pagination.hasPrevPage}
+                    className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                    disabled={loading || !pagination.hasNextPage}
+                    className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Job Details Modal */}

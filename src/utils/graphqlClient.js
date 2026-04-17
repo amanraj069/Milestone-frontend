@@ -4,9 +4,12 @@
  * and avoids adding a heavy dependency for simple queries.
  */
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const GRAPHQL_URL =
+  import.meta.env.VITE_GRAPHQL_URL ||
+  (import.meta.env.DEV ? '/graphql' : `${API_BASE_URL}/graphql`);
 
 export async function graphqlQuery(query, variables = {}) {
-  const response = await fetch(`${API_BASE_URL}/graphql`, {
+  const response = await fetch(GRAPHQL_URL, {
     method: 'POST',
     credentials: 'include',
     headers: {

@@ -21,14 +21,15 @@ const UNAPPROVED_EMPLOYER_ALLOWED_PATHS = [
 ];
 
 const DashboardLayout = ({ children }) => {
-  const { user, logout, checkAuthStatus } = useAuth();
+  const { user, loading: authLoading, logout, checkAuthStatus } = useAuth();
   const { totalUnreadCount } = useChatNotifications();
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [isPremium, setIsPremium] = useState(false);
   const [pendingApplicationsCount, setPendingApplicationsCount] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const isPremium = user?.subscription === 'Premium';
   
   const unreadCount = useSelector(selectUnreadCount);
   const { socket } = useSocket();
@@ -57,54 +58,35 @@ const DashboardLayout = ({ children }) => {
     );
   };
 
-  useEffect(() => {
-    // Update premium status whenever user changes
-    setIsPremium(user?.subscription === 'Premium');
-  }, [user]);
-
   // Fetch unread notification count
   useEffect(() => {
-    if (user && (user.role === 'Employer' || user.role === 'Freelancer')) {
+    const isEligibleRole = user?.role === 'Employer' || user?.role === 'Freelancer';
+    if (!isEligibleRole) return undefined;
+
+    dispatch(fetchUnreadCount({ force: true }));
+
+    // Keep badge reasonably fresh without creating too many background requests.
+    const interval = setInterval(() => {
       dispatch(fetchUnreadCount());
-      
-      // Poll for updates every 30 seconds
-      const interval = setInterval(() => {
+    }, 60000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
         dispatch(fetchUnreadCount());
-      }, 30000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [dispatch, user]);
-
-  useEffect(() => {
-    if (user?.role !== 'Employer') {
-      setPendingApplicationsCount(0);
-      return;
-    }
-
-    const fetchPendingApplicationsCount = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/employer/job_applications/pending-count`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        const data = await response.json();
-        if (response.ok && data.success) {
-          setPendingApplicationsCount(data.count || 0);
-        }
-      } catch (error) {
-        console.error('Failed to fetch pending applications count:', error);
       }
     };
 
-    fetchPendingApplicationsCount();
-    const interval = setInterval(fetchPendingApplicationsCount, 30000);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [dispatch, user?.role, user?.userId]);
 
-    return () => clearInterval(interval);
+  useEffect(() => {
+    // Keep employer sidebar lightweight and avoid duplicate polling calls.
+    // Application totals are already provided through GraphQL on page-level queries.
+    setPendingApplicationsCount(0);
   }, [user?.role]);
 
   // Listen for profile updates from other pages (EditProfile)
@@ -278,9 +260,9 @@ const DashboardLayout = ({ children }) => {
         }`}
       >
         {/* Header */}
-        <div className="p-6 border-b border-blue-600/30">
-          <div className="flex items-center gap-2 mb-4">
-            <h1 className="text-4xl font-extrabold leading-tight">Dashboard</h1>
+        <div className="px-5 pt-4 pb-3 border-b border-blue-600/30">
+          <div className="flex items-center gap-2 mb-3">
+            <h1 className="text-3xl font-extrabold leading-tight">Dashboard</h1>
             {/* {isPremium && (
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center shadow-lg">
@@ -290,9 +272,9 @@ const DashboardLayout = ({ children }) => {
               </div>
             )} */}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-blue-500">
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-blue-500">
                 <img 
                   src={user?.picture || 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png'} 
                   alt="Profile" 
@@ -305,16 +287,22 @@ const DashboardLayout = ({ children }) => {
               </div>
             </div>
             <div>
-              <h2 className="text-base font-semibold leading-tight">Welcome, {getRoleDisplay()} {user?.name ? user.name.split(' ')[0] : 'User'}!</h2>
-              {isPremium && (
-                <p className="text-xs text-yellow-300 font-medium mt-0.5">Premium Member</p>
+              {!authLoading && user ? (
+                <>
+                  <h2 className="text-[15px] font-semibold leading-tight">Welcome, {getRoleDisplay()} {user?.name ? user.name.split(' ')[0] : 'User'}!</h2>
+                  {isPremium && (
+                    <p className="text-xs text-yellow-300 font-medium mt-0.5">Premium Member</p>
+                  )}
+                </>
+              ) : (
+                <div className="h-9 w-40 rounded bg-white/10 animate-pulse" />
               )}
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 flex flex-col py-4 overflow-y-auto overflow-x-hidden">
+        <nav className="dashboard-nav-scroll flex-1 flex flex-col py-2 overflow-y-auto overflow-x-hidden">
           <div className="flex-1">
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;
@@ -328,7 +316,7 @@ const DashboardLayout = ({ children }) => {
                 return (
                   <div
                     key={item.path}
-                    className="flex items-center gap-3 px-6 py-3 text-base font-medium transition-all relative text-white/40 cursor-not-allowed blur-[1px]"
+                    className="flex items-center gap-3 px-5 py-2.5 text-[15px] font-medium transition-all relative text-white/40 cursor-not-allowed blur-[1px]"
                     title="Your account is pending approval"
                   >
                     <i className={`${item.icon} text-lg w-5`}></i>
@@ -342,7 +330,7 @@ const DashboardLayout = ({ children }) => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all relative ${
+                  className={`flex items-center gap-3 px-5 py-2.5 text-[15px] font-medium transition-all relative ${
                     isActive
                       ? 'bg-white/20 border-l-4 border-white text-white'
                       : 'text-white/90 hover:bg-white/10 border-l-4 border-transparent hover:border-white/50'
@@ -370,10 +358,10 @@ const DashboardLayout = ({ children }) => {
             })}
           </div>
 
-          <div className="mt-auto p-3">
+          <div className="mt-auto px-3 pt-2 pb-3">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white font-semibold text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition-all"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white font-semibold text-[15px] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition-all"
             >
               <i className="fas fa-sign-out-alt text-lg"></i>
               <span>Logout</span>
@@ -425,7 +413,7 @@ const DashboardLayout = ({ children }) => {
           <div className="w-10 h-10" aria-hidden="true"></div>
         </div>
 
-        <main className="flex-1 overflow-y-auto min-w-0">
+        <main className="dashboard-main-scroll flex-1 overflow-y-auto min-w-0">
           {children}
         </main>
       </div>

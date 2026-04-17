@@ -9,8 +9,51 @@ import { graphqlQuery } from '../../../utils/graphqlClient';
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const EMPLOYER_TRANSACTIONS_QUERY = `
-  query EmployerTransactions {
-    employerTransactions {
+  query EmployerTransactions(
+    $search: String
+    $sortBy: String
+    $statusIn: [String]
+    $freelancerIn: [String]
+    $jobIn: [String]
+    $milestoneIn: [String]
+    $paymentBucketIn: [String]
+    $page: Int
+    $limit: Int
+  ) {
+    employerTransactions(
+      search: $search
+      sortBy: $sortBy
+      statusIn: $statusIn
+      freelancerIn: $freelancerIn
+      jobIn: $jobIn
+      milestoneIn: $milestoneIn
+      paymentBucketIn: $paymentBucketIn
+      page: $page
+      limit: $limit
+    ) {
+      total
+      pagination {
+        page
+        limit
+        total
+        totalPages
+        hasNextPage
+        hasPrevPage
+      }
+      filterOptions {
+        freelancers
+        jobs
+        statuses
+        milestones
+        paymentBuckets
+      }
+      summary {
+        totalProjects
+        totalBudget
+        totalPaid
+        activeProjects
+        completedProjects
+      }
       data {
         jobId jobTitle freelancerId freelancerName freelancerPicture freelancerEmail
         status startDate endDate totalBudget paidAmount paymentPercentage
@@ -22,10 +65,31 @@ const EMPLOYER_TRANSACTIONS_QUERY = `
 
 const EmployerTransactions = () => {
   const [transactions, setTransactions] = useState([]);
+  const [transactionsMeta, setTransactionsMeta] = useState({
+    total: 0,
+    pagination: null,
+    filterOptions: {
+      freelancers: [],
+      jobs: [],
+      statuses: [],
+      milestones: [],
+      paymentBuckets: [],
+    },
+    summary: {
+      totalProjects: 0,
+      totalBudget: 0,
+      totalPaid: 0,
+      activeProjects: 0,
+      completedProjects: 0,
+    },
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name-a-z');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [nameFilters, setNameFilters] = useState([]);
   const [roleFilters, setRoleFilters] = useState([]);
   const [milestoneFilters, setMilestoneFilters] = useState([]);
@@ -65,9 +129,36 @@ const EmployerTransactions = () => {
   const platformCols = useSmartColumnToggle(PLATFORM_COLUMNS, 'employer_platform_columns');
 
   useEffect(() => {
-    fetchTransactions();
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
     fetchPlatformPayments();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, sortBy, nameFilters, roleFilters, milestoneFilters, statusFilters, paymentProgressFilters, pageSize]);
+
+  const serverQuerySignature = JSON.stringify({
+    debouncedSearchTerm,
+    sortBy,
+    statusFilters,
+    nameFilters,
+    roleFilters,
+    milestoneFilters,
+    paymentProgressFilters,
+    currentPage,
+    pageSize,
+  });
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [serverQuerySignature]);
 
   const fetchPlatformPayments = async () => {
     try {
@@ -144,9 +235,42 @@ const EmployerTransactions = () => {
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-      const result = await graphqlQuery(EMPLOYER_TRANSACTIONS_QUERY);
+      setError(null);
+      const result = await graphqlQuery(EMPLOYER_TRANSACTIONS_QUERY, {
+        search: debouncedSearchTerm || null,
+        sortBy,
+        statusIn: statusFilters.length ? statusFilters : null,
+        freelancerIn: nameFilters.length ? nameFilters : null,
+        jobIn: roleFilters.length ? roleFilters : null,
+        milestoneIn: milestoneFilters.length ? milestoneFilters : null,
+        paymentBucketIn: paymentProgressFilters.length ? paymentProgressFilters : null,
+        page: currentPage,
+        limit: pageSize,
+      });
       if (result?.employerTransactions) {
-        setTransactions(result.employerTransactions.data || []);
+        const payload = result.employerTransactions;
+        setTransactions(payload.data || []);
+        if (payload.pagination?.page && payload.pagination.page !== currentPage) {
+          setCurrentPage(payload.pagination.page);
+        }
+        setTransactionsMeta({
+          total: payload.total || 0,
+          pagination: payload.pagination || null,
+          filterOptions: payload.filterOptions || {
+            freelancers: [],
+            jobs: [],
+            statuses: [],
+            milestones: [],
+            paymentBuckets: [],
+          },
+          summary: payload.summary || {
+            totalProjects: 0,
+            totalBudget: 0,
+            totalPaid: 0,
+            activeProjects: 0,
+            completedProjects: 0,
+          },
+        });
       } else {
         setError('Failed to fetch transactions');
       }
@@ -177,13 +301,6 @@ const EmployerTransactions = () => {
     );
   };
 
-  const getPaymentProgressBucket = (percentage) => {
-    if (percentage < 25) return 'Less than 25%';
-    if (percentage < 50) return '25-50%';
-    if (percentage < 75) return '50-75%';
-    return '75-100%';
-  };
-
   const getStatusLabel = (status) => {
     if (status === 'working') return 'In Progress';
     if (status === 'finished') return 'Completed';
@@ -194,64 +311,18 @@ const EmployerTransactions = () => {
   const getMilestoneValue = (transaction) =>
     `${transaction.completedMilestones || 0}/${transaction.milestonesCount || 0}`;
 
-  const paymentBucketSeed = [
-    { __bucket: 'Less than 25%' },
-    { __bucket: '25-50%' },
-    { __bucket: '50-75%' },
-    { __bucket: '75-100%' },
-  ];
-
-  const visibleTransactions = [...transactions]
-    .filter((transaction) => {
-      const searchLower = searchTerm.trim().toLowerCase();
-      if (!searchLower) return true;
-
-      const name = String(transaction.freelancerName || '');
-      const role = String(transaction.jobTitle || '');
-
-      try {
-        const regex = new RegExp(searchTerm, 'i');
-        return regex.test(name) || regex.test(role);
-      } catch (e) {
-        const nameLower = name.toLowerCase();
-        const roleLower = role.toLowerCase();
-        return nameLower.includes(searchLower) || roleLower.includes(searchLower);
-      }
-    })
-    .filter((transaction) => {
-      if (nameFilters.length > 0 && !nameFilters.includes(transaction.freelancerName)) return false;
-      if (roleFilters.length > 0 && !roleFilters.includes(transaction.jobTitle)) return false;
-      if (milestoneFilters.length > 0 && !milestoneFilters.includes(getMilestoneValue(transaction))) return false;
-      if (statusFilters.length > 0 && !statusFilters.includes(transaction.status)) return false;
-
-      if (
-        paymentProgressFilters.length > 0 &&
-        !paymentProgressFilters.includes(getPaymentProgressBucket(transaction.paymentPercentage || 0))
-      ) {
-        return false;
-      }
-
-      return true;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'name-a-z':
-          return String(a.freelancerName || '').localeCompare(String(b.freelancerName || ''));
-        case 'name-z-a':
-          return String(b.freelancerName || '').localeCompare(String(a.freelancerName || ''));
-        case 'budget-high-low':
-          return (b.totalBudget || 0) - (a.totalBudget || 0);
-        case 'budget-low-high':
-          return (a.totalBudget || 0) - (b.totalBudget || 0);
-        default:
-          return 0;
-      }
-    });
-
-  const totalBudget = transactions.reduce((sum, t) => sum + t.totalBudget, 0);
-  const totalPaid = transactions.reduce((sum, t) => sum + t.paidAmount, 0);
-  const activeProjects = transactions.filter(t => t.status === 'working').length;
-  const completedProjects = transactions.filter(t => t.status === 'finished').length;
+  const totalRecords = transactionsMeta.pagination?.total ?? transactionsMeta.total ?? 0;
+  const totalPages = Math.max(1, transactionsMeta.pagination?.totalPages || 1);
+  const hasPrevPage = Boolean(transactionsMeta.pagination?.hasPrevPage);
+  const hasNextPage = Boolean(transactionsMeta.pagination?.hasNextPage);
+  const hasActiveProjectFilters = Boolean(
+    debouncedSearchTerm ||
+      nameFilters.length ||
+      roleFilters.length ||
+      milestoneFilters.length ||
+      statusFilters.length ||
+      paymentProgressFilters.length
+  );
 
   if (loading) {
     return (
@@ -318,7 +389,7 @@ const EmployerTransactions = () => {
 
       {viewMode === 'projects' ? (
         <>
-        {transactions.length > 0 && (
+        {totalRecords > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
               <div className="flex items-center">
@@ -329,7 +400,7 @@ const EmployerTransactions = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Total Projects</p>
-                  <p className="text-2xl font-bold text-gray-900">{transactions.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{transactionsMeta.summary.totalProjects}</p>
                 </div>
               </div>
             </div>
@@ -343,7 +414,7 @@ const EmployerTransactions = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Total Paid</p>
-                  <p className="text-2xl font-bold text-gray-900">₹{totalPaid.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-gray-900">₹{(transactionsMeta.summary.totalPaid || 0).toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -357,7 +428,7 @@ const EmployerTransactions = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Active Projects</p>
-                  <p className="text-2xl font-bold text-gray-900">{activeProjects}</p>
+                  <p className="text-2xl font-bold text-gray-900">{transactionsMeta.summary.activeProjects}</p>
                 </div>
               </div>
             </div>
@@ -371,7 +442,7 @@ const EmployerTransactions = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Completed</p>
-                  <p className="text-2xl font-bold text-gray-900">{completedProjects}</p>
+                  <p className="text-2xl font-bold text-gray-900">{transactionsMeta.summary.completedProjects}</p>
                 </div>
               </div>
             </div>
@@ -391,7 +462,10 @@ const EmployerTransactions = () => {
             <div className="flex items-center gap-3">
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => {
+                  setCurrentPage(1);
+                  setSortBy(e.target.value);
+                }}
                 className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Sort transactions"
               >
@@ -415,15 +489,19 @@ const EmployerTransactions = () => {
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-          {transactions.length === 0 ? (
+          {totalRecords === 0 ? (
             <div className="text-center py-16">
               <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Transactions Yet</h3>
-              <p className="text-gray-500 max-w-md mx-auto">Once you hire freelancers for your jobs, their payment details will appear here.</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">{hasActiveProjectFilters ? 'No Matching Transactions' : 'No Transactions Yet'}</h3>
+              <p className="text-gray-500 max-w-md mx-auto">
+                {hasActiveProjectFilters
+                  ? 'Try changing search text, filters, or sort selection.'
+                  : 'Once you hire freelancers for your jobs, their payment details will appear here.'}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -436,8 +514,7 @@ const EmployerTransactions = () => {
                           Freelancer
                           <SmartFilter
                             label="Freelancer"
-                            data={transactions}
-                            field="freelancerName"
+                            options={transactionsMeta.filterOptions.freelancers || []}
                             selectedValues={nameFilters}
                             onFilterChange={setNameFilters}
                           />
@@ -450,8 +527,7 @@ const EmployerTransactions = () => {
                           Job Details
                           <SmartFilter
                             label="Job role"
-                            data={transactions}
-                            field="jobTitle"
+                            options={transactionsMeta.filterOptions.jobs || []}
                             selectedValues={roleFilters}
                             onFilterChange={setRoleFilters}
                           />
@@ -464,8 +540,7 @@ const EmployerTransactions = () => {
                           Status
                           <SmartFilter
                             label="Status"
-                            data={transactions}
-                            field="status"
+                            options={transactionsMeta.filterOptions.statuses || []}
                             selectedValues={statusFilters}
                             onFilterChange={setStatusFilters}
                             valueFormatter={getStatusLabel}
@@ -479,10 +554,9 @@ const EmployerTransactions = () => {
                           Milestones
                           <SmartFilter
                             label="Milestones"
-                            data={transactions}
+                            options={transactionsMeta.filterOptions.milestones || []}
                             selectedValues={milestoneFilters}
                             onFilterChange={setMilestoneFilters}
-                            valueExtractor={getMilestoneValue}
                           />
                         </div>
                       </th>
@@ -493,10 +567,9 @@ const EmployerTransactions = () => {
                           Payment Progress
                           <SmartFilter
                             label="Payment"
-                            data={[...transactions, ...paymentBucketSeed]}
+                            options={transactionsMeta.filterOptions.paymentBuckets || []}
                             selectedValues={paymentProgressFilters}
                             onFilterChange={setPaymentProgressFilters}
-                            valueExtractor={(item) => item.__bucket || getPaymentProgressBucket(item.paymentPercentage || 0)}
                           />
                         </div>
                       </th>
@@ -510,7 +583,7 @@ const EmployerTransactions = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                    {visibleTransactions.map((transaction) => (
+                    {transactions.map((transaction) => (
                       <tr 
                         key={transaction.jobId} 
                         className="hover:bg-gray-50 transition-colors"
@@ -611,10 +684,40 @@ const EmployerTransactions = () => {
             </div>
           )}
 
-          {transactions.length > 0 && visibleTransactions.length === 0 && (
-            <div className="text-center py-16 border-t border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Matching Transactions</h3>
-              <p className="text-gray-500">Try changing search text, filters, or sort selection.</p>
+          {transactions.length > 0 && (
+            <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
+              <p className="text-xs text-gray-500">Showing {transactions.length} of {totalRecords} records</p>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Rows:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                  }}
+                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={!hasPrevPage}
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={!hasNextPage}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </div>

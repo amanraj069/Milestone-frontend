@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import ApplicationDetailsModal from '../../../components/employer/ApplicationDetailsModal';
@@ -20,40 +20,133 @@ const APP_COLUMNS = [
   { key: 'actions', label: 'Actions' },
 ];
 
+const mergeUniqueValues = (existing = [], incoming = []) => {
+  const seen = new Set();
+  const merged = [];
+
+  [...existing, ...incoming].forEach((value) => {
+    if (value === undefined || value === null || value === '') return;
+    const key = String(value);
+    if (seen.has(key)) return;
+    seen.add(key);
+    merged.push(value);
+  });
+
+  return merged;
+};
+
 const EmployerApplications = () => {
   const [searchParams] = useSearchParams();
-  const jobIdFilter = searchParams.get('jobId'); // Get jobId from URL query
+  const jobIdFilter = searchParams.get('jobId');
   
   const [applications, setApplications] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, accepted: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [serverPagination, setServerPagination] = useState(null);
+  const [metaFilters, setMetaFilters] = useState({ freelancers: [], jobs: [], statuses: ['Pending', 'Accepted', 'Rejected'], ratings: [] });
 
-  // SmartFilter states for column-level filtering
   const [freelancerFilters, setFreelancerFilters] = useState([]);
   const [jobFilters, setJobFilters] = useState([]);
   const [statusFilters, setStatusFilters] = useState([]);
-  const [dateFilters, setDateFilters] = useState([]);
   const [ratingFilters, setRatingFilters] = useState([]);
   const [sortBy, setSortBy] = useState('date-desc');
+  const inFlightRequestKeyRef = useRef('');
 
   const cols = useSmartColumnToggle(APP_COLUMNS, 'employer-apps-cols');
 
-  useEffect(() => { fetchApplications(); }, [jobIdFilter]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
 
-  const fetchApplications = async () => {
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const filterSignature = JSON.stringify({
+    jobIdFilter,
+    debouncedSearchTerm,
+    sortBy,
+    freelancerFilters,
+    jobFilters,
+    statusFilters,
+    ratingFilters,
+  });
+
+  useEffect(() => {
+    fetchApplications(currentPage, pageSize);
+  }, [currentPage, pageSize, filterSignature]);
+
+  const fetchApplications = async (page = currentPage, limit = pageSize) => {
+    const effectiveJobFilters = jobIdFilter
+      ? [jobIdFilter]
+      : jobFilters;
+
+    const variables = {
+      status: 'all',
+      sort:
+        sortBy === 'date-desc'
+          ? 'newest'
+          : sortBy === 'date-asc'
+          ? 'oldest'
+          : sortBy === 'name-asc'
+          ? 'name_asc'
+          : sortBy === 'name-desc'
+          ? 'name_desc'
+          : sortBy === 'rating-desc'
+          ? 'rating_desc'
+          : 'premium_oldest',
+      limit,
+      offset: (page - 1) * limit,
+      page,
+      search: debouncedSearchTerm || null,
+      freelancerIn: freelancerFilters.length ? freelancerFilters : null,
+      jobIn: effectiveJobFilters.length ? effectiveJobFilters : null,
+      statusIn: statusFilters.length ? statusFilters : null,
+      ratingIn: ratingFilters.length ? ratingFilters.map((r) => Number(r)).filter((n) => Number.isFinite(n)) : null,
+    };
+
+    const requestKey = JSON.stringify(variables);
+    if (inFlightRequestKeyRef.current === requestKey) {
+      return;
+    }
+
     try {
       setLoading(true);
-
-      let allApplications = [];
-      let sourceStats = null;
+      inFlightRequestKeyRef.current = requestKey;
 
       const data = await graphqlRequest({
         query: `
-          query EmployerApplications($status: String, $sort: String, $limit: Int, $offset: Int) {
-            employerApplications(status: $status, sort: $sort, limit: $limit, offset: $offset) {
+          query EmployerApplications(
+            $status: String
+            $sort: String
+            $limit: Int
+            $offset: Int
+            $page: Int
+            $search: String
+            $freelancerIn: [String]
+            $jobIn: [String]
+            $statusIn: [String]
+            $ratingIn: [Float]
+          ) {
+            employerApplications(
+              status: $status
+              sort: $sort
+              limit: $limit
+              offset: $offset
+              page: $page
+              search: $search
+              freelancerIn: $freelancerIn
+              jobIn: $jobIn
+              statusIn: $statusIn
+              ratingIn: $ratingIn
+            ) {
               applications {
                 applicationId
                 jobId
@@ -71,6 +164,20 @@ const EmployerApplications = () => {
                 jobTitle
                 isPremium
               }
+              filterOptions {
+                freelancers
+                jobs
+                statuses
+                ratings
+              }
+              pagination {
+                page
+                limit
+                total
+                totalPages
+                hasNextPage
+                hasPrevPage
+              }
               stats {
                 total
                 pending
@@ -80,45 +187,47 @@ const EmployerApplications = () => {
             }
           }
         `,
-        variables: {
-          status: 'all',
-          sort: 'premium_oldest',
-          limit: 500,
-          offset: 0,
-        },
+        variables,
       });
 
-      allApplications = data?.employerApplications?.applications || [];
-      sourceStats = data?.employerApplications?.stats || null;
+      const payload = data?.employerApplications;
+      const rows = payload?.applications || [];
+      setApplications(rows);
+      setStats(payload?.stats || { total: 0, pending: 0, accepted: 0, rejected: 0 });
+      setServerPagination(payload?.pagination || null);
+      const incomingFilters = payload?.filterOptions || { freelancers: [], jobs: [], statuses: [], ratings: [] };
 
-      // Filter by jobId if provided in URL
-      if (jobIdFilter) {
-        allApplications = allApplications.filter(app => app.jobId === jobIdFilter);
+      setMetaFilters((prev) => {
+        const mergedStatuses = mergeUniqueValues(
+          prev.statuses,
+          mergeUniqueValues(incomingFilters.statuses || [], ['Pending', 'Accepted', 'Rejected']),
+        );
+
+        return {
+          freelancers: mergeUniqueValues(prev.freelancers, incomingFilters.freelancers || []),
+          jobs: mergeUniqueValues(prev.jobs, incomingFilters.jobs || []),
+          statuses: mergedStatuses,
+          ratings: mergeUniqueValues(prev.ratings, incomingFilters.ratings || []),
+        };
+      });
+      if (payload?.pagination?.page && payload.pagination.page !== currentPage) {
+        setCurrentPage(payload.pagination.page);
       }
-
-      setApplications(allApplications);
-
-      // Calculate statistics based on filtered applications
-      const filteredStats = {
-        total: allApplications.length,
-        pending: allApplications.filter(app => app.status === 'Pending').length,
-        accepted: allApplications.filter(app => app.status === 'Accepted').length,
-        rejected: allApplications.filter(app => app.status === 'Rejected').length,
-      };
-
-      // Preserve old behavior for job-filtered view; otherwise trust API stats when available
-      setStats(jobIdFilter || !sourceStats ? filteredStats : sourceStats);
     } catch (error) {
       console.error('Error fetching applications:', error);
     } finally {
+      inFlightRequestKeyRef.current = '';
       setLoading(false);
+      setHasLoadedOnce(true);
     }
   };
 
   const handleAccept = async (applicationId) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/employer/job_applications/${applicationId}/accept`, {}, { withCredentials: true });
-      if (response.data.success) { fetchApplications(); }
+      if (response.data.success) {
+        fetchApplications(currentPage, pageSize);
+      }
     } catch (error) {
       console.error('Error accepting application:', error);
       alert('Failed to accept application');
@@ -128,7 +237,9 @@ const EmployerApplications = () => {
   const handleReject = async (applicationId) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/employer/job_applications/${applicationId}/reject`, {}, { withCredentials: true });
-      if (response.data.success) { fetchApplications(); }
+      if (response.data.success) {
+        fetchApplications(currentPage, pageSize);
+      }
     } catch (error) {
       console.error('Error rejecting application:', error);
       alert('Failed to reject application');
@@ -146,62 +257,6 @@ const EmployerApplications = () => {
     setShowDetailsModal(true);
   };
 
-  const filteredApplications = useMemo(() => {
-    let list = [...applications];
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      list = list.filter(
-        (a) =>
-          a.freelancerName?.toLowerCase().includes(term) ||
-          a.jobTitle?.toLowerCase().includes(term) ||
-          a.freelancerEmail?.toLowerCase().includes(term)
-      );
-    }
-
-    if (freelancerFilters.length > 0) {
-      list = list.filter((a) => freelancerFilters.includes(a.freelancerName));
-    }
-
-    if (jobFilters.length > 0) {
-      list = list.filter((a) => jobFilters.includes(a.jobTitle));
-    }
-
-    if (statusFilters.length > 0) {
-      list = list.filter((a) => statusFilters.includes(a.status));
-    }
-
-    if (dateFilters.length > 0) {
-      list = list.filter((a) => dateFilters.includes(new Date(a.appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })));
-    }
-
-    if (ratingFilters.length > 0) {
-      list = list.filter((a) => ratingFilters.includes(a.skillRating));
-    }
-
-    switch (sortBy) {
-      case 'date-desc':
-        list.sort((a, b) => new Date(b.appliedDate) - new Date(a.appliedDate));
-        break;
-      case 'date-asc':
-        list.sort((a, b) => new Date(a.appliedDate) - new Date(b.appliedDate));
-        break;
-      case 'name-asc':
-        list.sort((a, b) => (a.freelancerName || '').localeCompare(b.freelancerName || ''));
-        break;
-      case 'name-desc':
-        list.sort((a, b) => (b.freelancerName || '').localeCompare(a.freelancerName || ''));
-        break;
-      case 'rating-desc':
-        list.sort((a, b) => (b.skillRating || 0) - (a.skillRating || 0));
-        break;
-      default:
-        break;
-    }
-
-    return list;
-  }, [applications, searchTerm, freelancerFilters, jobFilters, statusFilters, dateFilters, ratingFilters, sortBy]);
-
   const getStatusBadge = (status) => {
     const styles = {
       Pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'PENDING' },
@@ -212,18 +267,29 @@ const EmployerApplications = () => {
     return <span className={`px-3 py-1 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>{s.label}</span>;
   };
 
-  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const parsed = new Date(dateString);
+    if (Number.isNaN(parsed.getTime())) return 'N/A';
+    return parsed.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
 
   const activeFilters =
-    freelancerFilters.length + jobFilters.length + statusFilters.length +
-    dateFilters.length + ratingFilters.length +
+    freelancerFilters.length +
+    jobFilters.length +
+    statusFilters.length +
+    ratingFilters.length +
     (searchTerm ? 1 : 0);
 
-  // Get the job title if filtering by specific job
-  const filteredJobTitle = jobIdFilter && applications.length > 0 ? applications[0].jobTitle : null;
+  const filteredJobTitle =
+    jobIdFilter && applications.length > 0 ? applications[0].jobTitle : null;
 
   return (
-    <DashboardPage title={filteredJobTitle ? `Applications for ${filteredJobTitle}` : "Applications"}>
+    <DashboardPage title={filteredJobTitle ? `Applications for ${filteredJobTitle}` : 'Applications'}>
       <div className="space-y-6">
         <p className="text-gray-600">Review and manage applications for your job listings</p>
 
@@ -285,14 +351,20 @@ const EmployerApplications = () => {
                 type="text"
                 placeholder="Search by name, email, or job title..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setCurrentPage(1);
+                  setSearchTerm(e.target.value);
+                }}
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
 
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setSortBy(e.target.value);
+              }}
               className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
               <option value="date-desc">Newest First</option>
@@ -306,28 +378,40 @@ const EmployerApplications = () => {
 
             {activeFilters > 0 && (
               <button
-                onClick={() => { setSearchTerm(''); setFreelancerFilters([]); setJobFilters([]); setStatusFilters([]); setDateFilters([]); setRatingFilters([]); }}
-                className="px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                onClick={() => {
+                  setCurrentPage(1);
+                  setSearchTerm('');
+                  setFreelancerFilters([]);
+                  setJobFilters([]);
+                  setStatusFilters([]);
+                  setRatingFilters([]);
+                }}
+                className="px-3 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 flex items-center gap-1.5"
               >
-                Clear ({activeFilters})
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear Filters
               </button>
             )}
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            Showing <span className="font-semibold text-gray-700">{filteredApplications.length}</span> of {applications.length} applications
-          </p>
-        </div>
-
+        {!hasLoadedOnce ? (
+          <div className="bg-white rounded-xl shadow-md">
+            <div className="text-center py-16">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Loading applications...</p>
+            </div>
+          </div>
+        ) : (
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
               <p className="mt-4 text-gray-600">Loading applications...</p>
             </div>
-          ) : filteredApplications.length === 0 ? (
+          ) : applications.length === 0 ? (
             <div className="text-center py-12">
               <i className="fas fa-inbox text-5xl text-gray-300 mb-4"></i>
               <p className="text-gray-600 font-medium">No applications found</p>
@@ -347,7 +431,11 @@ const EmployerApplications = () => {
                             data={applications}
                             field="freelancerName"
                             selectedValues={freelancerFilters}
-                            onFilterChange={setFreelancerFilters}
+                            onFilterChange={(values) => {
+                              setCurrentPage(1);
+                              setFreelancerFilters(values);
+                            }}
+                            options={metaFilters.freelancers}
                           />
                         </div>
                       </th>
@@ -361,7 +449,11 @@ const EmployerApplications = () => {
                             data={applications}
                             field="jobTitle"
                             selectedValues={jobFilters}
-                            onFilterChange={setJobFilters}
+                            onFilterChange={(values) => {
+                              setCurrentPage(1);
+                              setJobFilters(values);
+                            }}
+                            options={metaFilters.jobs}
                           />
                         </div>
                       </th>
@@ -375,24 +467,17 @@ const EmployerApplications = () => {
                             data={applications}
                             field="status"
                             selectedValues={statusFilters}
-                            onFilterChange={setStatusFilters}
+                            onFilterChange={(values) => {
+                              setCurrentPage(1);
+                              setStatusFilters(values);
+                            }}
+                            options={metaFilters.statuses}
                           />
                         </div>
                       </th>
                     )}
                     {cols.visible.has('date') && (
-                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        <div className="flex items-center justify-center gap-2">
-                          Applied
-                          <SmartFilter
-                            label="Date"
-                            data={applications}
-                            valueExtractor={(item) => new Date(item.appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            selectedValues={dateFilters}
-                            onFilterChange={setDateFilters}
-                          />
-                        </div>
-                      </th>
+                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Applied</th>
                     )}
                     {cols.visible.has('rating') && (
                       <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -403,7 +488,11 @@ const EmployerApplications = () => {
                             data={applications}
                             field="skillRating"
                             selectedValues={ratingFilters}
-                            onFilterChange={setRatingFilters}
+                            onFilterChange={(values) => {
+                              setCurrentPage(1);
+                              setRatingFilters(values);
+                            }}
+                            options={metaFilters.ratings}
                           />
                         </div>
                       </th>
@@ -414,7 +503,7 @@ const EmployerApplications = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredApplications.map((application) => (
+                  {applications.map((application) => (
                     <tr key={application.applicationId} className="hover:bg-gray-50 transition-colors">
                       {cols.visible.has('freelancer') && (
                         <td className="px-6 py-4">
@@ -499,12 +588,57 @@ const EmployerApplications = () => {
             </div>
           )}
         </div>
+        )}
+
+        {!loading && applications.length > 0 && (
+          <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500 mt-auto">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                Showing {applications.length} applications on page {serverPagination?.page || currentPage} (total {serverPagination?.total || applications.length})
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Rows:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                  }}
+                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={loading || !(serverPagination?.hasPrevPage || currentPage > 1)}
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  disabled={loading || !serverPagination?.hasNextPage}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {showDetailsModal && selectedApplication && (
         <ApplicationDetailsModal
           application={selectedApplication}
-          onClose={() => { setShowDetailsModal(false); setSelectedApplication(null); }}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedApplication(null);
+          }}
         />
       )}
     </DashboardPage>

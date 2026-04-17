@@ -292,29 +292,31 @@ const AdminModerators = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden min-h-[calc(90vh-20rem)] flex flex-col">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                {modVisible.has('photo') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Photo</th>}
-                {modVisible.has('name') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Name</th>}
-                {modVisible.has('email') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>}
-                {modVisible.has('location') && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    <div className="flex items-center gap-1.5">Location
-                      <SmartFilter
-                        label="Location"
-                        data={moderators}
-                        field="location"
-                        selectedValues={modFilters.location}
-                        onFilterChange={(values) => setModFilters((prev) => ({ ...prev, location: values }))}
-                        options={metaFilters?.locations || []}
-                      />
-                    </div>
-                  </th>
-                )}
-                {modVisible.has('joined') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Joined</th>}
-                {modVisible.has('actions') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>}
-              </tr>
-            </thead>
+            {!modLoading && (
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {modVisible.has('photo') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Photo</th>}
+                  {modVisible.has('name') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Name</th>}
+                  {modVisible.has('email') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>}
+                  {modVisible.has('location') && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <div className="flex items-center gap-1.5">Location
+                        <SmartFilter
+                          label="Location"
+                          data={moderators}
+                          field="location"
+                          selectedValues={modFilters.location}
+                          onFilterChange={(values) => setModFilters((prev) => ({ ...prev, location: values }))}
+                          options={metaFilters?.locations || []}
+                        />
+                      </div>
+                    </th>
+                  )}
+                  {modVisible.has('joined') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Joined</th>}
+                  {modVisible.has('actions') && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>}
+                </tr>
+              </thead>
+            )}
             <tbody className="divide-y divide-gray-100">
               {modLoading ? (
                 <tr>

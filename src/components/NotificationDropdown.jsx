@@ -27,14 +27,25 @@ const NotificationDropdown = () => {
   useEffect(() => {
     // Fetch notifications on mount
     dispatch(fetchNotifications());
-    dispatch(fetchUnreadCount());
+    dispatch(fetchUnreadCount({ force: true }));
     
-    // Set up polling for notifications (every 30 seconds)
+    // Set up polling for notifications
     const interval = setInterval(() => {
       dispatch(fetchUnreadCount());
-    }, 30000);
+    }, 60000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        dispatch(fetchUnreadCount());
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [dispatch]);
 
   // Close dropdown when clicking outside

@@ -18,8 +18,16 @@ const PublicJobListing = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [visibleJobsCount, setVisibleJobsCount] = useState(6);
   const [availableSkills, setAvailableSkills] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
 
   // Filter states
   const [sortBy, setSortBy] = useState('date');
@@ -28,11 +36,12 @@ const PublicJobListing = () => {
   const [selectedJobType, setSelectedJobType] = useState('');
   const [isRemote, setIsRemote] = useState(false);
   const [locationFilter, setLocationFilter] = useState('');
+  const pageSize = 10;
 
-  // Load jobs on mount
+  // Load jobs whenever page changes
   useEffect(() => {
-    loadJobs();
-  }, []);
+    loadJobs(currentPage);
+  }, [currentPage]);
 
   // Handle search params from URL
   useEffect(() => {
@@ -47,19 +56,29 @@ const PublicJobListing = () => {
     applyFiltersAndSort();
   }, [jobs, searchTerm, sortBy, selectedExperience, selectedSkills, selectedJobType, isRemote, locationFilter]);
 
-  const loadJobs = async () => {
+  const loadJobs = async (page = 1) => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/jobs/api`, {
+      setLoading(true);
+      const response = await fetch(`${apiBaseUrl}/api/jobs/api?page=${page}&limit=${pageSize}`, {
         credentials: 'include',
       });
       const data = await response.json();
 
       if (data.success) {
-        setJobs(data.jobs);
+        const jobList = Array.isArray(data.jobs) ? data.jobs : [];
+        setJobs(jobList);
+        setPagination(data.pagination || {
+          page,
+          limit: pageSize,
+          total: jobList.length,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        });
         
         // Extract unique skills from all jobs
         const skillsSet = new Set();
-        data.jobs.forEach(job => {
+        jobList.forEach(job => {
           if (job.description && job.description.skills) {
             job.description.skills.forEach(skill => {
               skillsSet.add(skill);
@@ -82,10 +101,6 @@ const PublicJobListing = () => {
         ? prev.filter(s => s !== skill)
         : [...prev, skill]
     );
-  };
-
-  const loadMoreJobs = () => {
-    setVisibleJobsCount(prev => prev + 3);
   };
 
   const isNewJob = (postedDate) => {
@@ -185,6 +200,34 @@ const PublicJobListing = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
+  };
+
+  const goToPage = (page) => {
+    if (loading) return;
+    if (page < 1 || page > (pagination?.totalPages || 1) || page === currentPage) {
+      return;
+    }
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const getPageNumbers = () => {
+    const totalPages = pagination?.totalPages || 1;
+    const page = pagination?.page || currentPage;
+
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    if (page <= 3) {
+      return [1, 2, 3, 4, '...', totalPages];
+    }
+
+    if (page >= totalPages - 2) {
+      return [1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [1, '...', page - 1, page, page + 1, '...', totalPages];
   };
 
   return (
@@ -356,7 +399,7 @@ const PublicJobListing = () => {
               ) : (
                 <>
                   <div className="space-y-4">
-                    {filteredJobs.slice(0, visibleJobsCount).map((job) => (
+                    {filteredJobs.map((job) => (
                       <div
                         key={job.jobId}
                         className="rounded-lg border-2 p-5 hover:shadow-md hover:border-blue-600 transition-all duration-200 bg-white border-gray-200"
@@ -473,17 +516,52 @@ const PublicJobListing = () => {
                     ))}
                   </div>
 
-                  {/* Load More Button */}
-                  {visibleJobsCount < filteredJobs.length && (
-                    <div className="flex justify-center mt-8">
-                      <button
-                        onClick={loadMoreJobs}
-                        className="px-8 py-3 bg-blue-100 text-blue-600 rounded-full font-medium hover:bg-blue-200 transition-colors"
-                      >
-                        Load more jobs
-                      </button>
+                  <div className="mt-10">
+                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                        <button
+                          onClick={() => goToPage((pagination?.page || currentPage) - 1)}
+                          disabled={loading || !pagination?.hasPrevPage}
+                          aria-label="Previous page"
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:border-blue-300 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
+                        </button>
+
+                        {getPageNumbers().map((item, index) => {
+                          if (item === '...') {
+                            return (
+                              <span key={`dots-${index}`} className="px-2 text-slate-400 select-none">
+                                ...
+                              </span>
+                            );
+                          }
+
+                          const isActive = item === (pagination?.page || currentPage);
+                          return (
+                            <button
+                              key={item}
+                              onClick={() => goToPage(item)}
+                              className={`inline-flex h-10 min-w-10 items-center justify-center rounded-lg px-3 text-sm font-semibold transition-colors ${
+                                isActive
+                                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
+                                  : 'border border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:text-blue-700'
+                              }`}
+                            >
+                              {item}
+                            </button>
+                          );
+                        })}
+
+                        <button
+                          onClick={() => goToPage((pagination?.page || currentPage) + 1)}
+                          disabled={loading || !pagination?.hasNextPage}
+                          aria-label="Next page"
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:border-blue-300 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
+                        </button>
                     </div>
-                  )}
+                  </div>
                 </>
               )}
             </section>

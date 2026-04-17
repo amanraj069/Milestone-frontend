@@ -1,43 +1,142 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import SmartSearchInput from '../../../components/SmartSearchInput';
+import { graphqlRequest } from '../../../utils/graphqlClient';
 
 const EmployerJobListings = () => {
   const [jobListings, setJobListings] = useState([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 25,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [searchFeature, setSearchFeature] = useState('jobRole');
   const [activeFilter, setActiveFilter] = useState('All Jobs');
   const [sortBy, setSortBy] = useState('newest-posted');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [deleteModal, setDeleteModal] = useState({ show: false, jobId: null });
   const navigate = useNavigate();
   const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
+  const inFlightRef = useRef('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const querySignature = JSON.stringify({
+    debouncedSearchTerm,
+    searchFeature,
+    activeFilter,
+    sortBy,
+    currentPage,
+    pageSize,
+  });
 
   useEffect(() => {
     loadJobListings();
-  }, []);
+  }, [querySignature]);
 
   const loadJobListings = async () => {
+    const variables = {
+      search: debouncedSearchTerm || null,
+      searchFeature,
+      jobType: activeFilter,
+      sortBy,
+      page: currentPage,
+      limit: pageSize,
+    };
+
+    // Deduplicate in-flight requests without disturbing current loading state.
+    const requestKey = JSON.stringify(variables);
+    if (inFlightRef.current === requestKey) return;
+
     try {
       setLoading(true);
-      const response = await fetch(`${apiBaseUrl}/api/employer/job-listings`, {
-        credentials: 'include',
+      inFlightRef.current = requestKey;
+
+      const data = await graphqlRequest({
+        query: `
+          query EmployerJobListings(
+            $search: String
+            $searchFeature: String
+            $jobType: String
+            $sortBy: String
+            $page: Int
+            $limit: Int
+          ) {
+            employerJobListings(
+              search: $search
+              searchFeature: $searchFeature
+              jobType: $jobType
+              sortBy: $sortBy
+              page: $page
+              limit: $limit
+            ) {
+              listings {
+                jobId
+                title
+                budget
+                location
+                jobType
+                experienceLevel
+                imageUrl
+                applicationDeadline
+                postedDate
+                remote
+                isBoosted
+                applicationCount
+                applicationCap
+                status
+                description {
+                  skills
+                }
+              }
+              pagination {
+                page
+                limit
+                total
+                totalPages
+                hasNextPage
+                hasPrevPage
+              }
+            }
+          }
+        `,
+        variables,
       });
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setJobListings(data.data);
-      } else {
-        setError(data.error || 'Failed to load job listings');
-      }
+      const payload = data?.employerJobListings;
+      setJobListings(payload?.listings || []);
+      setPagination(payload?.pagination || {
+        page: currentPage,
+        limit: pageSize,
+        total: 0,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      });
+      setError('');
     } catch (err) {
       console.error('Error loading job listings:', err);
-      setError('Network error. Please try again later.');
+      setError(err.message || 'Failed to load job listings');
     } finally {
+      inFlightRef.current = '';
       setLoading(false);
+      setHasLoadedOnce(true);
     }
   };
 
@@ -51,7 +150,7 @@ const EmployerJobListings = () => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setJobListings(jobListings.filter(job => job.jobId !== jobId));
+        await loadJobListings();
         setDeleteModal({ show: false, jobId: null });
         showNotification('Job listing deleted successfully!', 'success');
       } else {
@@ -72,85 +171,10 @@ const EmployerJobListings = () => {
     return days === 0 ? 'Today' : `${days} days ago`;
   };
 
-  const normalizeJobType = (jobType) => String(jobType || '').toLowerCase();
-
   const getSkills = (job) => {
     if (Array.isArray(job?.description?.skills)) return job.description.skills;
     return [];
   };
-
-  const getBudgetValue = (budget) => {
-    if (typeof budget === 'number') return budget;
-    const cleaned = String(budget || '0').replace(/[^\d.]/g, '');
-    const parsed = parseFloat(cleaned);
-    return Number.isNaN(parsed) ? 0 : parsed;
-  };
-
-  const filteredJobs = [...jobListings]
-    .filter((job) => {
-      const searchLower = searchTerm.trim().toLowerCase();
-      const jobTitle = String(job.title || '').toLowerCase();
-      const location = String(job.location || '').toLowerCase();
-      const skills = getSkills(job).map((skill) => String(skill).toLowerCase());
-
-      const matchesSearch = (() => {
-        if (!searchLower) return true;
-
-        if (searchFeature === 'jobRole') {
-          return jobTitle.includes(searchLower);
-        }
-
-        if (searchFeature === 'skills') {
-          return skills.some((skill) => skill.includes(searchLower));
-        }
-
-        if (searchFeature === 'location') {
-          return location.includes(searchLower);
-        }
-
-        return (
-          jobTitle.includes(searchLower) ||
-          location.includes(searchLower) ||
-          skills.some((skill) => skill.includes(searchLower))
-        );
-      })();
-
-      const jobType = normalizeJobType(job.jobType);
-      const matchesFilter = (() => {
-        switch (activeFilter) {
-          case 'All Jobs':
-            return true;
-          case 'Remote':
-            return Boolean(job.remote) || jobType.includes('remote');
-          case 'Full-time':
-            return jobType.includes('full-time') || jobType.includes('full time');
-          case 'Part-time':
-            return jobType.includes('part-time') || jobType.includes('part time');
-          case 'Contract':
-            return jobType.includes('contract');
-          case 'Freelance':
-            return jobType.includes('freelance');
-          default:
-            return true;
-        }
-      })();
-
-      return matchesSearch && matchesFilter;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'oldest-posted':
-          return new Date(a.postedDate || 0) - new Date(b.postedDate || 0);
-        case 'newest-posted':
-          return new Date(b.postedDate || 0) - new Date(a.postedDate || 0);
-        case 'budget-high-low':
-          return getBudgetValue(b.budget) - getBudgetValue(a.budget);
-        case 'budget-low-high':
-          return getBudgetValue(a.budget) - getBudgetValue(b.budget);
-        default:
-          return 0;
-      }
-    });
 
   return (
     <DashboardPage 
@@ -176,9 +200,15 @@ const EmployerJobListings = () => {
               <div className="flex-1 min-w-0">
                 <SmartSearchInput
                   value={searchTerm}
-                  onChange={setSearchTerm}
+                  onChange={(value) => {
+                    setCurrentPage(1);
+                    setSearchTerm(value);
+                  }}
                   selectedFeature={searchFeature}
-                  onFeatureChange={setSearchFeature}
+                  onFeatureChange={(value) => {
+                    setCurrentPage(1);
+                    setSearchFeature(value);
+                  }}
                   dataSource={jobListings}
                   searchFields={
                     [
@@ -193,7 +223,10 @@ const EmployerJobListings = () => {
 
               <select
                 value={activeFilter}
-                onChange={(e) => setActiveFilter(e.target.value)}
+                onChange={(e) => {
+                  setCurrentPage(1);
+                  setActiveFilter(e.target.value);
+                }}
                 className="w-full lg:w-auto h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="All jobs filter"
               >
@@ -207,7 +240,10 @@ const EmployerJobListings = () => {
 
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => {
+                  setCurrentPage(1);
+                  setSortBy(e.target.value);
+                }}
                 className="w-full lg:w-auto h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Sort jobs"
               >
@@ -221,7 +257,12 @@ const EmployerJobListings = () => {
 
           {/* Job Listings */}
           <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-            {loading ? (
+            {!hasLoadedOnce ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <i className="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
+                <p className="text-gray-600 text-lg">Loading job listings...</p>
+              </div>
+            ) : loading ? (
               <div className="flex flex-col items-center justify-center py-20">
                 <i className="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
                 <p className="text-gray-600 text-lg">Loading job listings...</p>
@@ -239,16 +280,16 @@ const EmployerJobListings = () => {
                   Try Again
                 </button>
               </div>
-            ) : filteredJobs.length === 0 ? (
+            ) : jobListings.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20">
                 <i className="fas fa-briefcase text-5xl text-gray-300 mb-4"></i>
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">No Job Listings Found</h3>
                 <p className="text-gray-600 mb-4">
-                  {jobListings.length === 0 
-                    ? 'Start by posting your first job opportunity!' 
-                    : 'Try adjusting your search or filter criteria'}
+                  {debouncedSearchTerm || activeFilter !== 'All Jobs'
+                    ? 'Try adjusting your search or filter criteria'
+                    : 'Start by posting your first job opportunity!'}
                 </p>
-                {jobListings.length === 0 && (
+                {!debouncedSearchTerm && activeFilter === 'All Jobs' && (
                   <Link
                     to="/employer/job-listings/new"
                     className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all"
@@ -260,7 +301,7 @@ const EmployerJobListings = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredJobs.map(job => (
+                {jobListings.map(job => (
                   <div
                     key={job.jobId}
                     className={`border-2 rounded-xl p-4 sm:p-5 transition-all hover:shadow-lg flex flex-col md:flex-row gap-4 sm:gap-5 items-start md:items-center ${
@@ -351,6 +392,40 @@ const EmployerJobListings = () => {
                     </div>
                   </div>
                 ))}
+                <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
+                  <p className="text-xs text-gray-500">Showing {jobListings.length} of {pagination.total} records</p>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500">Rows:</label>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setCurrentPage(1);
+                        setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                      }}
+                      className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={loading || !pagination.hasPrevPage}
+                      className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage((p) => p + 1)}
+                      disabled={loading || !pagination.hasNextPage}
+                      className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
