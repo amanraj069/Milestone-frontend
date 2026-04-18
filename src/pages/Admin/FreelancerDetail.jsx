@@ -5,6 +5,7 @@ import { useChatContext } from '../../context/ChatContext';
 import { graphqlQuery } from '../../utils/graphqlClient';
 
 const AVATAR_FALLBACK = 'https://cdn.pixabay.com/photo/2018/04/18/18/56/user-3331256_1280.png';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
 
 const ADMIN_FREELANCER_DETAIL_QUERY = `
   query AdminFreelancerDetail($freelancerId: String!) {
@@ -70,6 +71,10 @@ const FreelancerDetail = () => {
     </DashboardPage>
   );
 
+  const resumeHref = fl.resume?.startsWith('/uploads')
+    ? `${API_BASE_URL}${fl.resume}`
+    : fl.resume;
+
   return (
     <DashboardPage title="Freelancer Details">
       <p className="text-gray-500 -mt-6 mb-6">Complete profile and activity overview</p>
@@ -124,7 +129,7 @@ const FreelancerDetail = () => {
               <i className="fas fa-comment text-xs" /> Chat
             </button>
             {fl.resume && (
-              <a href={fl.resume} target="_blank" rel="noopener noreferrer"
+              <a href={resumeHref} target="_blank" rel="noopener noreferrer"
                 className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 flex items-center gap-2">
                 <i className="fas fa-file-pdf text-xs" /> Resume
               </a>
