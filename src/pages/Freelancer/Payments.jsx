@@ -293,7 +293,7 @@ const FreelancerPayments = () => {
       case 'progress-low': sorted.sort((a, b) => (a.paymentPercentage || 0) - (b.paymentPercentage || 0)); break;
     }
     return sorted;
-  }, [payments, activeSearchTerm, activeSortBy]);
+  }, [payments, activeSearchTerm, activeSortBy, activeColumnFilters]);
 
   const processedPastPayments = useMemo(() => {
     let list = payments.filter((p) => p.status === 'finished' || p.status === 'left');

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
+import { getBackendBaseUrl } from '../../../utils/backendBaseUrl';
 
 const emptyOption = () => ({ text: '', isCorrect: false });
 const emptyQuestion = () => ({ text: '', marks: 1, options: [emptyOption(), emptyOption()], correctOptionIndex: 0, hasCode: false, codeSnippet: '', codeLanguage: 'javascript' });
@@ -8,6 +9,7 @@ const emptyQuestion = () => ({ text: '', marks: 1, options: [emptyOption(), empt
 export default function EditQuiz() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const apiBaseUrl = getBackendBaseUrl();
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [skillName, setSkillName] = useState('');
@@ -24,7 +26,7 @@ export default function EditQuiz() {
 
   const fetchQuiz = async () => {
     try {
-      const res = await fetch(`/api/moderator/quizzes/${id}`, { credentials: 'include' });
+      const res = await fetch(`${apiBaseUrl}/api/moderator/quizzes/${id}`, { credentials: 'include' });
       const data = await res.json();
       if (data.success) {
         const quiz = data.data;
@@ -33,17 +35,23 @@ export default function EditQuiz() {
         setDescription(quiz.description || '');
         setTimeLimit(quiz.timeLimitMinutes || '');
         setPassingScore(quiz.passingScore || 70);
-        setQuestions(quiz.questions.map(q => ({
+        const sourceQuestions = Array.isArray(quiz.questions) ? quiz.questions : [];
+        const normalizedQuestions = sourceQuestions.map(q => ({
           ...q,
-          correctOptionIndex: q.options.findIndex(opt => opt.isCorrect),
+          correctOptionIndex: Array.isArray(q.options) ? q.options.findIndex(opt => opt.isCorrect) : 0,
           hasCode: q.hasCode || false,
           codeSnippet: q.codeSnippet || '',
           codeLanguage: q.codeLanguage || 'javascript'
-        })) || [emptyQuestion()]);
+        }));
+        setQuestions(normalizedQuestions.length ? normalizedQuestions : [emptyQuestion()]);
+      } else {
+        alert(data?.error?.message || 'Quiz not found');
+        navigate('/moderator/quizzes');
       }
     } catch (err) {
       console.error(err);
       alert('Failed to load quiz');
+      navigate('/moderator/quizzes');
     } finally {
       setLoading(false);
     }
@@ -143,7 +151,7 @@ export default function EditQuiz() {
 
     setSaving(true);
     const payload = { title, skillName, description, timeLimitMinutes: timeLimit ? Number(timeLimit) : undefined, passingScore, questions };
-    const res = await fetch(`/api/moderator/quizzes/${id}`, { 
+    const res = await fetch(`${apiBaseUrl}/api/moderator/quizzes/${id}`, { 
       method: 'PUT', 
       headers: { 'Content-Type': 'application/json' }, 
       credentials: 'include', 
@@ -153,7 +161,7 @@ export default function EditQuiz() {
     setSaving(false);
     if (data.success) {
       alert('Quiz updated successfully!');
-      navigate('/moderator/quizzes/list');
+      navigate('/moderator/quizzes');
     } else {
       alert('Failed: ' + JSON.stringify(data.error));
     }
@@ -467,7 +475,7 @@ export default function EditQuiz() {
           <div className="flex gap-3 pt-4 border-t border-gray-200">
             <button 
               className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors" 
-              onClick={() => navigate('/moderator/quizzes/list')}
+              onClick={() => navigate('/moderator/quizzes')}
             >
               Cancel
             </button>

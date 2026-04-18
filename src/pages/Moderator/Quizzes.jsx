@@ -50,6 +50,8 @@ const ModeratorQuizzes = () => {
   const [attemptPage, setAttemptPage] = useState(1);
   const [attemptPageSize, setAttemptPageSize] = useState(10);
 
+  const getQuizId = (quiz) => String(quiz?._id || quiz?.quizId || quiz?.id || '');
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm.trim());
@@ -324,8 +326,11 @@ const ModeratorQuizzes = () => {
               {loading && (
                 <div className="text-xs text-gray-500 px-1">Updating results...</div>
               )}
-              {quizzes.map(q => (
-                <div key={q._id} className="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+              {quizzes.map(q => {
+                const quizId = getQuizId(q);
+
+                return (
+                <div key={quizId || q.title} className="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
                   <div className="p-4 flex justify-between items-center">
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">{q.title}</h3>
@@ -344,25 +349,27 @@ const ModeratorQuizzes = () => {
                     </div>
                     <div className="flex gap-2">
                       <button 
-                        onClick={() => handleToggleInfo(q._id)}
+                        onClick={() => quizId && toggleInfo(quizId)}
                         className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                          expandedQuiz === q._id 
+                          expandedQuiz === quizId 
                             ? 'bg-blue-600 text-white' 
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
+                        disabled={!quizId}
                       >
-                        {expandedQuiz === q._id ? 'Hide Stats' : 'View Stats'}
+                        {expandedQuiz === quizId ? 'Hide Stats' : 'View Stats'}
                       </button>
                       <button 
-                        onClick={() => navigate(`/moderator/quizzes/${q._id}/edit`)}
+                        onClick={() => quizId && navigate(`/moderator/quizzes/${quizId}/edit`)}
                         className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
+                        disabled={!quizId}
                       >
                         Edit
                       </button>
                     </div>
                   </div>
 
-                  {expandedQuiz === q._id && (
+                  {expandedQuiz === quizId && (
                     <div className="border-t border-gray-200 bg-gray-50 p-5">
                       {loadingAttempts ? (
                         <div className="text-center py-8">
@@ -394,7 +401,7 @@ const ModeratorQuizzes = () => {
                               </div>
                             </div>
                             <button
-                              onClick={() => exportToPDF(q._id)}
+                              onClick={() => exportToPDF(quizId)}
                               className="px-4 py-2 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
                             >
                               Export PDF
@@ -515,7 +522,7 @@ const ModeratorQuizzes = () => {
                     </div>
                   )}
                 </div>
-              ))}
+              )})}
             </div>
           )}
           {quizzes.length > 0 && (
