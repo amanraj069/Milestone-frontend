@@ -1,0 +1,38 @@
+name: Deploy To VM From Frontend (No Registry)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: 22
+          script_stop: true
+          timeout: 60s
+          command_timeout: 30m
+          script: |
+            set -euo pipefail
+
+            BACKEND_PATH="${{ secrets.VM_BACKEND_PATH }}"
+            FRONTEND_PATH="${{ secrets.VM_FRONTEND_PATH }}"
+            BRANCH="${{ github.ref_name }}"
+
+            if [[ -z "$BACKEND_PATH" || -z "$FRONTEND_PATH" ]]; then
+              echo "VM_BACKEND_PATH and VM_FRONTEND_PATH secrets are required."
+              exit 1
+            fi
+
+            cd "$BACKEND_PATH"
+            chmod +x scripts/deploy-vm.sh
+            ./scripts/deploy-vm.sh "$FRONTEND_PATH" "$BRANCH" frontend
