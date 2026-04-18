@@ -8,8 +8,9 @@ import DashboardPage from '../../components/DashboardPage';
 import BadgesList from '../Profile/BadgesList';
 import SmartSearchInput from '../../components/SmartSearchInput';
 import SmartFilter from '../../components/SmartFilter';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 
 const FreelancerSkillsBadges = () => {
   const { user } = useAuth();

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Formik, Form, Field, FieldArray, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import DashboardPage from '../../../components/DashboardPage';
+import { getBackendBaseUrl } from '../../../utils/backendBaseUrl';
 
 // Validation Schema
 const blogValidationSchema = Yup.object().shape({
@@ -38,7 +39,7 @@ const blogValidationSchema = Yup.object().shape({
 
 const CreateBlog = () => {
   const navigate = useNavigate();
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
+  const apiBaseUrl = getBackendBaseUrl();
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);

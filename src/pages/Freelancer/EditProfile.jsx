@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const EditProfile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+  const API_BASE_URL = getBackendBaseUrl();
   const [formData, setFormData] = useState({
     name: '',
     title: 'Freelancer',
@@ -45,7 +46,7 @@ const EditProfile = () => {
     const fetchProfileData = async () => {
       try {
         // Fetch profile data from backend
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/profile`, {
+        const response = await fetch(`${getBackendBaseUrl()}/api/freelancer/profile`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -560,7 +561,7 @@ const EditProfile = () => {
       formDataImg.append('portfolioImage', file);
       
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/portfolio/image/upload`, {
+        const response = await fetch(`${getBackendBaseUrl()}/api/freelancer/portfolio/image/upload`, {
           method: 'POST',
           credentials: 'include',
           body: formDataImg
@@ -589,7 +590,7 @@ const EditProfile = () => {
     formDataResume.append('resume', resumeFile);
 
     try {
-      const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/resume/upload`, {
+      const resp = await fetch(`${getBackendBaseUrl()}/api/freelancer/resume/upload`, {
         method: 'POST',
         credentials: 'include',
         body: formDataResume
@@ -627,7 +628,7 @@ const EditProfile = () => {
         const formDataImg = new FormData();
         formDataImg.append('profilePicture', profileImage);
 
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/profile/picture/upload`, {
+        const response = await fetch(`${getBackendBaseUrl()}/api/freelancer/profile/picture/upload`, {
           method: 'POST',
           credentials: 'include',
           body: formDataImg
@@ -699,7 +700,7 @@ const EditProfile = () => {
         portfolio: updatedPortfolio
       };
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/profile/update`, {
+      const response = await fetch(`${getBackendBaseUrl()}/api/freelancer/profile/update`, {
         method: 'POST',
         credentials: 'include',
         headers: {

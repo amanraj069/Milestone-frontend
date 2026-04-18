@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import PersonalInfoStep from './PersonalInfoStep';
 import ApplicationDetailsStep from './ApplicationDetailsStep';
 import SuccessModal from './SuccessModal';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const JobApplication = () => {
   const { jobId } = useParams();
@@ -50,7 +51,7 @@ const JobApplication = () => {
       setError('');
 
       // Fetch freelancer profile
-      const profileResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/profile`, {
+      const profileResponse = await fetch(`${getBackendBaseUrl()}/api/freelancer/profile`, {
         credentials: 'include',
       });
 
@@ -64,7 +65,7 @@ const JobApplication = () => {
       }
 
       // Fetch job details
-      const jobResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/jobs/api/${jobId}`);
+      const jobResponse = await fetch(`${getBackendBaseUrl()}/api/jobs/api/${jobId}`);
       if (!jobResponse.ok) {
         throw new Error('Failed to fetch job details');
       }
@@ -99,7 +100,7 @@ const JobApplication = () => {
 
   const handleApplicationSubmit = async (appData) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/apply/${jobId}`, {
+      const response = await fetch(`${getBackendBaseUrl()}/api/freelancer/apply/${jobId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,8 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { graphqlQuery } from '../../utils/graphqlClient';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 
 const MODERATOR_COMPLAINTS_QUERY = `
   query ModeratorComplaints(

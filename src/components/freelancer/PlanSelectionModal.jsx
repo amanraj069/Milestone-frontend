@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import loadRazorpay from '../../utils/loadRazorpay';
 import RazorpayIcon from '../RazorpayIcon';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const BACKEND_URL = getBackendBaseUrl();
 
 const PlanSelectionModal = ({ isOpen, onClose, onSelectPlan, userType }) => {
   const [selectedPlan, setSelectedPlan] = useState(null);

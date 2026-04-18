@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "./AuthContext";
+import { getBackendBaseUrl } from "../utils/backendBaseUrl";
 
 const SocketContext = createContext();
 
@@ -28,7 +29,7 @@ export const SocketProvider = ({ children }) => {
     }
 
     // Connect to Socket.IO server using environment variable
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:9000";
+    const backendUrl = getBackendBaseUrl();
     console.log("Connecting to Socket.IO server at:", backendUrl);
     
     const newSocket = io(backendUrl, {

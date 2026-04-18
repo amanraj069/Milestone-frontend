@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Formik, Form, Field, FieldArray, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import DashboardPage from '../../../components/DashboardPage';
+import { getBackendBaseUrl } from '../../../utils/backendBaseUrl';
 
 // Validation Schema
 const blogValidationSchema = Yup.object().shape({
@@ -40,7 +41,7 @@ const EditBlog = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
   const [searchParams] = useSearchParams();
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
+  const apiBaseUrl = getBackendBaseUrl();
   
   const [blog, setBlog] = useState(null);
   const [loading, setLoading] = useState(true);

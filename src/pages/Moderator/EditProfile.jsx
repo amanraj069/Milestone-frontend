@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const ModeratorEditProfile = () => {
   const { user } = useAuth();
@@ -29,7 +30,7 @@ const ModeratorEditProfile = () => {
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/moderator/profile`, {
+        const response = await fetch(`${getBackendBaseUrl()}/api/moderator/profile`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -174,7 +175,7 @@ const ModeratorEditProfile = () => {
         const formDataImg = new FormData();
         formDataImg.append('profilePicture', profileImage);
 
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/moderator/profile/picture/upload`, {
+        const response = await fetch(`${getBackendBaseUrl()}/api/moderator/profile/picture/upload`, {
           method: 'POST',
           credentials: 'include',
           body: formDataImg
@@ -203,7 +204,7 @@ const ModeratorEditProfile = () => {
         socialMedia: formData.socialMedia
       };
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/moderator/profile/update`, {
+      const response = await fetch(`${getBackendBaseUrl()}/api/moderator/profile/update`, {
         method: 'POST',
         credentials: 'include',
         headers: {

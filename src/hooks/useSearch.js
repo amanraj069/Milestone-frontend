@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
+import { getBackendBaseUrl } from "../utils/backendBaseUrl";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
+const BACKEND_URL = getBackendBaseUrl();
 
 /**
  * useSearch — Debounced full-text search hook powered by Solr.

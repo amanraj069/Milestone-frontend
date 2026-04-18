@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import DashboardPage from '../../components/DashboardPage';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const ModeratorProfile = () => {
   const { user } = useAuth();
@@ -27,7 +28,7 @@ const ModeratorProfile = () => {
     const fetchProfileData = async () => {
       try {
         if (user) {
-          const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/moderator/profile`, {
+          const response = await fetch(`${getBackendBaseUrl()}/api/moderator/profile`, {
             method: 'GET',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
@@ -48,7 +49,7 @@ const ModeratorProfile = () => {
 
     const fetchDashboardStats = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/moderator/dashboard/stats`, {
+        const response = await fetch(`${getBackendBaseUrl()}/api/moderator/dashboard/stats`, {
           method: 'GET',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
@@ -64,7 +65,7 @@ const ModeratorProfile = () => {
 
     const fetchRecentActivities = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/moderator/dashboard/activities`, {
+        const response = await fetch(`${getBackendBaseUrl()}/api/moderator/dashboard/activities`, {
           method: 'GET',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },

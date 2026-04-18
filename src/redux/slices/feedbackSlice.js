@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { graphqlQuery } from '../../utils/graphqlClient';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 
 // Thunk to submit feedback
 export const submitFeedback = createAsyncThunk(

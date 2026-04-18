@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import DashboardPage from '../../components/DashboardPage';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE = getBackendBaseUrl();
 
 const AdminStatistics = () => {
   const [stats, setStats] = useState(null);

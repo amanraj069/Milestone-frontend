@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import LocationMapEmbed from '../../../components/maps/LocationMapEmbed';
+import { getBackendBaseUrl } from '../../../utils/backendBaseUrl';
 
 const EditJob = () => {
   const { jobId } = useParams();
   const navigate = useNavigate();
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
+  const apiBaseUrl = getBackendBaseUrl();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);

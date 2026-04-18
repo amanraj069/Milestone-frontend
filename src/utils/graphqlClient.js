@@ -3,17 +3,19 @@
  * No need for Apollo Client keeps bundle size small
  * and avoids adding a heavy dependency for simple queries.
  */
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+import { getBackendBaseUrl } from "./backendBaseUrl";
+
+const API_BASE_URL = getBackendBaseUrl();
 const GRAPHQL_URL =
   import.meta.env.VITE_GRAPHQL_URL ||
-  (import.meta.env.DEV ? '/graphql' : `${API_BASE_URL}/graphql`);
+  (import.meta.env.DEV ? "/graphql" : `${API_BASE_URL}/graphql`);
 
 export async function graphqlQuery(query, variables = {}) {
   const response = await fetch(GRAPHQL_URL, {
-    method: 'POST',
-    credentials: 'include',
+    method: "POST",
+    credentials: "include",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ query, variables }),
   });
@@ -21,7 +23,7 @@ export async function graphqlQuery(query, variables = {}) {
   const result = await response.json();
 
   if (result.errors) {
-    const errorMessage = result.errors.map(e => e.message).join(', ');
+    const errorMessage = result.errors.map((e) => e.message).join(", ");
     throw new Error(errorMessage);
   }
 

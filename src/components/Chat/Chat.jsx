@@ -7,9 +7,10 @@ import { useChatNotifications } from "../../context/ChatNotificationContext";
 import { graphqlRequest } from "../../utils/graphqlClient";
 import DashboardLayout from "../DashboardLayout";
 import "./Chat.css";
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const EMOJIS = ["😀", "😂", "😊", "😍", "🥰", "😎", "🤔", "😢", "😡", "👍", "👎", "❤️", "🎉", "🔥", "✨", "💯"];
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:9000";
+const API_BASE_URL = getBackendBaseUrl();
 
 const Chat = () => {
   const { user } = useAuth();

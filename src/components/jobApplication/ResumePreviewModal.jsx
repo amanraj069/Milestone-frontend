@@ -1,4 +1,5 @@
 import React from 'react';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const ResumePreviewModal = ({ resumeUrl, onClose }) => {
   // Handle both local and Cloudinary URLs
@@ -7,7 +8,7 @@ const ResumePreviewModal = ({ resumeUrl, onClose }) => {
     
     // If it's a local path (starts with /uploads), prepend backend URL
     if (url.startsWith('/uploads')) {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+      const backendUrl = getBackendBaseUrl();
       return `${backendUrl}${url}`;
     }
     
@@ -25,7 +26,7 @@ const ResumePreviewModal = ({ resumeUrl, onClose }) => {
     
     // If it's a local path, prepend backend URL
     if (url.startsWith('/uploads')) {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+      const backendUrl = getBackendBaseUrl();
       return `${backendUrl}${url}`;
     }
     

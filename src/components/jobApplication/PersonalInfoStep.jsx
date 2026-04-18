@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const PersonalInfoStep = ({ profileData, onUpdate, onNext }) => {
   const [uploading, setUploading] = useState(false);
@@ -71,7 +72,7 @@ const PersonalInfoStep = ({ profileData, onUpdate, onNext }) => {
       const formData = new FormData();
       formData.append('resume', file);
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/resume/upload`, {
+      const response = await fetch(`${getBackendBaseUrl()}/api/freelancer/resume/upload`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -247,7 +248,7 @@ const PersonalInfoStep = ({ profileData, onUpdate, onNext }) => {
                 type="button"
                 onClick={() => {
                   const resumeUrl = profileData.resume.startsWith('/uploads') 
-                    ? `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}${profileData.resume}` 
+                    ? `${getBackendBaseUrl()}${profileData.resume}` 
                     : profileData.resume;
                   window.open(resumeUrl, '_blank');
                 }}

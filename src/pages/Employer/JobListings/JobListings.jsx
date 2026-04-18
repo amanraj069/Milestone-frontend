@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../../components/DashboardPage';
 import SmartSearchInput from '../../../components/SmartSearchInput';
 import { graphqlRequest } from '../../../utils/graphqlClient';
+import { getBackendBaseUrl } from '../../../utils/backendBaseUrl';
 
 const EmployerJobListings = () => {
   const [jobListings, setJobListings] = useState([]);
@@ -26,7 +27,7 @@ const EmployerJobListings = () => {
   const [pageSize, setPageSize] = useState(25);
   const [deleteModal, setDeleteModal] = useState({ show: false, jobId: null });
   const navigate = useNavigate();
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
+  const apiBaseUrl = getBackendBaseUrl();
   const inFlightRef = useRef('');
 
   useEffect(() => {

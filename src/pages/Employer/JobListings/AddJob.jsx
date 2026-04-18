@@ -5,6 +5,7 @@ import DashboardPage from '../../../components/DashboardPage';
 import { computeFees } from '../../../components/employer/BoostJobModal';
 import FeePaymentModal from '../../../components/employer/FeePaymentModal';
 import LocationMapEmbed from '../../../components/maps/LocationMapEmbed';
+import { getBackendBaseUrl } from '../../../utils/backendBaseUrl';
 
 // Validation schema for Step 1 - Job Details
 const jobDetailsSchema = Yup.object().shape({
@@ -83,7 +84,7 @@ const milestoneSchema = Yup.object().shape({
 
 const AddJob = () => {
   const navigate = useNavigate();
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
+  const apiBaseUrl = getBackendBaseUrl();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
