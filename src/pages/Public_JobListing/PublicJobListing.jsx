@@ -4,12 +4,13 @@ import { useAuth } from '../../context/AuthContext';
 
 import Footer from '../../components/Home/Footer';
 import SolrSearchBar from '../../components/search/SolrSearchBar';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const PublicJobListing = () => {
   const auth = useAuth();
   const user = auth?.user;
   const getDashboardRoute = auth?.getDashboardRoute;
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+  const apiBaseUrl = getBackendBaseUrl();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   

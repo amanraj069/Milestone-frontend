@@ -6,8 +6,9 @@ import SmartColumnToggle, { useSmartColumnToggle } from '../../../components/Sma
 import SmartFilter from '../../../components/SmartFilter';
 import axios from 'axios';
 import { graphqlRequest } from '../../../utils/graphqlClient';
+import { getBackendBaseUrl } from '../../../utils/backendBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 
 const APP_COLUMNS = [
   { key: 'freelancer', label: 'Freelancer' },

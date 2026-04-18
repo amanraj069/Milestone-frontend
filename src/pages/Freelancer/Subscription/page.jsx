@@ -7,8 +7,9 @@ import UnsubscribeModal from '../../../components/freelancer/UnsubscribeModal';
 import { useAuth } from '../../../context/AuthContext';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSubscriptionPlan, resetSubscription } from '../../../redux/slices/subscriptionSlice';
+import { getBackendBaseUrl } from '../../../utils/backendBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 
 const FreelancerSubscription = () => {
   const { user, checkAuthStatus } = useAuth();

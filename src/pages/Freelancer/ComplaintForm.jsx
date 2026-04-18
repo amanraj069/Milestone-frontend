@@ -3,8 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import DashboardPage from '../../components/DashboardPage';
 import './ComplaintForm.css';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 
 const ComplaintForm = () => {
   const navigate = useNavigate();

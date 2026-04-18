@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 import DashboardPage from '../../../components/DashboardPage';
+import { getBackendBaseUrl } from '../../../utils/backendBaseUrl';
 
 const emptyForm = {
   companyName: '',
@@ -25,7 +26,7 @@ const EmployerCompanyDetails = () => {
   useEffect(() => {
     const fetchCompanyDetails = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/company-details`, {
+        const response = await fetch(`${getBackendBaseUrl()}/api/employer/company-details`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -89,7 +90,7 @@ const EmployerCompanyDetails = () => {
 
     try {
       setUploadingLogo(true);
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/company-details/logo/upload`, {
+      const response = await fetch(`${getBackendBaseUrl()}/api/employer/company-details/logo/upload`, {
         method: 'POST',
         credentials: 'include',
         body: uploadData,
@@ -127,7 +128,7 @@ const EmployerCompanyDetails = () => {
 
     try {
       setUploadingProof(true);
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/company-details/proof/upload`, {
+      const response = await fetch(`${getBackendBaseUrl()}/api/employer/company-details/proof/upload`, {
         method: 'POST',
         credentials: 'include',
         body: uploadData,
@@ -156,7 +157,7 @@ const EmployerCompanyDetails = () => {
     setSaving(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/company-details`, {
+      const response = await fetch(`${getBackendBaseUrl()}/api/employer/company-details`, {
         method: 'PUT',
         credentials: 'include',
         headers: {

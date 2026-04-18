@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const apiBaseUrl = getBackendBaseUrl();
 
 // Async thunks for blog operations
 export const fetchAllBlogs = createAsyncThunk(

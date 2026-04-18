@@ -5,8 +5,9 @@ import { useChatContext } from '../../context/ChatContext';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 import { graphqlQuery } from '../../utils/graphqlClient';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE = getBackendBaseUrl();
 
 const ADMIN_MODERATORS_QUERY = `
   query AdminModerators(

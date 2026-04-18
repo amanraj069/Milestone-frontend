@@ -5,8 +5,9 @@ import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartC
 import SmartSearchInput from '../../components/SmartSearchInput';
 import SmartFilter from '../../components/SmartFilter';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 
 const ACTIVE_COLUMNS = [
   { key: 'employer', label: 'Employer' },

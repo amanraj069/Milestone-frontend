@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext';
 import Footer from '../../components/Home/Footer';
 import LocationMapEmbed from '../../components/maps/LocationMapEmbed';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const normalizeMilestones = (jobData) => {
   const rawMilestones = Array.isArray(jobData?.milestones)
@@ -51,7 +52,7 @@ const JobDescription = () => {
   const [answerTexts, setAnswerTexts] = useState({});
   const [submittingAnswer, setSubmittingAnswer] = useState({});
 
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
+  const apiBaseUrl = getBackendBaseUrl();
 
   useEffect(() => {
     fetchJobDetails();

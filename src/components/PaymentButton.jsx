@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import loadRazorpay from "../utils/loadRazorpay";
+import { getBackendBaseUrl } from '../utils/backendBaseUrl';
 
 const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || "http://localhost:9000";
+  getBackendBaseUrl();
 
 /**
  * PaymentButton — triggers a Razorpay checkout flow.

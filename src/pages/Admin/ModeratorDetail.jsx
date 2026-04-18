@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import { useChatContext } from '../../context/ChatContext';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE = getBackendBaseUrl();
 
 const statusColors = {
   Resolved: 'bg-green-100 text-green-700',

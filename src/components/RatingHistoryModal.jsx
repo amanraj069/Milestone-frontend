@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getBackendBaseUrl } from '../utils/backendBaseUrl';
 
 const RatingHistoryModal = ({ isOpen, onClose, userId, userName, apiBasePath = '/api/admin' }) => {
   const [history, setHistory] = useState([]);
@@ -17,7 +18,7 @@ const RatingHistoryModal = ({ isOpen, onClose, userId, userName, apiBasePath = '
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}${apiBasePath}/users/${userId}/rating-history`,
+        `${getBackendBaseUrl()}${apiBasePath}/users/${userId}/rating-history`,
         {
           method: 'GET',
           credentials: 'include',

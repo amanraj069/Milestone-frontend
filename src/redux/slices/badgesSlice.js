@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { graphqlQuery } from '../../utils/graphqlClient';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 
 // Thunk to load all badges (stays REST — it's a simple list, no N+1)
 export const loadBadges = createAsyncThunk(

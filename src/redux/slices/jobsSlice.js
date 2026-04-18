@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { graphqlQuery } from '../../utils/graphqlClient';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 
 // Thunk to load job history for a freelancer — now uses GraphQL with DataLoader batching
 export const loadJobHistory = createAsyncThunk(

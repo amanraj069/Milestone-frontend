@@ -4,8 +4,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import DashboardPage from '../../components/DashboardPage';
 import { useChatContext } from '../../context/ChatContext';
 import RatingHistoryModal from '../../components/RatingHistoryModal';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 
 const ComplaintDetail = () => {
   const { complaintId } = useParams();

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import DashboardPage from '../../../components/DashboardPage';
 import PublicFeedbackSection from '../../../components/PublicFeedbackSection';
+import { getBackendBaseUrl } from '../../../utils/backendBaseUrl';
 
 const EmployerProfile = () => {
   const { user } = useAuth();
@@ -18,7 +19,7 @@ const EmployerProfile = () => {
       try {
         if (user) {
           // Fetch profile data from backend
-          const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/profile`, {
+          const response = await fetch(`${getBackendBaseUrl()}/api/employer/profile`, {
             method: 'GET',
             credentials: 'include',
             headers: {
@@ -111,7 +112,7 @@ const EmployerProfile = () => {
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/dashboard/stats`, {
+        const response = await fetch(`${getBackendBaseUrl()}/api/employer/dashboard/stats`, {
           method: 'GET',
           credentials: 'include',
           headers: {

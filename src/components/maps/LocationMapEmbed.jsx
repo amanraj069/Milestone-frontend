@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const LocationMapEmbed = ({
   location,
@@ -17,7 +18,7 @@ const LocationMapEmbed = ({
   };
 
   const trimmedLocation = (location || "").trim();
-  const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:9000";
+  const apiBaseUrl = getBackendBaseUrl();
   const hasLocationText = trimmedLocation.length > 0;
   const isRemoteLocation = /(^remote$|\bremote\b)/i.test(trimmedLocation);
   const lat = parseCoordinate(coordinates?.lat);

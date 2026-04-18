@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { graphqlQuery } from '../../utils/graphqlClient';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const FreelancerProfile = () => {
   const { freelancerId } = useParams();
@@ -60,7 +61,7 @@ const FreelancerProfile = () => {
   const fetchFreelancerProfile = async () => {
     try {
       setLoading(true);
-      const apiBaseUrl = import.meta.env.VITE_BACKEND_URL;
+      const apiBaseUrl = getBackendBaseUrl();
       const response = await fetch(`${apiBaseUrl}/api/freelancer/${freelancerId}`, {
         credentials: 'include',
       });
@@ -281,7 +282,7 @@ const FreelancerProfile = () => {
             {profile.resume && (
               <div className="mt-4">
                 <a
-                  href={`${import.meta.env.VITE_BACKEND_URL}${profile.resume}`}
+                  href={`${getBackendBaseUrl()}${profile.resume}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg p-4 hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"

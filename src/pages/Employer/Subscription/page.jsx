@@ -7,8 +7,9 @@ import PlanSelectionModal from '../../../components/employer/PlanSelectionModal'
 import UnsubscribeModal from '../../../components/employer/UnsubscribeModal';
 import { useAuth } from '../../../context/AuthContext';
 import { setSubscriptionPlan, resetSubscription } from '../../../redux/slices/subscriptionSlice';
+import { getBackendBaseUrl } from '../../../utils/backendBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 
 const EmployerSubscription = () => {
   const { user, checkAuthStatus } = useAuth();

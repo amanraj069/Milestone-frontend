@@ -9,8 +9,9 @@ import {
 } from '../redux/slices/notificationsSlice';
 import { useChatNotifications } from '../context/ChatNotificationContext';
 import { useSocket } from '../context/SocketContext';
+import { getBackendBaseUrl } from '../utils/backendBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 
 // Paths that unapproved employers can access (must match ProtectedRoute)
 const UNAPPROVED_EMPLOYER_ALLOWED_PATHS = [

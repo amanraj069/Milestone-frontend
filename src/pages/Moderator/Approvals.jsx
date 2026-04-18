@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 import { graphqlQuery } from '../../utils/graphqlClient';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const MODERATOR_APPROVALS_QUERY = `
   query ModeratorApprovals(

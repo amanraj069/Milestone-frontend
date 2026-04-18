@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import DashboardPage from '../../components/DashboardPage';
 import BadgesList from '../Profile/BadgesList';
 import PublicFeedbackSection from '../../components/PublicFeedbackSection';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const FreelancerProfile = () => {
   const { user } = useAuth();
@@ -12,7 +13,7 @@ const FreelancerProfile = () => {
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   
-  const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+  const API_BASE_URL = getBackendBaseUrl();
 
   useEffect(() => {
     // Load user data from auth context or API
@@ -20,7 +21,7 @@ const FreelancerProfile = () => {
       try {
         if (user) {
           // Fetch profile data from backend
-          const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/profile`, {
+          const response = await fetch(`${getBackendBaseUrl()}/api/freelancer/profile`, {
             method: 'GET',
             credentials: 'include',
             headers: {

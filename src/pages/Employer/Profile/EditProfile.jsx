@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import DashboardLayout from '../../../components/DashboardLayout';
+import { getBackendBaseUrl } from '../../../utils/backendBaseUrl';
 
 const EditEmployerProfile = () => {
   const { user } = useAuth();
@@ -32,7 +33,7 @@ const EditEmployerProfile = () => {
     const fetchProfileData = async () => {
       try {
         if (user) {
-          const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/profile`, {
+          const response = await fetch(`${getBackendBaseUrl()}/api/employer/profile`, {
             method: 'GET',
             credentials: 'include',
             headers: {
@@ -209,7 +210,7 @@ const EditEmployerProfile = () => {
     formDataImg.append('picture', file);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/upload-image`, {
+      const response = await fetch(`${getBackendBaseUrl()}/api/employer/upload-image`, {
         method: 'POST',
         credentials: 'include',
         body: formDataImg,
@@ -240,7 +241,7 @@ const EditEmployerProfile = () => {
     setSaving(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/employer/profile`, {
+      const response = await fetch(`${getBackendBaseUrl()}/api/employer/profile`, {
         method: 'PUT',
         credentials: 'include',
         headers: {

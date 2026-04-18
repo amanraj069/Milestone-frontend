@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const ApplicationDetailsStep = ({ jobData, applicationData, setApplicationData, onBack, onSubmit }) => {
   const navigate = useNavigate();
@@ -11,7 +12,7 @@ const ApplicationDetailsStep = ({ jobData, applicationData, setApplicationData, 
     // Fetch last used cover message
     const fetchLastCoverMessage = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}/api/freelancer/cover-message/last`, {
+        const response = await fetch(`${getBackendBaseUrl()}/api/freelancer/cover-message/last`, {
           credentials: 'include',
         });
         const result = await response.json();

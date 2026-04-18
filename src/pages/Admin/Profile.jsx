@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import DashboardPage from '../../components/DashboardPage';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE = getBackendBaseUrl();
 
 const AdminProfile = () => {
   const { user } = useAuth();

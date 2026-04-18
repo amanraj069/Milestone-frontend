@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getBackendBaseUrl } from '../utils/backendBaseUrl';
 
 const RatingAdjustmentModal = ({ isOpen, onClose, user, onSuccess, apiBasePath = '/api/admin' }) => {
   const [adjustment, setAdjustment] = useState(0);
@@ -53,7 +54,7 @@ const RatingAdjustmentModal = ({ isOpen, onClose, user, onSuccess, apiBasePath =
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000'}${apiBasePath}/users/${user.userId}/rating`,
+        `${getBackendBaseUrl()}${apiBasePath}/users/${user.userId}/rating`,
         {
           method: 'PUT',
           headers: {

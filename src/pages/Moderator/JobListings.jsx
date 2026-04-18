@@ -5,8 +5,9 @@ import DashboardPage from '../../components/DashboardPage';
 import SmartFilter from '../../components/SmartFilter';
 import SmartColumnToggle, { useSmartColumnToggle } from '../../components/SmartColumnToggle';
 import { graphqlQuery } from '../../utils/graphqlClient';
+import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+const API_BASE_URL = getBackendBaseUrl();
 
 const MODERATOR_JOBS_QUERY = `
   query ModeratorJobs(
