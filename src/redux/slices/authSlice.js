@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { getBackendBaseUrl } from "../../utils/backendBaseUrl";
 
-const API_BASE_URL =
-  import.meta.env.VITE_BACKEND_URL || "http://localhost:9000";
+const API_BASE_URL = getBackendBaseUrl();
 
 // Thunk to fetch current authenticated user
 export const fetchCurrentUser = createAsyncThunk(
@@ -25,7 +25,7 @@ export const fetchCurrentUser = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 // Thunk to login user
@@ -62,7 +62,7 @@ export const loginUser = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 // Thunk to logout user
@@ -86,7 +86,7 @@ export const logoutUser = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 const authSlice = createSlice({

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCurrentUser, loginUser, logoutUser, selectUser, selectIsLoggedIn, selectAuthLoading } from '../redux/slices/authSlice';
+import { getBackendBaseUrl } from '../utils/backendBaseUrl';
 
 const AuthContext = createContext();
 
@@ -27,7 +28,7 @@ function AuthProvider({ children }) {
   }, [dispatch]);
 
   const sendOtp = async (email, name, password, role) => {
-    const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+    const apiBaseUrl = getBackendBaseUrl();
     
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/send-otp`, {
@@ -53,7 +54,7 @@ function AuthProvider({ children }) {
   };
 
   const verifyOtp = async (email, otp) => {
-    const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+    const apiBaseUrl = getBackendBaseUrl();
     
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/verify-otp`, {
@@ -93,7 +94,7 @@ function AuthProvider({ children }) {
   };
 
   const signup = async (userData) => {
-    const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+    const apiBaseUrl = getBackendBaseUrl();
     
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/signup`, {
@@ -164,7 +165,7 @@ function AuthProvider({ children }) {
 
   // Forgot password - send OTP
   const forgotPasswordSendOtp = async (email) => {
-    const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+    const apiBaseUrl = getBackendBaseUrl();
     
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/forgot-password/send-otp`, {
@@ -191,7 +192,7 @@ function AuthProvider({ children }) {
 
   // Forgot password - verify OTP
   const forgotPasswordVerifyOtp = async (email, otp) => {
-    const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+    const apiBaseUrl = getBackendBaseUrl();
     
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/forgot-password/verify-otp`, {
@@ -218,7 +219,7 @@ function AuthProvider({ children }) {
 
   // Reset password
   const resetPassword = async (email, otp, newPassword) => {
-    const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9000';
+    const apiBaseUrl = getBackendBaseUrl();
     
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/forgot-password/reset`, {
