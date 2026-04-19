@@ -192,7 +192,7 @@ const EmployerCurrentJobs = () => {
       alert('Error: Unable to start chat. User ID not found.');
       return;
     }
-    
+
     openChatWith(freelancer.userId);
   };
 
@@ -215,7 +215,7 @@ const EmployerCurrentJobs = () => {
     if (parsed && !Number.isNaN(parsed.getTime())) {
       const now = new Date();
       // difference in full days
-      const diffMs = now.setHours(0,0,0,0) - parsed.setHours(0,0,0,0);
+      const diffMs = now.setHours(0, 0, 0, 0) - parsed.setHours(0, 0, 0, 0);
       const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
       if (diffDays === 0) return 'Since 0 days';
       if (diffDays === 1) return 'Since 1 day';
@@ -330,192 +330,193 @@ const EmployerCurrentJobs = () => {
             </div>
           </div>
         ) : (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-600">Loading freelancers...</p>
-            </div>
-          ) : freelancers.length === 0 ? (
-            <div className="text-center py-12">
-              <i className="fas fa-users text-6xl text-gray-300 mb-4"></i>
-              <p className="text-gray-600">
-                {searchTerm ? 'No freelancers found matching your search' : 'No active freelancers at the moment'}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      <div className="flex items-center gap-2">
-                        <span>Freelancer</span>
-                        <SmartFilter
-                          label="Name"
-                          data={freelancers}
-                          valueExtractor={(it) => it.name || ''}
-                          selectedValues={nameFilters}
-                          onFilterChange={(values) => {
-                            setCurrentPage(1);
-                            setNameFilters(values);
-                          }}
-                          options={filterOptions.names || []}
-                        />
-                      </div>
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      <div className="flex items-center gap-2">
-                        <span>Job Details</span>
-                        <SmartFilter
-                          label="Job Role"
-                          data={freelancers}
-                          valueExtractor={(it) => it.jobTitle}
-                          selectedValues={jobRoleFilters}
-                          onFilterChange={(values) => {
-                            setCurrentPage(1);
-                            setJobRoleFilters(values);
-                          }}
-                          options={filterOptions.jobRoles || []}
-                        />
-                      </div>
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Chat
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Action
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
-                      Role Details
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {freelancers.map((freelancer) => (
-                    <tr
-                      key={`${freelancer.freelancerId}-${freelancer.jobId}`}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      {/* Freelancer Column */}
-                      <td className="px-6 py-5">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0">
-                            {freelancer.picture ? (
-                              <img
-                                className="h-12 w-12 rounded-full object-cover border-2 border-blue-500 shadow-md"
-                                src={freelancer.picture}
-                                alt={freelancer.name}
-                              />
-                            ) : (
-                              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-lg shadow-md">
-                                {freelancer.name?.charAt(0)?.toUpperCase() || 'F'}
-                              </div>
-                            )}
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-semibold text-gray-900">
-                              {freelancer.name}
-                            </div>
-                            <div className="flex items-center gap-1 mt-1">
-                              {[...Array(5)].map((_, i) => (
-                                <i
-                                  key={i}
-                                  className={`fas fa-star text-xs ${
-                                    i < Math.floor(freelancer.rating) ? 'text-yellow-400' : 'text-gray-300'
-                                  }`}
-                                ></i>
-                              ))}
-                              <span className="text-xs text-gray-600 ml-1">{Number(freelancer.rating || 0).toFixed(1)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Job Details Column */}
-                      <td className="px-6 py-5">
-                        <div className="text-sm font-semibold text-gray-900 mb-1">
-                          {freelancer.jobTitle}
-                        </div>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <i className="fas fa-calendar-alt text-blue-600 mr-2"></i>
-                          {formatDays(freelancer.startDate || freelancer.daysSinceStart)}
-                        </div>
-                      </td>
-
-                      {/* Chat Column */}
-                      <td className="px-6 py-5 text-center">
-                        <button
-                          onClick={() => handleChat(freelancer)}
-                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
-                        >
-                          <i className="fas fa-comment mr-2"></i>
-                          Chat
-                        </button>
-                      </td>
-
-                      {/* Action Column */}
-                      <td className="px-6 py-5 text-center">
-                        <button
-                          onClick={() => handleRaiseComplaint(freelancer)}
-                          className="inline-flex items-center px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg"
-                        >
-                          <i className="fas fa-exclamation-triangle mr-2"></i>
-                          Raise Complaint
-                        </button>
-                      </td>
-
-                      {/* Role Details Column */}
-                      <td className="px-6 py-5 text-center">
-                        <button
-                          onClick={() => handleSeeMore(freelancer)}
-                          className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
-                        >
-                          <i className="fas fa-eye mr-2"></i>
-                          See More
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
-                <p className="text-xs text-gray-500">Showing {freelancers.length} of {pagination.total} records</p>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500">Rows:</label>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => {
-                      setCurrentPage(1);
-                      setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
-                    }}
-                    className="px-2 py-1 border border-gray-300 rounded-md text-xs"
-                  >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={loading || !pagination.hasPrevPage}
-                    className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage((p) => p + 1)}
-                    disabled={loading || !pagination.hasNextPage}
-                    className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
-                  >
-                    Next
-                  </button>
-                </div>
+          <div className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col h-[480px]">
+            {loading ? (
+              <div className="text-center py-8 flex-grow flex flex-col justify-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p className="mt-4 text-gray-600">Loading freelancers...</p>
               </div>
-            </div>
-          )}
-        </div>
+            ) : freelancers.length === 0 ? (
+              <div className="text-center py-8 flex-grow flex flex-col justify-center">
+                <i className="fas fa-users text-6xl text-gray-300 mb-4"></i>
+                <p className="text-gray-600">
+                  {searchTerm ? 'No freelancers found matching your search' : 'No active freelancers at the moment'}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-auto flex-grow">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
+                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center gap-2">
+                            <span>Freelancer</span>
+                            <SmartFilter
+                              label="Name"
+                              data={freelancers}
+                              valueExtractor={(it) => it.name || ''}
+                              selectedValues={nameFilters}
+                              onFilterChange={(values) => {
+                                setCurrentPage(1);
+                                setNameFilters(values);
+                              }}
+                              options={filterOptions.names || []}
+                            />
+                          </div>
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center gap-2">
+                            <span>Job Details</span>
+                            <SmartFilter
+                              label="Job Role"
+                              data={freelancers}
+                              valueExtractor={(it) => it.jobTitle}
+                              selectedValues={jobRoleFilters}
+                              onFilterChange={(values) => {
+                                setCurrentPage(1);
+                                setJobRoleFilters(values);
+                              }}
+                              options={filterOptions.jobRoles || []}
+                            />
+                          </div>
+                        </th>
+                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          Chat
+                        </th>
+                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          Action
+                        </th>
+                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          Role Details
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {freelancers.map((freelancer) => (
+                        <tr
+                          key={`${freelancer.freelancerId}-${freelancer.jobId}`}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          {/* Freelancer Column */}
+                          <td className="px-6 py-5">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0">
+                                {freelancer.picture ? (
+                                  <img
+                                    className="h-12 w-12 rounded-full object-cover border-2 border-blue-500 shadow-md"
+                                    src={freelancer.picture}
+                                    alt={freelancer.name}
+                                  />
+                                ) : (
+                                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-lg shadow-md">
+                                    {freelancer.name?.charAt(0)?.toUpperCase() || 'F'}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-semibold text-gray-900">
+                                  {freelancer.name}
+                                </div>
+                                <div className="flex items-center gap-1 mt-1">
+                                  {[...Array(5)].map((_, i) => (
+                                    <i
+                                      key={i}
+                                      className={`fas fa-star text-xs ${i < Math.floor(freelancer.rating) ? 'text-yellow-400' : 'text-gray-300'
+                                        }`}
+                                    ></i>
+                                  ))}
+                                  <span className="text-xs text-gray-600 ml-1">{Number(freelancer.rating || 0).toFixed(1)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Job Details Column */}
+                          <td className="px-6 py-5">
+                            <div className="text-sm font-semibold text-gray-900 mb-1">
+                              {freelancer.jobTitle}
+                            </div>
+                            <div className="flex items-center text-sm text-gray-500">
+                              <i className="fas fa-calendar-alt text-blue-600 mr-2"></i>
+                              {formatDays(freelancer.startDate || freelancer.daysSinceStart)}
+                            </div>
+                          </td>
+
+                          {/* Chat Column */}
+                          <td className="px-6 py-5 text-center">
+                            <button
+                              onClick={() => handleChat(freelancer)}
+                              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                            >
+                              <i className="fas fa-comment mr-2"></i>
+                              Chat
+                            </button>
+                          </td>
+
+                          {/* Action Column */}
+                          <td className="px-6 py-5 text-center">
+                            <button
+                              onClick={() => handleRaiseComplaint(freelancer)}
+                              className="inline-flex items-center px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                            >
+                              <i className="fas fa-exclamation-triangle mr-2"></i>
+                              Raise Complaint
+                            </button>
+                          </td>
+
+                          {/* Role Details Column */}
+                          <td className="px-6 py-5 text-center">
+                            <button
+                              onClick={() => handleSeeMore(freelancer)}
+                              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                            >
+                              <i className="fas fa-eye mr-2"></i>
+                              See More
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3 mt-auto">
+                  <p className="text-xs text-gray-500">Showing {freelancers.length} of {pagination.total} records</p>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500">Rows:</label>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setCurrentPage(1);
+                        setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                      }}
+                      className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={loading || !pagination.hasPrevPage}
+                      className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage((p) => p + 1)}
+                      disabled={loading || !pagination.hasNextPage}
+                      className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
 

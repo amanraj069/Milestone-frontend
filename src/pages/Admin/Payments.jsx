@@ -331,7 +331,7 @@ const AdminPayments = () => {
         <div className="overflow-auto flex-1">
           <table className="w-full">
             {!loading && (
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                 <tr>
                   {visible.has('job') && (
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
@@ -478,35 +478,38 @@ const AdminPayments = () => {
                 </tr>
               )}
             </tbody>
-            {!loading && displayedPayments.length > 0 && (
-              <tfoot className="sticky bottom-0 z-10">
-                <tr className="bg-slate-50 border-t border-gray-200 shadow-[0_-1px_0_0_rgba(229,231,235,1)]">
-                  {visible.has('job') && (
-                    <td className="px-4 py-3 text-xs font-bold text-gray-700">Total</td>
-                  )}
-                  {visible.has('milestone') && (
-                    <td className="px-4 py-3 text-xs text-gray-500">{displayedPayments.length} rows shown</td>
-                  )}
-                  {visible.has('employer') && (
-                    <td className="px-4 py-3 text-xs text-gray-500">Paid: {pagePaidCount}</td>
-                  )}
-                  {visible.has('freelancer') && (
-                    <td className="px-4 py-3 text-xs text-gray-500">Pending: {pagePendingCount}</td>
-                  )}
-                  {visible.has('amount') && (
-                    <td className="px-4 py-3 text-sm font-bold text-gray-900">{formatCurrency(pageAmountTotal)}</td>
-                  )}
-                  {visible.has('status') && (
-                    <td className="px-4 py-3 text-xs font-semibold text-gray-600">In Progress: {pageInProgressCount}</td>
-                  )}
-                  {visible.has('date') && (
-                    <td className="px-4 py-3 text-xs text-gray-500 text-right">Page {currentPage}</td>
-                  )}
-                </tr>
-              </tfoot>
-            )}
           </table>
         </div>
+        {/* Table Summary Bar */}
+        {!loading && displayedPayments.length > 0 && (
+          <div className="px-6 py-3 bg-slate-50 border-t border-gray-200 text-xs font-medium text-gray-600">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-6">
+                <span className="text-gray-900 font-bold uppercase tracking-wider">Total Summary</span>
+                <span>{displayedPayments.length} rows shown</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                  Paid: {pagePaidCount}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                  Pending: {pagePendingCount}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                  In Progress: {pageInProgressCount}
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-bold text-gray-900 bg-white px-3 py-1 rounded-md border border-gray-200">
+                  Page Total: {formatCurrency(pageAmountTotal)}
+                </span>
+                <span className="text-gray-400">|</span>
+                <span className="text-gray-500">Page {currentPage}</span>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-500 mt-auto">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>

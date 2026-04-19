@@ -361,7 +361,7 @@ const AdminUsers = () => {
         <div className="overflow-x-auto">
           <table className="w-full">
             {!loading && (
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                 <tr>
                   {visible.has('user') && (
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">User</th>

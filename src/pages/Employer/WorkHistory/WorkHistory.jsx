@@ -89,10 +89,10 @@ const EmployerWorkHistory = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [feedbackModal, setFeedbackModal] = useState(null); // { jobId, toUserId, toRole, counterpartyName }
   const inFlightRef = useRef('');
-  
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   // Get feedback eligibility data from Redux store
   const feedbackEligibilityMap = useSelector((state) => state.feedback.eligibilityByJob || {});
 
@@ -177,7 +177,7 @@ const EmployerWorkHistory = () => {
 
   const handleLeaveFeedback = (freelancer) => {
     const eligibility = feedbackEligibilityMap[freelancer.jobId];
-    
+
     if (eligibility?.canGiveFeedback) {
       setFeedbackModal({
         jobId: freelancer.jobId,
@@ -194,7 +194,7 @@ const EmployerWorkHistory = () => {
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return 'Completed 0 days ago';
     if (diffDays === 1) return 'Completed 1 day ago';
     return `Completed ${diffDays} days ago`;
@@ -203,10 +203,10 @@ const EmployerWorkHistory = () => {
   const formatCompletionDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
@@ -214,7 +214,7 @@ const EmployerWorkHistory = () => {
     <DashboardPage title="Work History">
       <div className="space-y-6">
         {/* Header */}
-          <p className="text-gray-600">View freelancers who have previously worked on your projects</p>
+        <p className="text-gray-600">View freelancers who have previously worked on your projects</p>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -318,67 +318,69 @@ const EmployerWorkHistory = () => {
             </div>
           </div>
         ) : (
-        <div className="bg-white rounded-xl shadow-md p-6">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-600">Loading work history...</p>
-            </div>
-          ) : freelancers.length === 0 ? (
-            <div className="text-center py-12">
-              <i className="fas fa-history text-6xl text-gray-300 mb-4"></i>
-              <p className="text-gray-600">
-                {searchTerm ? 'No freelancers found matching your search' : 'No work history available'}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {freelancers.map((freelancer) => (
-                <FreelancerCard
-                  key={`${freelancer.freelancerId}-${freelancer.jobId}`}
-                  freelancer={freelancer}
-                  onLeaveFeedback={handleLeaveFeedback}
-                />
-              ))}
-              <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
-                <p className="text-xs text-gray-500">
-                  Showing {freelancers.length} of {pagination.total} records
-                </p>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500">Rows:</label>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => {
-                      setCurrentPage(1);
-                      setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
-                    }}
-                    className="px-2 py-1 border border-gray-300 rounded-md text-xs"
-                  >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={loading || !pagination.hasPrevPage}
-                    className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage((p) => p + 1)}
-                    disabled={loading || !pagination.hasNextPage}
-                    className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
-                  >
-                    Next
-                  </button>
-                </div>
+          <div className="bg-white rounded-xl shadow-md p-6 flex flex-col h-[480px]">
+            {loading ? (
+              <div className="text-center py-8 flex-grow flex flex-col justify-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p className="mt-4 text-gray-600">Loading work history...</p>
               </div>
-            </div>
-          )}
-        </div>
+            ) : freelancers.length === 0 ? (
+              <div className="text-center py-8 flex-grow flex flex-col justify-center">
+                <i className="fas fa-history text-6xl text-gray-300 mb-4"></i>
+                <p className="text-gray-600">
+                  {searchTerm ? 'No freelancers found matching your search' : 'No work history available'}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-4 overflow-auto flex-grow pr-2">
+                  {freelancers.map((freelancer) => (
+                    <FreelancerCard
+                      key={`${freelancer.freelancerId}-${freelancer.jobId}`}
+                      freelancer={freelancer}
+                      onLeaveFeedback={handleLeaveFeedback}
+                    />
+                  ))}
+                </div>
+                <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-3 mt-auto">
+                  <p className="text-xs text-gray-500">
+                    Showing {freelancers.length} of {pagination.total} records
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500">Rows:</label>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setCurrentPage(1);
+                        setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                      }}
+                      className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={loading || !pagination.hasPrevPage}
+                      className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage((p) => p + 1)}
+                      disabled={loading || !pagination.hasNextPage}
+                      className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
 

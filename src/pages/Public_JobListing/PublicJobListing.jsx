@@ -37,39 +37,56 @@ const PublicJobListing = () => {
   const [selectedJobType, setSelectedJobType] = useState('');
   const [isRemote, setIsRemote] = useState(false);
   const [locationFilter, setLocationFilter] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const pageSize = 10;
 
   const normalizeText = (value) => String(value || '').trim().toLowerCase();
 
-  // Load jobs whenever page changes
+  // Debounce search term change
   useEffect(() => {
-    loadJobs(currentPage);
-  }, [currentPage]);
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-  // Reset to first page when filters/search change to avoid empty-page confusion.
-  useEffect(() => {
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    }
-  }, [searchTerm, sortBy, selectedExperience, selectedSkills, selectedJobType, isRemote, locationFilter]);
-
-  // Handle search params from URL
+  // Handle search params from URL on initial load
   useEffect(() => {
     const searchQuery = searchParams.get('search');
     if (searchQuery) {
       setSearchTerm(searchQuery);
+      setDebouncedSearchTerm(searchQuery);
     }
   }, [searchParams]);
 
-  // Apply filters whenever dependencies change
+  // Load jobs whenever page or search changes
+  useEffect(() => {
+    loadJobs(currentPage);
+  }, [currentPage, debouncedSearchTerm]);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [debouncedSearchTerm]);
+
+  // Apply filters whenever jobs or filter states change
   useEffect(() => {
     applyFiltersAndSort();
-  }, [jobs, searchTerm, sortBy, selectedExperience, selectedSkills, selectedJobType, isRemote, locationFilter]);
+  }, [jobs, sortBy, selectedExperience, selectedSkills, selectedJobType, isRemote, locationFilter]);
 
   const loadJobs = async (page = 1) => {
     try {
       setLoading(true);
-      const response = await fetch(`${apiBaseUrl}/api/jobs/api?page=${page}&limit=${pageSize}`, {
+      
+      const queryParams = new URLSearchParams({
+        page,
+        limit: pageSize,
+        q: debouncedSearchTerm,
+      });
+
+      const response = await fetch(`${apiBaseUrl}/api/jobs/api?${queryParams.toString()}`, {
         credentials: 'include',
       });
       const data = await response.json();
@@ -133,17 +150,6 @@ const PublicJobListing = () => {
   const applyFiltersAndSort = () => {
     let filtered = [...jobs];
 
-    // Apply search filter
-    if (searchTerm.trim()) {
-      const search = normalizeText(searchTerm);
-      filtered = filtered.filter(job =>
-        normalizeText(job.title).includes(search) ||
-        (Array.isArray(job?.description?.skills)
-          ? job.description.skills.some(skill => normalizeText(skill).includes(search))
-          : false)
-      );
-    }
-
     // Apply experience filter
     if (selectedExperience) {
       filtered = filtered.filter(job =>
@@ -182,19 +188,13 @@ const PublicJobListing = () => {
       );
     }
 
-    // Sort filtered results with 4-tier priority ordering
-    // Tier 4: Premium subscription + Boosted (highest)
-    // Tier 3: Boosted only
-    // Tier 2: Premium subscription only
-    // Tier 1: Normal jobs (lowest)
+    // Sort results (Tiers first, then user preference)
     filtered.sort((a, b) => {
       const tierA = a.tier || (a.isSponsored && a.isBoosted ? 4 : a.isBoosted ? 3 : a.isSponsored ? 2 : 1);
       const tierB = b.tier || (b.isSponsored && b.isBoosted ? 4 : b.isBoosted ? 3 : b.isSponsored ? 2 : 1);
 
-      // Always keep tier ordering regardless of selected sort
       if (tierB !== tierA) return tierB - tierA;
       
-      // Within same tier, apply selected sorting
       switch (sortBy) {
         case 'salary-desc':
           return b.budget.amount - a.budget.amount;
@@ -202,7 +202,6 @@ const PublicJobListing = () => {
           return a.budget.amount - b.budget.amount;
         case 'date':
         default:
-          // Newest first (descending order)
           return new Date(b.postedDate) - new Date(a.postedDate);
       }
     });
@@ -542,7 +541,7 @@ const PublicJobListing = () => {
                     ))}
                   </div>
 
-                  <div className="mt-10">
+                  <div className={`mt-10 ${pagination?.totalPages <= 1 ? 'opacity-40 pointer-events-none' : ''}`}>
                     <div className="flex items-center justify-center gap-2 flex-wrap">
                         <button
                           onClick={() => goToPage((pagination?.page || currentPage) - 1)}

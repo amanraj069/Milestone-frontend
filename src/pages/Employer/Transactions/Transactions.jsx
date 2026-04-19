@@ -99,7 +99,7 @@ const EmployerTransactions = () => {
   const [platformPayments, setPlatformPayments] = useState([]);
   const [loadingPlatform, setLoadingPlatform] = useState(true);
   const [viewMode, setViewMode] = useState('projects'); // 'projects' | 'platform'
-  
+
   // Platform Spending Controls
   const [platformSearchTerm, setPlatformSearchTerm] = useState('');
   const [platformSortBy, setPlatformSortBy] = useState('newest');
@@ -175,18 +175,18 @@ const EmployerTransactions = () => {
     return platformPayments
       .filter((p) => p.status === 'verified')
       .map(p => {
-         const isSub = p.paymentType === 'subscription';
-         const isFee = p.paymentType === 'fee' || p.paymentType === 'job_listing';
-         const typeLabel = isSub ? 'Premium Subscription' : isFee ? 'Job Listing Fee' : (p.paymentType || 'Payment');
-         
-         const dur = p.metadata?.planDuration;
-         const jobTitle = p.metadata?.jobTitle;
-         const details = isSub && dur ? `${dur} month${dur > 1 ? 's' : ''}` : jobTitle || '—';
-         
-         return { ...p, typeLabel, details };
+        const isSub = p.paymentType === 'subscription';
+        const isFee = p.paymentType === 'fee' || p.paymentType === 'job_listing';
+        const typeLabel = isSub ? 'Premium Subscription' : isFee ? 'Job Listing Fee' : (p.paymentType || 'Payment');
+
+        const dur = p.metadata?.planDuration;
+        const jobTitle = p.metadata?.jobTitle;
+        const details = isSub && dur ? `${dur} month${dur > 1 ? 's' : ''}` : jobTitle || '—';
+
+        return { ...p, typeLabel, details };
       });
   }, [platformPayments]);
-  
+
   const totalPlatformSpending = useMemo(
     () => verifiedPlatformPayments.reduce((s, p) => s + (p.amount || 0), 0) / 100,
     [verifiedPlatformPayments]
@@ -195,13 +195,13 @@ const EmployerTransactions = () => {
   const thisMonthSpending = useMemo(() => {
     const now = new Date();
     return verifiedPlatformPayments.filter(p => {
-       const d = new Date(p.createdAt);
-       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      const d = new Date(p.createdAt);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).reduce((s, p) => s + (p.amount || 0), 0) / 100;
   }, [verifiedPlatformPayments]);
 
   const latestTransactionAmount = useMemo(() => {
-    const sorted = [...verifiedPlatformPayments].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const sorted = [...verifiedPlatformPayments].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     return sorted.length > 0 ? (sorted[0].amount || 0) / 100 : 0;
   }, [verifiedPlatformPayments]);
 
@@ -215,20 +215,20 @@ const EmployerTransactions = () => {
     if (platformColumnFilters.details && platformColumnFilters.details.length > 0) {
       result = result.filter(p => platformColumnFilters.details.includes(p.details));
     }
-    
+
     // Search
     if (platformSearchTerm) {
       const term = platformSearchTerm.toLowerCase();
       result = result.filter(p => {
-         return p.typeLabel.toLowerCase().includes(term) || p.details.toLowerCase().includes(term);
+        return p.typeLabel.toLowerCase().includes(term) || p.details.toLowerCase().includes(term);
       });
     }
 
     // Sort
-    if (platformSortBy === 'newest') result.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-    else if (platformSortBy === 'oldest') result.sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
-    else if (platformSortBy === 'amount-high') result.sort((a,b) => (b.amount || 0) - (a.amount || 0));
-    else if (platformSortBy === 'amount-low') result.sort((a,b) => (a.amount || 0) - (b.amount || 0));
+    if (platformSortBy === 'newest') result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    else if (platformSortBy === 'oldest') result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    else if (platformSortBy === 'amount-high') result.sort((a, b) => (b.amount || 0) - (a.amount || 0));
+    else if (platformSortBy === 'amount-low') result.sort((a, b) => (a.amount || 0) - (b.amount || 0));
 
     return result;
   }, [verifiedPlatformPayments, platformSearchTerm, platformSortBy, platformColumnFilters]);
@@ -318,11 +318,11 @@ const EmployerTransactions = () => {
   const hasNextPage = Boolean(transactionsMeta.pagination?.hasNextPage);
   const hasActiveProjectFilters = Boolean(
     debouncedSearchTerm ||
-      nameFilters.length ||
-      roleFilters.length ||
-      milestoneFilters.length ||
-      statusFilters.length ||
-      paymentProgressFilters.length
+    nameFilters.length ||
+    roleFilters.length ||
+    milestoneFilters.length ||
+    statusFilters.length ||
+    paymentProgressFilters.length
   );
 
   if (loading) {
@@ -350,7 +350,7 @@ const EmployerTransactions = () => {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Transactions</h3>
             <p className="text-gray-500 mb-6">{error}</p>
-            <button 
+            <button
               onClick={fetchTransactions}
               className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
@@ -366,7 +366,7 @@ const EmployerTransactions = () => {
     <DashboardPage title="Transactions">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 -mt-4">
         <p className="text-gray-500">Manage payments and track project milestones with your freelancers</p>
-        <button 
+        <button
           onClick={() => {
             setViewMode(viewMode === 'projects' ? 'platform' : 'projects');
             setPlatformSearchTerm('');
@@ -380,213 +380,213 @@ const EmployerTransactions = () => {
               Platform Transactions
             </>
           ) : (
-             <>
-               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-               Back to Projects
-             </>
+            <>
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+              Back to Projects
+            </>
           )}
         </button>
       </div>
 
       {viewMode === 'projects' ? (
         <>
-        {totalRecords > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
-              <div className="flex items-center">
-                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mr-4">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
+          {totalRecords > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+              <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mr-4">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Total Projects</p>
+                    <p className="text-2xl font-bold text-gray-900">{transactionsMeta.summary.totalProjects}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Total Projects</p>
-                  <p className="text-2xl font-bold text-gray-900">{transactionsMeta.summary.totalProjects}</p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mr-4">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Total Paid</p>
+                    <p className="text-2xl font-bold text-gray-900">₹{(transactionsMeta.summary.totalPaid || 0).toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center mr-4">
+                    <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Active Projects</p>
+                    <p className="text-2xl font-bold text-gray-900">{transactionsMeta.summary.activeProjects}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mr-4">
+                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Completed</p>
+                    <p className="text-2xl font-bold text-gray-900">{transactionsMeta.summary.completedProjects}</p>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
-              <div className="flex items-center">
-                <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mr-4">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Total Paid</p>
-                  <p className="text-2xl font-bold text-gray-900">₹{(transactionsMeta.summary.totalPaid || 0).toLocaleString()}</p>
-                </div>
+          )}
+
+          <div className="bg-white rounded-2xl shadow-lg p-5 mb-6 border border-gray-100">
+            <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
+              <div className="flex-1 min-w-0">
+                <SmartSearchInput
+                  value={searchTerm}
+                  onChange={setSearchTerm}
+                  placeholder="Search by freelancer name or job role..."
+                />
               </div>
-            </div>
-            
-            <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
-              <div className="flex items-center">
-                <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center mr-4">
-                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Active Projects</p>
-                  <p className="text-2xl font-bold text-gray-900">{transactionsMeta.summary.activeProjects}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
-              <div className="flex items-center">
-                <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mr-4">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Completed</p>
-                  <p className="text-2xl font-bold text-gray-900">{transactionsMeta.summary.completedProjects}</p>
-                </div>
+
+              <div className="flex items-center gap-3">
+                <select
+                  value={sortBy}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setSortBy(e.target.value);
+                  }}
+                  className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-label="Sort transactions"
+                >
+                  <option value="name-a-z">Name A-Z</option>
+                  <option value="name-z-a">Name Z-A</option>
+                  <option value="budget-high-low">Budget High-Low</option>
+                  <option value="budget-low-high">Budget Low-High</option>
+                </select>
+
+                <SmartColumnToggle
+                  columns={columns}
+                  visible={visibleColumns}
+                  onChange={setVisibleColumns}
+                  storageKey="employer_transactions_columns"
+                  label="Columns"
+                  heading="Table Columns"
+                  triggerClassName="text-gray-700 bg-white border-gray-200 hover:bg-gray-50"
+                />
               </div>
             </div>
           </div>
-        )}
 
-        <div className="bg-white rounded-2xl shadow-lg p-5 mb-6 border border-gray-100">
-          <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
-            <div className="flex-1 min-w-0">
-              <SmartSearchInput
-                value={searchTerm}
-                onChange={setSearchTerm}
-                placeholder="Search by freelancer name or job role..."
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <select
-                value={sortBy}
-                onChange={(e) => {
-                  setCurrentPage(1);
-                  setSortBy(e.target.value);
-                }}
-                className="h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-label="Sort transactions"
-              >
-                <option value="name-a-z">Name A-Z</option>
-                <option value="name-z-a">Name Z-A</option>
-                <option value="budget-high-low">Budget High-Low</option>
-                <option value="budget-low-high">Budget Low-High</option>
-              </select>
-
-              <SmartColumnToggle
-                columns={columns}
-                visible={visibleColumns}
-                onChange={setVisibleColumns}
-                storageKey="employer_transactions_columns"
-                label="Columns"
-                heading="Table Columns"
-                triggerClassName="text-gray-700 bg-white border-gray-200 hover:bg-gray-50"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-          {totalRecords === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 flex flex-col h-[480px]">
+            {totalRecords === 0 ? (
+              <div className="text-center py-8 flex-grow flex flex-col justify-center">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{hasActiveProjectFilters ? 'No Matching Transactions' : 'No Transactions Yet'}</h3>
+                <p className="text-gray-500 max-w-md mx-auto">
+                  {hasActiveProjectFilters
+                    ? 'Try changing search text, filters, or sort selection.'
+                    : 'Once you hire freelancers for your jobs, their payment details will appear here.'}
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">{hasActiveProjectFilters ? 'No Matching Transactions' : 'No Transactions Yet'}</h3>
-              <p className="text-gray-500 max-w-md mx-auto">
-                {hasActiveProjectFilters
-                  ? 'Try changing search text, filters, or sort selection.'
-                  : 'Once you hire freelancers for your jobs, their payment details will appear here.'}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
-                    {visibleColumns.has('freelancer') && (
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          Freelancer
-                          <SmartFilter
-                            label="Freelancer"
-                            options={transactionsMeta.filterOptions.freelancers || []}
-                            selectedValues={nameFilters}
-                            onFilterChange={setNameFilters}
-                          />
-                        </div>
-                      </th>
-                    )}
-                    {visibleColumns.has('jobDetails') && (
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          Job Details
-                          <SmartFilter
-                            label="Job role"
-                            options={transactionsMeta.filterOptions.jobs || []}
-                            selectedValues={roleFilters}
-                            onFilterChange={setRoleFilters}
-                          />
-                        </div>
-                      </th>
-                    )}
-                    {visibleColumns.has('status') && (
-                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        <div className="flex items-center justify-center gap-2">
-                          Status
-                          <SmartFilter
-                            label="Status"
-                            options={transactionsMeta.filterOptions.statuses || []}
-                            selectedValues={statusFilters}
-                            onFilterChange={setStatusFilters}
-                            valueFormatter={getStatusLabel}
-                          />
-                        </div>
-                      </th>
-                    )}
-                    {visibleColumns.has('milestones') && (
-                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        <div className="flex items-center justify-center gap-2">
-                          Milestones
-                          <SmartFilter
-                            label="Milestones"
-                            options={transactionsMeta.filterOptions.milestones || []}
-                            selectedValues={milestoneFilters}
-                            onFilterChange={setMilestoneFilters}
-                          />
-                        </div>
-                      </th>
-                    )}
-                    {visibleColumns.has('payment') && (
-                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
-                        <div className="flex items-center justify-center gap-2">
-                          Payment Progress
-                          <SmartFilter
-                            label="Payment"
-                            options={transactionsMeta.filterOptions.paymentBuckets || []}
-                            selectedValues={paymentProgressFilters}
-                            onFilterChange={setPaymentProgressFilters}
-                          />
-                        </div>
-                      </th>
-                    )}
-                    {visibleColumns.has('budget') && (
-                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Budget</th>
-                    )}
-                    {visibleColumns.has('action') && (
-                      <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Action</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
+            ) : (
+              <div className="overflow-auto flex-grow">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
+                      {visibleColumns.has('freelancer') && (
+                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center gap-2">
+                            Freelancer
+                            <SmartFilter
+                              label="Freelancer"
+                              options={transactionsMeta.filterOptions.freelancers || []}
+                              selectedValues={nameFilters}
+                              onFilterChange={setNameFilters}
+                            />
+                          </div>
+                        </th>
+                      )}
+                      {visibleColumns.has('jobDetails') && (
+                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center gap-2">
+                            Job Details
+                            <SmartFilter
+                              label="Job role"
+                              options={transactionsMeta.filterOptions.jobs || []}
+                              selectedValues={roleFilters}
+                              onFilterChange={setRoleFilters}
+                            />
+                          </div>
+                        </th>
+                      )}
+                      {visibleColumns.has('status') && (
+                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center justify-center gap-2">
+                            Status
+                            <SmartFilter
+                              label="Status"
+                              options={transactionsMeta.filterOptions.statuses || []}
+                              selectedValues={statusFilters}
+                              onFilterChange={setStatusFilters}
+                              valueFormatter={getStatusLabel}
+                            />
+                          </div>
+                        </th>
+                      )}
+                      {visibleColumns.has('milestones') && (
+                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center justify-center gap-2">
+                            Milestones
+                            <SmartFilter
+                              label="Milestones"
+                              options={transactionsMeta.filterOptions.milestones || []}
+                              selectedValues={milestoneFilters}
+                              onFilterChange={setMilestoneFilters}
+                            />
+                          </div>
+                        </th>
+                      )}
+                      {visibleColumns.has('payment') && (
+                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center justify-center gap-2">
+                            Payment Progress
+                            <SmartFilter
+                              label="Payment"
+                              options={transactionsMeta.filterOptions.paymentBuckets || []}
+                              selectedValues={paymentProgressFilters}
+                              onFilterChange={setPaymentProgressFilters}
+                            />
+                          </div>
+                        </th>
+                      )}
+                      {visibleColumns.has('budget') && (
+                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Budget</th>
+                      )}
+                      {visibleColumns.has('action') && (
+                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Action</th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
                     {transactions.map((transaction) => (
-                      <tr 
-                        key={transaction.jobId} 
+                      <tr
+                        key={transaction.jobId}
                         className="hover:bg-gray-50 transition-colors"
                       >
                         {visibleColumns.has('freelancer') && (
@@ -594,10 +594,10 @@ const EmployerTransactions = () => {
                             <div className="flex items-center">
                               <div className="flex-shrink-0">
                                 {transaction.freelancerPicture ? (
-                                  <img 
-                                    className="h-12 w-12 rounded-full object-cover border-2 border-white shadow-md" 
-                                    src={transaction.freelancerPicture} 
-                                    alt={transaction.freelancerName} 
+                                  <img
+                                    className="h-12 w-12 rounded-full object-cover border-2 border-white shadow-md"
+                                    src={transaction.freelancerPicture}
+                                    alt={transaction.freelancerName}
                                   />
                                 ) : (
                                   <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-lg shadow-md">
@@ -641,12 +641,11 @@ const EmployerTransactions = () => {
                           <td className="px-6 py-5">
                             <div className="flex flex-col items-center">
                               <div className="w-full max-w-[120px] bg-gray-100 rounded-full h-2.5 mb-2">
-                                <div 
-                                  className={`h-2.5 rounded-full transition-all duration-500 ${
-                                    transaction.paymentPercentage === 100 
-                                      ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
-                                      : 'bg-gradient-to-r from-blue-500 to-indigo-500'
-                                  }`}
+                                <div
+                                  className={`h-2.5 rounded-full transition-all duration-500 ${transaction.paymentPercentage === 100
+                                    ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                                    : 'bg-gradient-to-r from-blue-500 to-indigo-500'
+                                    }`}
                                   style={{ width: `${transaction.paymentPercentage}%` }}
                                 ></div>
                               </div>
@@ -680,48 +679,48 @@ const EmployerTransactions = () => {
                         )}
                       </tr>
                     ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {transactions.length > 0 && (
-            <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
-              <p className="text-xs text-gray-500">Showing {transactions.length} of {totalRecords} records</p>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-500">Rows:</label>
-                <select
-                  value={pageSize}
-                  onChange={(e) => {
-                    setCurrentPage(1);
-                    setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
-                  }}
-                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={!hasPrevPage}
-                  className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={!hasNextPage}
-                  className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
-                >
-                  Next
-                </button>
+                  </tbody>
+                </table>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+
+            {transactions.length > 0 && (
+              <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3 mt-auto">
+                <p className="text-xs text-gray-500">Showing {transactions.length} of {totalRecords} records</p>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500">Rows:</label>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setCurrentPage(1);
+                      setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                    }}
+                    className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={!hasPrevPage}
+                    className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={!hasNextPage}
+                    className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </>
       ) : (
         /* ── Platform Spending Section ── */
@@ -816,17 +815,17 @@ const EmployerTransactions = () => {
                     <option value="amount-high">Amount: High to Low</option>
                     <option value="amount-low">Amount: Low to High</option>
                   </select>
-                  <SmartColumnToggle 
-                    columns={PLATFORM_COLUMNS} 
-                    visible={platformCols.visible} 
-                    onChange={platformCols.setVisible} 
+                  <SmartColumnToggle
+                    columns={PLATFORM_COLUMNS}
+                    visible={platformCols.visible}
+                    onChange={platformCols.setVisible}
                   />
                 </div>
               </div>
 
               {/* Transactions table */}
-              <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-                <div className="overflow-x-auto">
+              <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 flex flex-col h-[480px]">
+                <div className="overflow-auto flex-grow">
                   <table className="min-w-full">
                     <thead>
                       <tr className="bg-gray-50/50 border-b border-gray-100">
@@ -884,7 +883,7 @@ const EmployerTransactions = () => {
                         const icon = isSub
                           ? <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100"><svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg></span>
                           : <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100"><svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span>;
-                        
+
                         return (
                           <tr key={p._id || p.razorpayOrderId} className="hover:bg-gray-50/50 transition-colors">
                             {platformCols.visible.has('type') && (

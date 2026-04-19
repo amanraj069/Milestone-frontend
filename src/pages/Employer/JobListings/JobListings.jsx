@@ -178,7 +178,7 @@ const EmployerJobListings = () => {
   };
 
   return (
-    <DashboardPage 
+    <DashboardPage
       title="Job Listings"
       headerAction={null}
     >
@@ -195,241 +195,242 @@ const EmployerJobListings = () => {
         </Link>
       </div>
 
-          {/* Search and Filters */}
-          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6">
-            <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
-              <div className="flex-1 min-w-0">
-                <SmartSearchInput
-                  value={searchTerm}
-                  onChange={(value) => {
-                    setCurrentPage(1);
-                    setSearchTerm(value);
-                  }}
-                  selectedFeature={searchFeature}
-                  onFeatureChange={(value) => {
-                    setCurrentPage(1);
-                    setSearchFeature(value);
-                  }}
-                  dataSource={jobListings}
-                  searchFields={
-                    [
-                      { key: 'jobRole', label: 'Job Role', getValue: (item) => item.title || '' },
-                      { key: 'skills', label: 'Skills', getValue: (item) => item?.description?.skills || [] },
-                      { key: 'location', label: 'Location', getValue: (item) => item.location || '' },
-                    ]
-                  }
-                  placeholder="Search jobs, skills, location..."
-                />
-              </div>
-
-              <select
-                value={activeFilter}
-                onChange={(e) => {
-                  setCurrentPage(1);
-                  setActiveFilter(e.target.value);
-                }}
-                className="w-full lg:w-auto h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-label="All jobs filter"
-              >
-                <option>All Jobs</option>
-                <option>Remote</option>
-                <option>Full-time</option>
-                <option>Part-time</option>
-                <option>Contract</option>
-                <option>Freelance</option>
-              </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => {
-                  setCurrentPage(1);
-                  setSortBy(e.target.value);
-                }}
-                className="w-full lg:w-auto h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-label="Sort jobs"
-              >
-                <option value="oldest-posted">Oldest Posted</option>
-                <option value="newest-posted">Newest Posted</option>
-                <option value="budget-high-low">Budget High-Low</option>
-                <option value="budget-low-high">Budget Low-High</option>
-              </select>
-            </div>
+      {/* Search and Filters */}
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6">
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
+          <div className="flex-1 min-w-0">
+            <SmartSearchInput
+              value={searchTerm}
+              onChange={(value) => {
+                setCurrentPage(1);
+                setSearchTerm(value);
+              }}
+              selectedFeature={searchFeature}
+              onFeatureChange={(value) => {
+                setCurrentPage(1);
+                setSearchFeature(value);
+              }}
+              dataSource={jobListings}
+              searchFields={
+                [
+                  { key: 'jobRole', label: 'Job Role', getValue: (item) => item.title || '' },
+                  { key: 'skills', label: 'Skills', getValue: (item) => item?.description?.skills || [] },
+                  { key: 'location', label: 'Location', getValue: (item) => item.location || '' },
+                ]
+              }
+              placeholder="Search jobs, skills, location..."
+            />
           </div>
 
-          {/* Job Listings */}
-          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-            {!hasLoadedOnce ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <i className="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
-                <p className="text-gray-600 text-lg">Loading job listings...</p>
-              </div>
-            ) : loading ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <i className="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
-                <p className="text-gray-600 text-lg">Loading job listings...</p>
-              </div>
-            ) : error ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <i className="fas fa-exclamation-triangle text-5xl text-red-500 mb-4"></i>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Error Loading Job Listings</h3>
-                <p className="text-gray-600 mb-4">{error}</p>
-                <button
-                  onClick={loadJobListings}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all"
-                >
-                  <i className="fas fa-refresh mr-2"></i>
-                  Try Again
-                </button>
-              </div>
-            ) : jobListings.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <i className="fas fa-briefcase text-5xl text-gray-300 mb-4"></i>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">No Job Listings Found</h3>
-                <p className="text-gray-600 mb-4">
-                  {debouncedSearchTerm || activeFilter !== 'All Jobs'
-                    ? 'Try adjusting your search or filter criteria'
-                    : 'Start by posting your first job opportunity!'}
-                </p>
-                {!debouncedSearchTerm && activeFilter === 'All Jobs' && (
-                  <Link
-                    to="/employer/job-listings/new"
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all"
-                  >
-                    <i className="fas fa-plus mr-2"></i>
-                    Post New Job
-                  </Link>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {jobListings.map(job => (
-                  <div
-                    key={job.jobId}
-                    className={`border-2 rounded-xl p-4 sm:p-5 transition-all hover:shadow-lg flex flex-col md:flex-row gap-4 sm:gap-5 items-start md:items-center ${
-                      job.isBoosted
-                        ? 'border-yellow-400 shadow-md shadow-yellow-100 hover:border-yellow-500'
-                        : 'border-gray-200 hover:border-blue-600'
-                    }`}
-                  >
-                    <div className="flex-shrink-0 self-center md:self-start">
-                      <img
-                        src={job.imageUrl || '/assets/company_logo.jpg'}
-                        alt="Company"
-                        className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg object-cover"
-                      />
-                    </div>
+          <select
+            value={activeFilter}
+            onChange={(e) => {
+              setCurrentPage(1);
+              setActiveFilter(e.target.value);
+            }}
+            className="w-full lg:w-auto h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="All jobs filter"
+          >
+            <option>All Jobs</option>
+            <option>Remote</option>
+            <option>Full-time</option>
+            <option>Part-time</option>
+            <option>Contract</option>
+            <option>Freelance</option>
+          </select>
 
-                    <div className="flex-1 min-w-0 w-full">
-                      <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 break-words">
-                        {job.title}
-                        <span className="ml-2 text-xs sm:text-sm font-normal text-gray-500">
-                          ({job.applicationCount || 0}/{job.applicationCap != null ? job.applicationCap : <span className="text-base">∞</span>})
-                        </span>
-                      </h3>
-                      <div className="text-blue-600 font-semibold text-base sm:text-lg mb-3">
-                        ₹{typeof job.budget === 'number' ? job.budget.toLocaleString('en-IN') : job.budget}
-                      </div>
-                      <div className="flex gap-2 mb-3 flex-wrap">
-                        {getSkills(job).slice(0, 3).map((skill, idx) => (
-                          <span key={idx} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="flex gap-2 sm:gap-4 text-gray-600 text-xs sm:text-sm flex-wrap">
-                        <span className="flex items-center gap-2">
-                          <i className="fas fa-map-marker-alt text-blue-600"></i>
-                          {job.location || 'Not specified'}
-                        </span>
-                        <span className="flex items-center gap-2">
-                          <i className="fas fa-briefcase text-blue-600"></i>
-                          {job.jobType}
-                        </span>
-                        <span className="flex items-center gap-2">
-                          <i className="fas fa-calendar text-blue-600"></i>
-                          Posted {getDaysAgo(job.postedDate)}
-                        </span>
-                        {job.remote && (
-                          <span className="flex items-center gap-2 text-green-600">
-                            <i className="fas fa-home"></i>
-                            Remote
-                          </span>
-                        )}
-                      </div>
-                    </div>
+          <select
+            value={sortBy}
+            onChange={(e) => {
+              setCurrentPage(1);
+              setSortBy(e.target.value);
+            }}
+            className="w-full lg:w-auto h-9 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Sort jobs"
+          >
+            <option value="oldest-posted">Oldest Posted</option>
+            <option value="newest-posted">Newest Posted</option>
+            <option value="budget-high-low">Budget High-Low</option>
+            <option value="budget-low-high">Budget Low-High</option>
+          </select>
+        </div>
+      </div>
 
-                    <div className="w-full md:w-auto flex-shrink-0 flex flex-col sm:flex-row md:flex-col gap-2 items-stretch md:min-w-[140px]">
-                      <button
-                        onClick={() => navigate(`/employer/applications?jobId=${job.jobId}`)}
-                        className="w-full border-2 border-blue-600 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-semibold whitespace-nowrap flex items-center justify-center gap-2 text-sm"
-                      >
-                        <i className="fas fa-users"></i>
-                        <span>{job.applicationCount || 0} applicants</span>
-                      </button>
-                      <button
-                        onClick={() => navigate(`/jobs/${job.jobId}`)}
-                        className="w-full border-2 border-blue-600 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium text-sm"
-                      >
-                        <i className="fas fa-eye mr-2"></i>View
-                      </button>
-                      <div className="flex gap-2 w-full">
-                        <button
-                          onClick={() => navigate(`/employer/job-listings/edit/${job.jobId}`)}
-                          title="Edit"
-                          className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-all font-medium text-sm flex items-center justify-center gap-1"
-                        >
-                          <i className="fas fa-edit"></i>
-                          <span>Edit</span>
-                        </button>
-                        <button
-                          onClick={() => setDeleteModal({ show: true, jobId: job.jobId })}
-                          title="Delete"
-                          className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-all font-medium text-sm flex items-center justify-center gap-1"
-                        >
-                          <i className="fas fa-trash"></i>
-                          <span>Del</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
-                  <p className="text-xs text-gray-500">Showing {jobListings.length} of {pagination.total} records</p>
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-500">Rows:</label>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => {
-                        setCurrentPage(1);
-                        setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
-                      }}
-                      className="px-2 py-1 border border-gray-300 rounded-md text-xs"
-                    >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
-                    <button
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={loading || !pagination.hasPrevPage}
-                      className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage((p) => p + 1)}
-                      disabled={loading || !pagination.hasNextPage}
-                      className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              </div>
+      {/* Job Listings */}
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 flex flex-col h-[600px]">
+        {!hasLoadedOnce ? (
+          <div className="flex flex-col items-center justify-center flex-grow py-8 text-center">
+            <i className="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
+            <p className="text-gray-600 text-lg">Loading job listings...</p>
+          </div>
+        ) : loading ? (
+          <div className="flex flex-col items-center justify-center flex-grow py-8 text-center">
+            <i className="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
+            <p className="text-gray-600 text-lg">Loading job listings...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center flex-grow py-8 text-center">
+            <i className="fas fa-exclamation-triangle text-5xl text-red-500 mb-4"></i>
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">Error Loading Job Listings</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={loadJobListings}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all"
+            >
+              <i className="fas fa-refresh mr-2"></i>
+              Try Again
+            </button>
+          </div>
+        ) : jobListings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center flex-grow py-8 text-center">
+            <i className="fas fa-briefcase text-5xl text-gray-300 mb-4"></i>
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">No Job Listings Found</h3>
+            <p className="text-gray-600 mb-4">
+              {debouncedSearchTerm || activeFilter !== 'All Jobs'
+                ? 'Try adjusting your search or filter criteria'
+                : 'Start by posting your first job opportunity!'}
+            </p>
+            {!debouncedSearchTerm && activeFilter === 'All Jobs' && (
+              <Link
+                to="/employer/job-listings/new"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all"
+              >
+                <i className="fas fa-plus mr-2"></i>
+                Post New Job
+              </Link>
             )}
           </div>
+        ) : (
+          <>
+            <div className="space-y-4 overflow-auto flex-grow pr-2">
+              {jobListings.map(job => (
+                <div
+                  key={job.jobId}
+                  className={`border-2 rounded-xl p-4 sm:p-5 transition-all hover:shadow-lg flex flex-col md:flex-row gap-4 sm:gap-5 items-start md:items-center ${job.isBoosted
+                    ? 'border-yellow-400 shadow-md shadow-yellow-100 hover:border-yellow-500'
+                    : 'border-gray-200 hover:border-blue-600'
+                    }`}
+                >
+                  <div className="flex-shrink-0 self-center md:self-start">
+                    <img
+                      src={job.imageUrl || '/assets/company_logo.jpg'}
+                      alt="Company"
+                      className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg object-cover"
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0 w-full">
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 break-words">
+                      {job.title}
+                      <span className="ml-2 text-xs sm:text-sm font-normal text-gray-500">
+                        ({job.applicationCount || 0}/{job.applicationCap != null ? job.applicationCap : <span className="text-base">∞</span>})
+                      </span>
+                    </h3>
+                    <div className="text-blue-600 font-semibold text-base sm:text-lg mb-3">
+                      ₹{typeof job.budget === 'number' ? job.budget.toLocaleString('en-IN') : job.budget}
+                    </div>
+                    <div className="flex gap-2 mb-3 flex-wrap">
+                      {getSkills(job).slice(0, 3).map((skill, idx) => (
+                        <span key={idx} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 sm:gap-4 text-gray-600 text-xs sm:text-sm flex-wrap">
+                      <span className="flex items-center gap-2">
+                        <i className="fas fa-map-marker-alt text-blue-600"></i>
+                        {job.location || 'Not specified'}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <i className="fas fa-briefcase text-blue-600"></i>
+                        {job.jobType}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <i className="fas fa-calendar text-blue-600"></i>
+                        Posted {getDaysAgo(job.postedDate)}
+                      </span>
+                      {job.remote && (
+                        <span className="flex items-center gap-2 text-green-600">
+                          <i className="fas fa-home"></i>
+                          Remote
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="w-full md:w-auto flex-shrink-0 flex flex-col sm:flex-row md:flex-col gap-2 items-stretch md:min-w-[140px]">
+                    <button
+                      onClick={() => navigate(`/employer/applications?jobId=${job.jobId}`)}
+                      className="w-full border-2 border-blue-600 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-semibold whitespace-nowrap flex items-center justify-center gap-2 text-sm"
+                    >
+                      <i className="fas fa-users"></i>
+                      <span>{job.applicationCount || 0} applicants</span>
+                    </button>
+                    <button
+                      onClick={() => navigate(`/jobs/${job.jobId}`)}
+                      className="w-full border-2 border-blue-600 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-medium text-sm"
+                    >
+                      <i className="fas fa-eye mr-2"></i>View
+                    </button>
+                    <div className="flex gap-2 w-full">
+                      <button
+                        onClick={() => navigate(`/employer/job-listings/edit/${job.jobId}`)}
+                        title="Edit"
+                        className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-all font-medium text-sm flex items-center justify-center gap-1"
+                      >
+                        <i className="fas fa-edit"></i>
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => setDeleteModal({ show: true, jobId: job.jobId })}
+                        title="Delete"
+                        className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-all font-medium text-sm flex items-center justify-center gap-1"
+                      >
+                        <i className="fas fa-trash"></i>
+                        <span>Del</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-3 mt-auto">
+              <p className="text-xs text-gray-500">Showing {jobListings.length} of {pagination.total} records</p>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Rows:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setPageSize(Math.min(100, Math.max(1, Number(e.target.value) || 25)));
+                  }}
+                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={loading || !pagination.hasPrevPage}
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  disabled={loading || !pagination.hasNextPage}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Delete Confirmation Modal */}
       {deleteModal.show && (

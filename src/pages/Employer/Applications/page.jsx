@@ -39,7 +39,7 @@ const mergeUniqueValues = (existing = [], incoming = []) => {
 const EmployerApplications = () => {
   const [searchParams] = useSearchParams();
   const jobIdFilter = searchParams.get('jobId');
-  
+
   const [applications, setApplications] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, accepted: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
@@ -95,14 +95,14 @@ const EmployerApplications = () => {
         sortBy === 'date-desc'
           ? 'newest'
           : sortBy === 'date-asc'
-          ? 'oldest'
-          : sortBy === 'name-asc'
-          ? 'name_asc'
-          : sortBy === 'name-desc'
-          ? 'name_desc'
-          : sortBy === 'rating-desc'
-          ? 'rating_desc'
-          : 'premium_oldest',
+            ? 'oldest'
+            : sortBy === 'name-asc'
+              ? 'name_asc'
+              : sortBy === 'name-desc'
+                ? 'name_desc'
+                : sortBy === 'rating-desc'
+                  ? 'rating_desc'
+                  : 'premium_oldest',
       limit,
       offset: (page - 1) * limit,
       page,
@@ -270,8 +270,13 @@ const EmployerApplications = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    const parsed = new Date(dateString);
+
+    // Check if the dateString is a numeric timestamp (e.g. "1776537402064")
+    const isNumeric = typeof dateString === 'string' && /^\d+$/.test(dateString);
+    const parsed = isNumeric ? new Date(Number(dateString)) : new Date(dateString);
+
     if (Number.isNaN(parsed.getTime())) return 'N/A';
+
     return parsed.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -406,189 +411,189 @@ const EmployerApplications = () => {
             </div>
           </div>
         ) : (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-600">Loading applications...</p>
-            </div>
-          ) : applications.length === 0 ? (
-            <div className="text-center py-12">
-              <i className="fas fa-inbox text-5xl text-gray-300 mb-4"></i>
-              <p className="text-gray-600 font-medium">No applications found</p>
-              <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                    {cols.visible.has('freelancer') && (
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          Freelancer
-                          <SmartFilter
-                            label="Freelancer"
-                            data={applications}
-                            field="freelancerName"
-                            selectedValues={freelancerFilters}
-                            onFilterChange={(values) => {
-                              setCurrentPage(1);
-                              setFreelancerFilters(values);
-                            }}
-                            options={metaFilters.freelancers}
-                          />
-                        </div>
-                      </th>
-                    )}
-                    {cols.visible.has('job') && (
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          Job Details
-                          <SmartFilter
-                            label="Job"
-                            data={applications}
-                            field="jobTitle"
-                            selectedValues={jobFilters}
-                            onFilterChange={(values) => {
-                              setCurrentPage(1);
-                              setJobFilters(values);
-                            }}
-                            options={metaFilters.jobs}
-                          />
-                        </div>
-                      </th>
-                    )}
-                    {cols.visible.has('status') && (
-                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        <div className="flex items-center justify-center gap-2">
-                          Status
-                          <SmartFilter
-                            label="Status"
-                            data={applications}
-                            field="status"
-                            selectedValues={statusFilters}
-                            onFilterChange={(values) => {
-                              setCurrentPage(1);
-                              setStatusFilters(values);
-                            }}
-                            options={metaFilters.statuses}
-                          />
-                        </div>
-                      </th>
-                    )}
-                    {cols.visible.has('date') && (
-                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Applied</th>
-                    )}
-                    {cols.visible.has('rating') && (
-                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        <div className="flex items-center justify-center gap-2">
-                          Rating
-                          <SmartFilter
-                            label="Rating"
-                            data={applications}
-                            field="skillRating"
-                            selectedValues={ratingFilters}
-                            onFilterChange={(values) => {
-                              setCurrentPage(1);
-                              setRatingFilters(values);
-                            }}
-                            options={metaFilters.ratings}
-                          />
-                        </div>
-                      </th>
-                    )}
-                    {cols.visible.has('view') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">View</th>}
-                    {cols.visible.has('resume') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Resume</th>}
-                    {cols.visible.has('actions') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider" style={{ width: '140px' }}>Actions</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {applications.map((application) => (
-                    <tr key={application.applicationId} className="hover:bg-gray-50 transition-colors">
+          <div className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col h-[420px]">
+            {loading ? (
+              <div className="text-center py-8 flex-grow flex flex-col justify-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p className="mt-4 text-gray-600">Loading applications...</p>
+              </div>
+            ) : applications.length === 0 ? (
+              <div className="text-center py-8 flex-grow flex flex-col justify-center">
+                <i className="fas fa-inbox text-5xl text-gray-300 mb-4"></i>
+                <p className="text-gray-600 font-medium">No applications found</p>
+                <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
+              </div>
+            ) : (
+              <div className="overflow-auto flex-grow">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                       {cols.visible.has('freelancer') && (
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                              {application.freelancerPicture ? (
-                                <img className="h-10 w-10 rounded-full object-cover border-2 border-white shadow" src={application.freelancerPicture} alt={application.freelancerName} />
-                              ) : (
-                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow">
-                                  {application.freelancerName?.charAt(0)?.toUpperCase() || 'F'}
-                                </div>
-                              )}
-                            </div>
-                            <div className="ml-3">
-                              <div className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
-                                {application.freelancerName || 'Unknown'}
-                              </div>
-                              <div className="text-xs text-gray-500">{application.freelancerEmail || 'No email'}</div>
-                            </div>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          <div className="flex items-center gap-2">
+                            Freelancer
+                            <SmartFilter
+                              label="Freelancer"
+                              data={applications}
+                              field="freelancerName"
+                              selectedValues={freelancerFilters}
+                              onFilterChange={(values) => {
+                                setCurrentPage(1);
+                                setFreelancerFilters(values);
+                              }}
+                              options={metaFilters.freelancers}
+                            />
                           </div>
-                        </td>
+                        </th>
                       )}
                       {cols.visible.has('job') && (
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-semibold text-gray-900">{application.jobTitle}</div>
-                        </td>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          <div className="flex items-center gap-2">
+                            Job Details
+                            <SmartFilter
+                              label="Job"
+                              data={applications}
+                              field="jobTitle"
+                              selectedValues={jobFilters}
+                              onFilterChange={(values) => {
+                                setCurrentPage(1);
+                                setJobFilters(values);
+                              }}
+                              options={metaFilters.jobs}
+                            />
+                          </div>
+                        </th>
                       )}
-                      {cols.visible.has('status') && <td className="px-6 py-4 text-center">{getStatusBadge(application.status)}</td>}
+                      {cols.visible.has('status') && (
+                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          <div className="flex items-center justify-center gap-2">
+                            Status
+                            <SmartFilter
+                              label="Status"
+                              data={applications}
+                              field="status"
+                              selectedValues={statusFilters}
+                              onFilterChange={(values) => {
+                                setCurrentPage(1);
+                                setStatusFilters(values);
+                              }}
+                              options={metaFilters.statuses}
+                            />
+                          </div>
+                        </th>
+                      )}
                       {cols.visible.has('date') && (
-                        <td className="px-6 py-4 text-center text-sm text-gray-600">{formatDate(application.appliedDate)}</td>
+                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Applied</th>
                       )}
                       {cols.visible.has('rating') && (
-                        <td className="px-6 py-4 text-center">
-                          {application.skillRating > 0 ? (
-                            <span className="text-sm font-semibold text-gray-700 flex items-center justify-center gap-1">
-                              <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                              {application.skillRating}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-400">N/A</span>
-                          )}
-                        </td>
+                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          <div className="flex items-center justify-center gap-2">
+                            Rating
+                            <SmartFilter
+                              label="Rating"
+                              data={applications}
+                              field="skillRating"
+                              selectedValues={ratingFilters}
+                              onFilterChange={(values) => {
+                                setCurrentPage(1);
+                                setRatingFilters(values);
+                              }}
+                              options={metaFilters.ratings}
+                            />
+                          </div>
+                        </th>
                       )}
-                      {cols.visible.has('view') && (
-                        <td className="px-6 py-4 text-center">
-                          <button onClick={() => handleViewDetails(application)} className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-all shadow-sm">
-                            <i className="fas fa-eye mr-1.5"></i>View
-                          </button>
-                        </td>
-                      )}
-                      {cols.visible.has('resume') && (
-                        <td className="px-6 py-4 text-center">
-                          {application.resumeLink ? (
-                            <button onClick={() => handleViewResume(application.resumeLink)} className="inline-flex items-center px-3 py-2 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-all shadow-sm">
-                              <i className="fas fa-file-pdf mr-1.5"></i>Resume
-                            </button>
-                          ) : (
-                            <span className="text-xs text-gray-400">—</span>
-                          )}
-                        </td>
-                      )}
-                      {cols.visible.has('actions') && (
-                        <td className="px-6 py-4">
-                          {application.status === 'Pending' ? (
-                            <div className="flex flex-col gap-1.5">
-                              <button onClick={() => handleAccept(application.applicationId)} className="inline-flex items-center justify-center px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-all shadow-sm">
-                                <i className="fas fa-check mr-1.5"></i>Accept
-                              </button>
-                              <button onClick={() => handleReject(application.applicationId)} className="inline-flex items-center justify-center px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-all shadow-sm">
-                                <i className="fas fa-times mr-1.5"></i>Reject
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-400">—</span>
-                          )}
-                        </td>
-                      )}
+                      {cols.visible.has('view') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">View</th>}
+                      {cols.visible.has('resume') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Resume</th>}
+                      {cols.visible.has('actions') && <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider" style={{ width: '140px' }}>Actions</th>}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {applications.map((application) => (
+                      <tr key={application.applicationId} className="hover:bg-gray-50 transition-colors">
+                        {cols.visible.has('freelancer') && (
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0">
+                                {application.freelancerPicture ? (
+                                  <img className="h-10 w-10 rounded-full object-cover border-2 border-white shadow" src={application.freelancerPicture} alt={application.freelancerName} />
+                                ) : (
+                                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow">
+                                    {application.freelancerName?.charAt(0)?.toUpperCase() || 'F'}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="ml-3">
+                                <div className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+                                  {application.freelancerName || 'Unknown'}
+                                </div>
+                                <div className="text-xs text-gray-500">{application.freelancerEmail || 'No email'}</div>
+                              </div>
+                            </div>
+                          </td>
+                        )}
+                        {cols.visible.has('job') && (
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-semibold text-gray-900">{application.jobTitle}</div>
+                          </td>
+                        )}
+                        {cols.visible.has('status') && <td className="px-6 py-4 text-center">{getStatusBadge(application.status)}</td>}
+                        {cols.visible.has('date') && (
+                          <td className="px-6 py-4 text-center text-sm text-gray-600">{formatDate(application.appliedDate)}</td>
+                        )}
+                        {cols.visible.has('rating') && (
+                          <td className="px-6 py-4 text-center">
+                            {application.skillRating > 0 ? (
+                              <span className="text-sm font-semibold text-gray-700 flex items-center justify-center gap-1">
+                                <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                {application.skillRating}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-400">N/A</span>
+                            )}
+                          </td>
+                        )}
+                        {cols.visible.has('view') && (
+                          <td className="px-6 py-4 text-center">
+                            <button onClick={() => handleViewDetails(application)} className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-all shadow-sm">
+                              <i className="fas fa-eye mr-1.5"></i>View
+                            </button>
+                          </td>
+                        )}
+                        {cols.visible.has('resume') && (
+                          <td className="px-6 py-4 text-center">
+                            {application.resumeLink ? (
+                              <button onClick={() => handleViewResume(application.resumeLink)} className="inline-flex items-center px-3 py-2 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-all shadow-sm">
+                                <i className="fas fa-file-pdf mr-1.5"></i>Resume
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
+                          </td>
+                        )}
+                        {cols.visible.has('actions') && (
+                          <td className="px-6 py-4">
+                            {application.status === 'Pending' ? (
+                              <div className="flex flex-col gap-1.5">
+                                <button onClick={() => handleAccept(application.applicationId)} className="inline-flex items-center justify-center px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-all shadow-sm">
+                                  <i className="fas fa-check mr-1.5"></i>Accept
+                                </button>
+                                <button onClick={() => handleReject(application.applicationId)} className="inline-flex items-center justify-center px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-all shadow-sm">
+                                  <i className="fas fa-times mr-1.5"></i>Reject
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         )}
 
         {!loading && applications.length > 0 && (
