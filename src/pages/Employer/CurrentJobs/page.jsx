@@ -347,7 +347,7 @@ const EmployerCurrentJobs = () => {
               <>
                 <div className="overflow-auto flex-grow">
                   <table className="min-w-full">
-                    <thead>
+                    <thead className="sticky top-0 z-10 bg-white shadow-sm">
                       <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
                         <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                           <div className="flex items-center gap-2">

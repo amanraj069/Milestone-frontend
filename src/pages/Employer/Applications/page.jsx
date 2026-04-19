@@ -426,7 +426,7 @@ const EmployerApplications = () => {
             ) : (
               <div className="overflow-auto flex-grow">
                 <table className="min-w-full">
-                  <thead>
+                  <thead className="sticky top-0 z-10 bg-white shadow-sm">
                     <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                       {cols.visible.has('freelancer') && (
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">

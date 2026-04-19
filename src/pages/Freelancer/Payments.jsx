@@ -475,10 +475,10 @@ const FreelancerPayments = () => {
               <SmartColumnToggle columns={ACTIVE_COLUMNS} visible={activeCols.visible} onChange={activeCols.setVisible} storageKey="payments-active-cols" />
             </div>
           </div>
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 flex flex-col h-[450px]">
+            <div className="overflow-auto flex-grow">
+              <table className="min-w-full relative">
+                <thead className="sticky top-0 z-10 bg-white shadow-sm">
                   <tr className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-gray-100">
                     {activeCols.visible.has('employer') && (
                       <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
@@ -628,10 +628,10 @@ const FreelancerPayments = () => {
               <SmartColumnToggle columns={COMPLETED_COLUMNS} visible={completedCols.visible} onChange={completedCols.setVisible} storageKey="payments-completed-cols" />
             </div>
           </div>
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 flex flex-col h-[450px]">
+            <div className="overflow-auto flex-grow">
+              <table className="min-w-full relative">
+                <thead className="sticky top-0 z-10 bg-white shadow-sm">
                   <tr className="bg-gradient-to-r from-slate-50 to-green-50 border-b border-gray-100">
                     {completedCols.visible.has('employer') && (
                       <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
@@ -914,10 +914,10 @@ const FreelancerPayments = () => {
             </div>
 
             {/* Transactions table */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead>
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 flex flex-col h-[450px]">
+              <div className="overflow-auto flex-grow">
+                <table className="min-w-full relative">
+                  <thead className="sticky top-0 z-10 bg-white shadow-sm">
                     <tr className="bg-gray-50/50 border-b border-gray-100">
                       {platformCols.visible.has('type') && (
                         <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
