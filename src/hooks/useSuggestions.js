@@ -33,11 +33,11 @@ export default function useSuggestions(query = "", type = "jobs", debounceMs = 2
 
       setLoading(true);
       try {
-        const { data } = await axios.get(`${BACKEND_URL}/api/search/suggest`, {
-          params: { q: query.trim(), type },
+        const { data } = await axios.get(`${BACKEND_URL}/api/search`, {
+          params: { q: query.trim(), type, limit: 6 },
           signal: controller.current.signal,
         });
-        setSuggestions(data.suggestions || []);
+        setSuggestions(data.results || []);
       } catch (err) {
         if (!axios.isCancel(err) && err.name !== "CanceledError") {
           console.error("[useSuggestions] Error:", err);

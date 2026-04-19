@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-
+import { getBackendBaseUrl } from '../../../utils/backendBaseUrl';
+import SolrSearchBar from '../../search/SolrSearchBar';
 const BlogList = () => {
   const { user, getDashboardRoute } = useAuth();
+  const apiBaseUrl = getBackendBaseUrl();
   const [featuredBlog, setFeaturedBlog] = useState(null);
+  const [allBlogs, setAllBlogs] = useState([]);
+  const [recentBlogs, setRecentBlogs] = useState([]);
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const categories = [
     'All',
@@ -55,9 +62,17 @@ const BlogList = () => {
     }
   };
 
-  const filteredBlogs = activeCategory === 'All'
+  let filteredBlogs = activeCategory === 'All'
     ? allBlogs
     : allBlogs.filter(blog => blog.category === activeCategory);
+
+  if (searchTerm.trim()) {
+    const search = searchTerm.trim().toLowerCase();
+    filteredBlogs = filteredBlogs.filter(blog => 
+      (blog.title || '').toLowerCase().includes(search) || 
+      (blog.tagline || '').toLowerCase().includes(search)
+    );
+  }
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -89,29 +104,6 @@ const BlogList = () => {
               </a>
             </div>
 
-            {/* Search Bar (Hidden on mobile) */}
-            <div className="hidden md:flex flex-1 max-w-2xl mx-8">
-              <div className="w-full relative">
-                <input
-                  type="text"
-                  placeholder="Search for services..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-                <svg
-                  className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
-            </div>
             {/* Right Section */}
             <div className="flex items-center gap-4">
               {/* Sign In / Dashboard Button */}
@@ -137,7 +129,7 @@ const BlogList = () => {
 
       <div className="pt-20">
         {/* Hero Section */}
-      <section className="relative py-20 overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+      <section className="relative z-20 py-20 overflow-visible bg-gradient-to-br from-indigo-50 via-white to-purple-50">
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
@@ -149,15 +141,14 @@ const BlogList = () => {
             </p>
             
             {/* Search Bar */}
-            <div className="max-w-2xl mx-auto relative">
-              <input
-                type="text"
-                placeholder="Search articles..."
-                className="w-full px-6 py-4 rounded-full border-2 border-gray-200 focus:border-indigo-500 focus:outline-none shadow-lg"
+            <div className="max-w-2xl mx-auto relative" style={{ zIndex: 100 }}>
+              <SolrSearchBar 
+                query={searchTerm}
+                onQueryChange={setSearchTerm}
+                type="blogs"
+                hideToggle={true}
+                onSearch={() => {}}
               />
-              <button className="absolute right-3 top-1/2 -translate-y-1/2 bg-indigo-600 text-white px-6 py-2 rounded-full hover:bg-indigo-700 transition-colors">
-                Search
-              </button>
             </div>
           </div>
         </div>

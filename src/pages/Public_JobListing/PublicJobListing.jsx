@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 
 import Footer from '../../components/Home/Footer';
 import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
+import SolrSearchBar from '../../components/search/SolrSearchBar';
 
 const PublicJobListing = () => {
   const auth = useAuth();
@@ -254,22 +255,13 @@ const PublicJobListing = () => {
             </div>
             
             <div className="w-full md:w-auto md:flex-1 max-w-md mx-0 md:mx-8 order-3 md:order-2">
-              <form className="relative" onSubmit={handleSearch}>
-                <input
-                  type="text"
-                  placeholder="Search for services..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-5 py-3 border-2 rounded-full text-sm outline-none transition-all focus:border-navy-700 focus:ring-4 focus:ring-navy-100 border-gray-200"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy-700 text-white border-none rounded-full w-9 h-9 cursor-pointer transition-all hover:bg-navy-800 flex items-center justify-center shrink-0"
-                  aria-label="Search jobs"
-                >
-                  <i className="fas fa-search"></i>
-                </button>
-              </form>
+              <SolrSearchBar 
+                query={searchTerm}
+                onQueryChange={setSearchTerm}
+                type="jobs"
+                hideToggle={true}
+                onSearch={() => {}}
+              />
             </div>
             
             <div className="flex items-center gap-2 md:gap-4 order-2 md:order-3">

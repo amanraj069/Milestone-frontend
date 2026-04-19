@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import useSuggestions from "../../hooks/useSuggestions";
 
 /**
@@ -23,6 +24,7 @@ export default function SolrSearchBar({
   hideToggle = false,
   onSearch,
 }) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
   const inputRef = useRef(null);
@@ -56,11 +58,13 @@ export default function SolrSearchBar({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const selectSuggestion = (text) => {
-    onQueryChange(text);
+  const selectSuggestion = (item) => {
     setOpen(false);
-    inputRef.current?.focus();
-    if (onSearch) onSearch(text, type);
+    if (type === "jobs") {
+      navigate(`/jobs/${item.id}`);
+    } else {
+      navigate(`/blogs/${item.id}`);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -191,7 +195,7 @@ export default function SolrSearchBar({
         >
           {suggestions.map((s, i) => (
             <button
-              key={`${s}-${i}`}
+              key={s.id || i}
               type="button"
               role="option"
               aria-selected={i === activeIdx}
@@ -217,7 +221,7 @@ export default function SolrSearchBar({
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-              <span className="flex-1 truncate">{s}</span>
+              <span className="flex-1 truncate" dangerouslySetInnerHTML={{ __html: s.highlights?.title?.[0] || s.title || '' }}></span>
               <svg
                 className={`w-3.5 h-3.5 flex-shrink-0 ${
                   i === activeIdx ? "text-blue-400" : "text-gray-300"

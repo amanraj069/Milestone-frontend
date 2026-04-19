@@ -101,7 +101,7 @@ const BlogList = () => {
 
       <div className="pt-20">
         {/* Hero Section */}
-        <section className="relative py-12 overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <section className="relative z-20 py-12 overflow-visible bg-gradient-to-br from-indigo-50 via-white to-purple-50">
           <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-4xl mx-auto text-center">
