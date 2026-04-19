@@ -675,7 +675,7 @@ const Chat = () => {
                           </span>
                           {(conversation.lastMessage || conversation.updatedAt) && (
                             <span className="conversation-time">
-                              {formatTime(conversation.lastMessage.timestamp || conversation.updatedAt)}
+                              {formatTime(conversation.lastMessage?.timestamp || conversation.updatedAt)}
                             </span>
                           )}
                         </div>
