@@ -3,7 +3,6 @@ import { Link, useLocation, useSearchParams, useNavigate } from 'react-router-do
 import { useAuth } from '../../context/AuthContext';
 
 import Footer from '../../components/Home/Footer';
-import SolrSearchBar from '../../components/search/SolrSearchBar';
 import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
 const PublicJobListing = () => {
@@ -39,10 +38,19 @@ const PublicJobListing = () => {
   const [locationFilter, setLocationFilter] = useState('');
   const pageSize = 10;
 
+  const normalizeText = (value) => String(value || '').trim().toLowerCase();
+
   // Load jobs whenever page changes
   useEffect(() => {
     loadJobs(currentPage);
   }, [currentPage]);
+
+  // Reset to first page when filters/search change to avoid empty-page confusion.
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm, sortBy, selectedExperience, selectedSkills, selectedJobType, isRemote, locationFilter]);
 
   // Handle search params from URL
   useEffect(() => {
@@ -126,17 +134,19 @@ const PublicJobListing = () => {
 
     // Apply search filter
     if (searchTerm.trim()) {
-      const search = searchTerm.toLowerCase();
+      const search = normalizeText(searchTerm);
       filtered = filtered.filter(job =>
-        job.title.toLowerCase().includes(search) ||
-        job.description.skills.some(skill => skill.toLowerCase().includes(search))
+        normalizeText(job.title).includes(search) ||
+        (Array.isArray(job?.description?.skills)
+          ? job.description.skills.some(skill => normalizeText(skill).includes(search))
+          : false)
       );
     }
 
     // Apply experience filter
     if (selectedExperience) {
       filtered = filtered.filter(job =>
-        job.experienceLevel.toLowerCase() === selectedExperience.toLowerCase()
+        normalizeText(job.experienceLevel) === normalizeText(selectedExperience)
       );
     }
 
@@ -154,9 +164,9 @@ const PublicJobListing = () => {
 
     // Apply location filter
     if (locationFilter.trim()) {
-      const search = locationFilter.toLowerCase();
+      const search = normalizeText(locationFilter);
       filtered = filtered.filter(job =>
-        job.location.toLowerCase().includes(search)
+        normalizeText(job.location).includes(search)
       );
     }
 
@@ -243,18 +253,23 @@ const PublicJobListing = () => {
               </Link>
             </div>
             
-            <div className="w-full md:w-auto md:flex-1 max-w-md mx-0 md:mx-8 text-black order-3 md:order-2">
-              <SolrSearchBar 
-                query={searchTerm}
-                onQueryChange={setSearchTerm}
-                type="jobs"
-                hideToggle={true}
-                onSearch={(query) => {
-                  if (query.trim()) {
-                    navigate(`/search?q=${encodeURIComponent(query)}&type=jobs`);
-                  }
-                }}
-              />
+            <div className="w-full md:w-auto md:flex-1 max-w-md mx-0 md:mx-8 order-3 md:order-2">
+              <form className="relative" onSubmit={handleSearch}>
+                <input
+                  type="text"
+                  placeholder="Search for services..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-5 py-3 border-2 rounded-full text-sm outline-none transition-all focus:border-navy-700 focus:ring-4 focus:ring-navy-100 border-gray-200"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy-700 text-white border-none rounded-full w-9 h-9 cursor-pointer transition-all hover:bg-navy-800 flex items-center justify-center shrink-0"
+                  aria-label="Search jobs"
+                >
+                  <i className="fas fa-search"></i>
+                </button>
+              </form>
             </div>
             
             <div className="flex items-center gap-2 md:gap-4 order-2 md:order-3">
@@ -386,9 +401,8 @@ const PublicJobListing = () => {
                     onChange={(e) => setIsRemote(e.target.value === 'remote')}
                     className="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer border-gray-300 text-gray-600"
                   >
-                    <option value="all">Remote</option>
-                    <option value="remote">Remote Only</option>
                     <option value="all">All Locations</option>
+                    <option value="remote">Remote Only</option>
                   </select>
                 </div>
               </div>

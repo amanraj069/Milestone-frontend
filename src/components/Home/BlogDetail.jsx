@@ -18,6 +18,7 @@ const BlogDetail = () => {
     message: ''
   });
   const [comments, setComments] = useState([]);
+  const [hasResolvedCurrentBlog, setHasResolvedCurrentBlog] = useState(false);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -29,9 +30,14 @@ const BlogDetail = () => {
   };
 
   useEffect(() => {
-    dispatch(fetchBlogById(blogId));
+    setHasResolvedCurrentBlog(false);
+    const currentBlogPromise = dispatch(fetchBlogById(blogId));
     dispatch(fetchRecentBlogs(blogId));
     dispatch(fetchFeaturedBlog());
+
+    Promise.resolve(currentBlogPromise).finally(() => {
+      setHasResolvedCurrentBlog(true);
+    });
 
     return () => {
       dispatch(clearCurrentBlog());
@@ -39,10 +45,10 @@ const BlogDetail = () => {
   }, [dispatch, blogId]);
 
   useEffect(() => {
-    if (blog === null && !loading) {
+    if (hasResolvedCurrentBlog && blog === null && !loading) {
       navigate('/blogs');
     }
-  }, [blog, loading, navigate]);
+  }, [blog, loading, hasResolvedCurrentBlog, navigate]);
 
   const handleCommentChange = (e) => {
     setComment({

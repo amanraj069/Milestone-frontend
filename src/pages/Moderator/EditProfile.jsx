@@ -219,7 +219,7 @@ const ModeratorEditProfile = () => {
         try { localStorage.setItem('profileUpdated', Date.now().toString()); } catch (e) {}
         try { window.dispatchEvent(new Event('profileUpdated')); } catch (e) {}
         alert('Profile updated successfully!');
-        navigate('/admin/profile');
+        navigate('/moderator/profile');
       } else {
         alert(result.error || 'Failed to update profile');
       }

@@ -2,6 +2,11 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { graphqlQuery } from '../../utils/graphqlClient';
 import { getBackendBaseUrl } from '../../utils/backendBaseUrl';
 
+const mergeUniqueValues = (prev = [], incoming = []) => {
+  const merged = new Set([...(prev || []), ...(incoming || [])]);
+  return Array.from(merged).filter(Boolean).sort((a, b) => String(a).localeCompare(String(b)));
+};
+
 const API_BASE_URL = getBackendBaseUrl();
 
 // Thunk to load job history for a freelancer — now uses GraphQL with DataLoader batching
@@ -170,6 +175,8 @@ const jobsSlice = createSlice({
   initialState: {
     jobHistory: [],
     activeJobs: [],
+    latestJobHistoryRequestId: null,
+    latestActiveJobsRequestId: null,
     jobHistoryMeta: {
       total: 0,
       filterOptions: { statuses: [], employers: [], jobTitles: [] },
@@ -190,31 +197,55 @@ const jobsSlice = createSlice({
   extraReducers: (builder) => {
     // loadJobHistory
     builder
-      .addCase(loadJobHistory.pending, (state) => {
+      .addCase(loadJobHistory.pending, (state, action) => {
         state.loading = true;
         state.error = null;
+        state.latestJobHistoryRequestId = action.meta.requestId;
       })
       .addCase(loadJobHistory.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.latestJobHistoryRequestId) {
+          return;
+        }
         state.loading = false;
         state.jobHistory = action.payload.jobs;
         state.jobHistoryMeta = {
           total: action.payload.total,
-          filterOptions: action.payload.filterOptions,
+          filterOptions: {
+            statuses: mergeUniqueValues(
+              state.jobHistoryMeta?.filterOptions?.statuses,
+              action.payload.filterOptions?.statuses,
+            ),
+            employers: mergeUniqueValues(
+              state.jobHistoryMeta?.filterOptions?.employers,
+              action.payload.filterOptions?.employers,
+            ),
+            jobTitles: mergeUniqueValues(
+              state.jobHistoryMeta?.filterOptions?.jobTitles,
+              action.payload.filterOptions?.jobTitles,
+            ),
+          },
           pagination: action.payload.pagination,
         };
       })
       .addCase(loadJobHistory.rejected, (state, action) => {
+        if (action.meta.requestId !== state.latestJobHistoryRequestId) {
+          return;
+        }
         state.loading = false;
         state.error = action.payload;
       });
 
     // loadActiveJobs
     builder
-      .addCase(loadActiveJobs.pending, (state) => {
+      .addCase(loadActiveJobs.pending, (state, action) => {
         state.loading = true;
         state.error = null;
+        state.latestActiveJobsRequestId = action.meta.requestId;
       })
       .addCase(loadActiveJobs.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.latestActiveJobsRequestId) {
+          return;
+        }
         state.loading = false;
         state.activeJobs = action.payload.jobs;
         state.activeJobsMeta = {
@@ -223,6 +254,9 @@ const jobsSlice = createSlice({
         };
       })
       .addCase(loadActiveJobs.rejected, (state, action) => {
+        if (action.meta.requestId !== state.latestActiveJobsRequestId) {
+          return;
+        }
         state.loading = false;
         state.error = action.payload;
       });

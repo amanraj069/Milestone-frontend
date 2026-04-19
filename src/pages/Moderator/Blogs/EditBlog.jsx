@@ -74,6 +74,11 @@ const EditBlog = () => {
   const fetchBlog = async () => {
     try {
       const blogId = searchParams.get('id');
+      if (!slug && !blogId) {
+        alert('Invalid blog link');
+        navigate('/moderator/blogs');
+        return;
+      }
       const slugUrl = `${apiBaseUrl}/api/moderator/blogs/by-slug/${encodeURIComponent(slug)}`;
       const idUrl = `${apiBaseUrl}/api/moderator/blogs/by-id/${encodeURIComponent(blogId || slug)}`;
 
@@ -91,7 +96,7 @@ const EditBlog = () => {
       if (!response.ok) {
         const message = data?.message || 'Failed to load blog';
         alert(message);
-        navigate('/admin/blogs');
+        navigate('/moderator/blogs');
         return;
       }
 
@@ -100,11 +105,11 @@ const EditBlog = () => {
         setImagePreview(data.blog.imageUrl);
       } else {
         alert('Failed to load blog');
-        navigate('/admin/blogs');
+        navigate('/moderator/blogs');
       }
     } catch (error) {
       alert('Error loading blog');
-      navigate('/admin/blogs');
+      navigate('/moderator/blogs');
     } finally {
       setLoading(false);
     }
@@ -459,7 +464,7 @@ const EditBlog = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate('/admin/blogs')}
+                    onClick={() => navigate('/moderator/blogs')}
                     className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors"
                   >
                     Cancel

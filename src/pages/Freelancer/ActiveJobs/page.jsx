@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import DashboardPage from '../../../components/DashboardPage';
@@ -54,6 +54,18 @@ const APPLICATIONS_SORT_OPTIONS = [
   { value: 'status', label: 'Status' },
 ];
 
+const mergeUniqueValues = (prev = [], incoming = []) => {
+  const merged = new Set([...(prev || []), ...(incoming || [])]);
+  return Array.from(merged).filter(Boolean).sort((a, b) => String(a).localeCompare(String(b)));
+};
+
+const formatDisplayDate = (value) => {
+  if (!value) return 'N/A';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'N/A';
+  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 const FreelancerActiveJobs = () => {
   const { openChatWith } = useChatContext();
   const navigate = useNavigate();
@@ -90,6 +102,7 @@ const FreelancerActiveJobs = () => {
   const [appCurrentPage, setAppCurrentPage] = useState(1);
   const [appPageSize, setAppPageSize] = useState(25);
   const [appColumnFilters, setAppColumnFilters] = useState({ status: [], jobType: [] });
+  const latestApplicationsRequestRef = useRef(0);
 
   const setAppColFilter = (field) => (values) =>
     setAppColumnFilters((prev) => ({ ...prev, [field]: values }));
@@ -130,6 +143,7 @@ const FreelancerActiveJobs = () => {
   }, [dispatch, activeJobsQuerySignature]);
 
   const applicationsQuerySignature = JSON.stringify({
+    activeTab,
     debouncedAppSearchTerm,
     appSortBy,
     statusIn: appColumnFilters.status,
@@ -139,7 +153,14 @@ const FreelancerActiveJobs = () => {
   });
 
   useEffect(() => {
+    if (activeTab !== 'applications') {
+      return;
+    }
+
     const fetchApplications = async () => {
+      const requestId = latestApplicationsRequestRef.current + 1;
+      latestApplicationsRequestRef.current = requestId;
+
       try {
         setAppsLoading(true);
         setAppsError(null);
@@ -198,18 +219,30 @@ const FreelancerActiveJobs = () => {
           variables,
         );
 
+        if (requestId !== latestApplicationsRequestRef.current) {
+          return;
+        }
+
         const payload = data.freelancerApplications || {};
         setApplications(payload.applications || []);
-        setApplicationsMeta({
+        setApplicationsMeta((prev) => ({
           total: payload.total || 0,
           stats: payload.stats || { total: 0, pending: 0, accepted: 0, rejected: 0 },
-          filterOptions: payload.filterOptions || { statuses: [], jobTypes: [] },
+          filterOptions: {
+            statuses: mergeUniqueValues(prev?.filterOptions?.statuses, payload.filterOptions?.statuses),
+            jobTypes: mergeUniqueValues(prev?.filterOptions?.jobTypes, payload.filterOptions?.jobTypes),
+          },
           pagination: payload.pagination || null,
-        });
+        }));
       } catch (err) {
+        if (requestId !== latestApplicationsRequestRef.current) {
+          return;
+        }
         setAppsError('Failed to load applications. Please try again.');
       } finally {
-        setAppsLoading(false);
+        if (requestId === latestApplicationsRequestRef.current) {
+          setAppsLoading(false);
+        }
       }
     };
 
@@ -490,7 +523,7 @@ const FreelancerActiveJobs = () => {
                         )}
                         {appCols.visible.has('appliedDate') && (
                           <td className="px-5 py-4 text-center">
-                            <p className="text-sm text-gray-800">{new Date(application.appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                            <p className="text-sm text-gray-800">{formatDisplayDate(application.appliedDate)}</p>
                           </td>
                         )}
                         {appCols.visible.has('budget') && (

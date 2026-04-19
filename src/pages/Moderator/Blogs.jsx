@@ -139,6 +139,17 @@ const ModeratorBlogs = () => {
   const [afterCursor, setAfterCursor] = useState(null);
   const [cursorStack, setCursorStack] = useState([]);
 
+  const getBlogEditPath = (blog) => {
+    const safeSlug = String(blog?.slug || '').trim();
+    const blogId = String(blog?.blogId || '').trim();
+    const routeValue = safeSlug || blogId;
+
+    if (!routeValue) return null;
+    return blogId
+      ? `/moderator/blogs/edit/${encodeURIComponent(routeValue)}?id=${encodeURIComponent(blogId)}`
+      : `/moderator/blogs/edit/${encodeURIComponent(routeValue)}`;
+  };
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [searchBy, setSearchBy] = useState('title');
@@ -496,6 +507,10 @@ const ModeratorBlogs = () => {
                         </div>
                       </div>
                       <div className="flex gap-2 flex-shrink-0 ml-4">
+                        {(() => {
+                          const editPath = getBlogEditPath(blog);
+                          return (
+                            <>
                         <button
                           onClick={() => navigate(`/blogs/${blog.blogId}`)}
                           className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition-colors"
@@ -503,8 +518,9 @@ const ModeratorBlogs = () => {
                           View
                         </button>
                         <button
-                          onClick={() => navigate(`/moderator/blogs/edit/${blog.slug}`)}
+                          onClick={() => editPath && navigate(editPath)}
                           className="px-3 py-1.5 bg-gray-900 text-white rounded-md text-xs font-medium hover:bg-gray-800 transition-colors"
+                          disabled={!editPath}
                         >
                           Edit
                         </button>
@@ -514,6 +530,9 @@ const ModeratorBlogs = () => {
                         >
                           Delete
                         </button>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
